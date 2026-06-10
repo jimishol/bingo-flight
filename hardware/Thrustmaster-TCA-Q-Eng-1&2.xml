@@ -1,0 +1,191 @@
+<?xml version="1.0"?>
+
+<PropertyList>
+  <name type="string">Thrustmaster TCA Q-Eng 1&amp;2</name>
+  
+  <axis n="1">
+    <desc type="string">Throttle All Engines</desc>
+    <binding>
+      <command type="string">property-scale</command>
+      <property type="string">/controls/engines/throttle-all</property>
+      <factor type="double">1</factor>
+      <offset type="double">0</offset>
+      <power type="double">1</power>
+    </binding>
+  </axis>
+
+  <button>
+    <desc type="string">Flaps Up</desc>
+    <binding>
+      <command type="string">nasal</command>
+      <script type="string">controls.flapsDown(-1);</script>
+    </binding>
+    <repeatable type="double">0</repeatable>
+  </button>
+
+  <button n="1">
+    <desc type="string">Flaps Down</desc>
+    <binding>
+      <command type="string">nasal</command>
+      <script type="string">controls.flapsDown(1);</script>
+    </binding>
+    <repeatable type="double">0</repeatable>
+  </button>
+
+  <button n="2">
+    <desc type="string">Custom</desc>
+    <binding>
+      <command type="string">nasal</command>
+      <script type="string">controls.stepMagnetos(2);</script>
+      <module type="string">__js1</module>
+      <offset type="double">1</offset>
+    </binding>
+    <mod-up>
+      <binding>
+        <command type="string">nasal</command>
+        <script type="string">controls.stepMagnetos(-2)</script>
+        <module type="string">__js1</module>
+        <offset type="double">1</offset>
+      </binding>
+    </mod-up>
+    <repeatable type="double">0</repeatable>
+  </button>
+
+  <button n="3">
+    <desc type="string">Custom</desc>
+    <binding>
+      <command type="string">nasal</command>
+      <script type="string">controls.stepMagnetos(1)</script>
+      <module type="string">__js1</module>
+      <offset type="double">1</offset>
+    </binding>
+    <mod-up>
+      <binding>
+        <command type="string">nasal</command>
+        <script type="string">controls.stepMagnetos(-1)</script>
+        <module type="string">__js1</module>
+        <offset type="double">1</offset>
+      </binding>
+    </mod-up>
+    <repeatable type="double">0</repeatable>
+  </button>
+  
+  <button n="4">  
+    <desc type="string">KAP140 Autopilot Master Toggle</desc>  
+    <binding>  
+      <command type="string">nasal</command>  
+      <script type="string">c172p.click("kap140")</script>  
+    </binding>  
+    <binding>  
+      <command type="string">property-assign</command>  
+      <property type="string">autopilot/kap140/panel/button-ap</property>  
+      <property type="string">sim/time/elapsed-sec</property>  
+    </binding>  
+    <binding>  
+      <condition>  
+        <greater-than>  
+          <property type="string">autopilot/kap140/panel/state</property>  
+          <value type="double">4</value>  
+        </greater-than>  
+        <not>  
+          <property type="string">autopilot/kap140/roll-axis-fail</property>  
+        </not>  
+        <not>  
+          <property type="string">autopilot/kap140/pitch-axis-fail</property>  
+        </not>  
+      </condition>  
+      <command type="string">property-assign</command>  
+      <property type="string">autopilot/kap140/panel/state-old</property>  
+      <property type="string">autopilot/kap140/panel/state</property>  
+    </binding>  
+    <binding>  
+      <condition>  
+        <greater-than>  
+          <property type="string">autopilot/kap140/panel/state</property>  
+          <value type="double">4</value>  
+        </greater-than>  
+        <not>  
+          <property type="string">autopilot/kap140/roll-axis-fail</property>  
+        </not>  
+        <not>  
+          <property type="string">autopilot/kap140/pitch-axis-fail</property>  
+        </not>  
+      </condition>  
+      <command type="string">property-assign</command>  
+      <property type="string">autopilot/internal/target-climb-rate</property>  
+      <property type="string">autopilot/internal/vert-speed-fpm</property>  
+    </binding>  
+    <mod-up>  
+      <binding>  
+        <command type="string">property-assign</command>  
+        <property type="string">autopilot/kap140/panel/button-ap</property>  
+        <value type="double">0</value>  
+      </binding>  
+    </mod-up>  
+    <repeatable type="double">0</repeatable>  
+  </button>
+
+  <button n="5">
+    <desc type="string">Custom</desc>
+    <binding>
+      <command type="string">nasal</command>
+      <script type="string">
+        if ( getprop("/controls/engines/engine/magnetos") == 3 ) 
+        {controls.startEngine(1);}
+      </script>
+      <module type="string">__js1</module>
+    </binding>
+    <mod-up>
+      <binding>
+        <command type="string">nasal</command>
+        <script type="string">
+          if ( getprop("/controls/engines/engine/magnetos") == 3 ) 
+          {controls.startEngine(0);}
+        </script>
+        <module type="string">__js1</module>
+      </binding>
+    </mod-up>
+    <repeatable type="double">0</repeatable>
+  </button>
+
+  <button n="6">
+    <desc type="string">Left Lever Position (Takeoff Trim on Release)</desc>
+    <binding>
+      <command type="string">nasal</command>
+      <script type="string"></script>
+    </binding>
+    <mod-up>
+      <binding>
+        <command type="string">nasal</command>
+        <script type="string">setprop("/controls/flight/elevator-trim", -0.1);</script>
+        <module type="string">__js1</module>
+      </binding>
+    </mod-up>
+    <repeatable type="double">0</repeatable>
+  </button>
+
+  <button n="7">
+    <desc type="string">Parking Brake (Right Lever Position)</desc>
+    <binding>
+      <command type="string">property-assign</command>
+      <property type="string">/controls/gear/brake-parking</property>
+      <value type="double">1</value>
+    </binding>
+    <mod-up>
+      <binding>
+        <command type="string">property-assign</command>
+        <property type="string">/controls/gear/brake-parking</property>
+        <value type="double">0</value>
+      </binding>
+    </mod-up>
+  </button>
+
+  <button n="15">
+    <desc type="string">Reverser Toggle</desc>
+    <binding>
+      <command type="string">nasal</command>
+      <script type="string">controls.reverserTogglePosition();</script>
+    </binding>
+    <repeatable type="double">0</repeatable>
+  </button>
+</PropertyList>
