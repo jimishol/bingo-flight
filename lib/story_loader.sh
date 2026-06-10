@@ -22,8 +22,11 @@ load_story() {
   expected_file="pax${pax}__bag${bag}.txt"
   candidate="$base/${expected_file}"
 
+
+  # pick a random non-empty line from the file (POSIX awk)
   if [ -f "$candidate" ]; then
-    cat "$candidate"
+    # read and print one random non-empty line
+    awk 'BEGIN{srand()} NF{lines[++n]=$0} END{ if(n) print lines[int(rand()*n)+1] }' "$candidate"
     return 0
   fi
 
