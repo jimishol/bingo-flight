@@ -28,6 +28,17 @@ SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
 JOURNEY_LOG="$DB_DIR/journey_log.txt"
 HASH_FILE="$DB_DIR/.script_hash"
 
+# Source helper libs if present
+if [ -f "$SCRIPT_DIR/lib/config.sh" ]; then
+  # shellcheck source=/dev/null
+  . "$SCRIPT_DIR/lib/config.sh"
+fi
+
+if [ -f "$SCRIPT_DIR/lib/story_loader.sh" ]; then
+  # shellcheck source=/dev/null
+  . "$SCRIPT_DIR/lib/story_loader.sh"
+fi
+
 # Custom Filter Card Targets (Moved entirely inside secure application cache)
 CSV_TARGET_FILE="$DB_DIR/destinations.csv"
 
@@ -673,48 +684,32 @@ fi
 # ==============================================================================
 # WEIGHT DETECT ENGINE & CONTEXT TEXT CORES
 # ==============================================================================
+
+# compute baggage weight using tier-specific max (config.sh provides max_baggage)
 if [ "$JOURNEY_MODE" -eq 1 ]; then
-    # Lock cabin size and randomize baggage independently
     passengers=$JOURNEY_PASSENGERS_ONBOARD
-    baggage_weight=$(( RANDOM % 121 ))  
 else
-    # Full abstract randomization for standard single-hop flights
     passengers=$(( RANDOM % 4 ))
-    baggage_weight=$(( RANDOM % 121 ))
 fi
 
-bag_class="light"
-[ "$baggage_weight" -ge 40 ] && bag_class="medium"
-[ "$baggage_weight" -ge 80 ] && bag_class="heavy"
+baggage_weight=$(( RANDOM % max_baggage ))
 
-if [ "$IS_LOCAL_FLIGHT" -eq 1 ]; then
-    if [ "$passengers" -eq 0 ]; then story="Local Flight: Grinding touch-and-goes, pattern work, or checking airframe trim."
-    elif [ "$passengers" -eq 1 ]; then story="Sightseeing trip. Taking a single local aviation enthusiast up to see the coast."
-    elif [ "$passengers" -eq 2 ]; then story="Local excursion. Taking two friends out for a quick sunset tour around the area."
-    else story="Full cabin flight. Giving a local family an introduction to general aviation around the patch."
-    fi
-elif [ "$icao" = "$HOME_ICAO" ] && [ "$passengers" -eq 0 ] && [ "$bag_class" = "light" ]; then
-    story="Heading Base: Operational tour finished. Returning empty to $HOME_ICAO for maintenance checks."
-elif [ "$passengers" -eq 0 ]; then
-    if [ "$bag_class" = "light" ]; then story="Ferry flight. Repositioning the aircraft to another hangar for a checkup."
-    elif [ "$bag_class" = "medium" ]; then story="Urgent parts run. Hauling a replacement battery and fresh avionics cards."
-    else story="Cargo run. Hauling critical generator components and heavy bundles of texts."
-    fi
-elif [ "$passengers" -eq 1 ]; then
-    if [ "$bag_class" = "light" ]; then story="An urgent business courier carrying a locked briefcase to beat a corporate deadline."
-    elif [ "$bag_class" = "medium" ]; then story="A solo tourist heading out for a long holiday weekend carrying a couple of standard duffel bags."
-    else story="An island surveyor traveling with heavy technical tripod gear and electronic leveling equipment."
-    fi
-elif [ "$passengers" -eq 2 ]; then
-    if [ "$bag_class" = "light" ]; then story="A retired couple on a spontaneous day-trip holiday, traveling incredibly light."
-    elif [ "$bag_class" = "medium" ]; then story="Two corporate partners traveling with standing promotional banners for an expo."
-    else story="A pair of eager international tourists loaded down with massive, heavy hard-shell vacation luggage."
-    fi
-else
-    if [ "$bag_class" = "light" ]; then story="A local family squeezing tightly into the cabin with nothing but small packs."
-    elif [ "$bag_class" = "medium" ]; then story="A small family heading off on an annual holiday trip carrying standard upright rolling suitcases."
-    else story="CRITICAL LOAD: A fully packed family group with massive luggage. Expect absolute performance limits!"
-    fi
+# classify
+bag_class="light"
+[ "$baggage_weight" -ge "$threshold_medium" ] && bag_class="medium"
+[ "$baggage_weight" -ge "$threshold_heavy" ] && bag_class="heavy"
+
+# Load story from external files; loader returns empty if no file exists
+story=""
+if command -v load_story >/dev/null 2>&1; then
+  story=$(load_story "$VEHICLE_TIER" "$passengers" "$bag_class" 2>/dev/null || true)
+fi
+
+# Strict mode: abort if no story file exists
+if [ -z "${story:-}" ]; then
+  echo "ERROR: No story file found for ${VEHICLE_TIER} pax=${passengers} bag=${bag_class}."
+  echo "Expected one of: pax${passengers}__bag${bag}.txt or ${VEHICLE_TIER}__pax${passengers}__bag${bag}.txt in stories/en/small"
+  exit 1
 fi
 
 # ==============================================================================
