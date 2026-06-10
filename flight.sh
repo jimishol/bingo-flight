@@ -3,7 +3,12 @@
 # ==============================================================================
 # CONFIGURATION & VEHICLE TIER HIERARCHY
 # ==============================================================================
-VEHICLE_TIER="small_airplane"
+
+# set localization; change to "el" to prefer Greek stories, fallback to "en" automatically
+LOCALIZATION="${LOCALIZATION:-el}"
+export LOCALIZATION
+
+VEHICLE_TIER="small" #small, medium, large, heli
 HOME_ICAO="LGHI"
 CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
 CITIES_ALERT_THRESHOLD=5

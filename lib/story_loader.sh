@@ -1,32 +1,34 @@
 #!/usr/bin/env bash
-# lib/story_loader.sh - strict loader: return story text only if file exists
+# lib/story_loader.sh - loader: check project lang/tier folder, fallback to en, always return 0
 # Usage: story=$(load_story "$VEHICLE_TIER" "$passengers" "$bag_class")
+# Expects LOCALIZATION to be set by caller (flight.sh)
 
 load_story() {
   local tier="$1" pax="$2" bag="$3"
-  local base
-  local candidate
+  local lang base candidate rel_dir expected_file
 
-  # search order: repo-local then user-local
-  for base in "${SCRIPT_DIR:-.}/stories/en/small" "$HOME/my_github/bingo-flightgear/stories/en/small"; do
-    # 1) canonical full pattern: <tier>__pax<pax>__bag<bag>.txt
-    candidate="$base/${tier}__pax${pax}__bag${bag}.txt"
-    [ -f "$candidate" ] && { cat "$candidate"; return 0; }
+  # Read localization set by flight.sh; if empty, fall back to en
+  lang="${LOCALIZATION}"
+  [ -n "$lang" ] || lang="en"
 
-    # 2) short pattern you created: pax<pax>__bag<bag>.txt
-    candidate="$base/pax${pax}__bag${bag}.txt"
-    [ -f "$candidate" ] && { cat "$candidate"; return 0; }
+  # prefer requested localization; if missing, fall back to en
+  base="${SCRIPT_DIR:-.}/stories/${lang}/${tier}"
+  if [ ! -d "$base" ]; then
+    lang="en"
+    base="${SCRIPT_DIR:-.}/stories/${lang}/${tier}"
+  fi
 
-    # 3) tier+bag pattern: <tier>__bag<bag>.txt
-    candidate="$base/${tier}__bag${bag}.txt"
-    [ -f "$candidate" ] && { cat "$candidate"; return 0; }
+  rel_dir="stories/${lang}/${tier}"
+  expected_file="pax${pax}__bag${bag}.txt"
+  candidate="$base/${expected_file}"
 
-    # 4) generic tier file: <tier>.txt
-    candidate="$base/${tier}.txt"
-    [ -f "$candidate" ] && { cat "$candidate"; return 0; }
-  done
+  if [ -f "$candidate" ]; then
+    cat "$candidate"
+    return 0
+  fi
 
-  # Nothing found: return empty (no fallback)
+  # No story file found: print the single-line error as loader output and succeed
+  printf 'Context     : ERROR: No story file. Expected %s in %s\n' "$expected_file" "$rel_dir"
   return 0
 }
 
