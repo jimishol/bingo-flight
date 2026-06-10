@@ -3,7 +3,7 @@
 # ==============================================================================
 # CONFIGURATION & VEHICLE TIER HIERARCHY
 # ==============================================================================
-VEHICLE_TIER="small_airplane" # small_airplane, medium_airplane, large_airplane, helicopter (or anything else is equivelant to helicopter) 
+VEHICLE_TIER="large_airplane" # small_airplane, medium_airplane, large_airplane, helicopter (or anything else is equivelant to helicopter) 
 HOME_ICAO="LGHI"
 CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
 CITIES_ALERT_THRESHOLD=5
@@ -13,7 +13,7 @@ PILOT_WEIGHT=210
 JOURNEY_PASSENGERS_ONBOARD=3  # Options: 0 to 3 passengers max for small_airplane
 JOURNEY_PAX_WEIGHTS=(137 177 126) # Fixed individual weights for Passenger 1, 2, and 3
 
-DB_SOURCE="LNM" # Change to "LNM" if you wish to cross-reference with Little Navmap
+DB_SOURCE="LNM" # "MWGG" or Change to "LNM" if you wish to cross-reference with Little Navmap
 
 # Storage Directories & JSON Sync Outputs
 DB_DIR="$HOME/.cache/flight_dispatch"
