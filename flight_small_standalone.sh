@@ -3,7 +3,7 @@
 # ==============================================================================
 # CONFIGURATION & VEHICLE TIER HIERARCHY
 # ==============================================================================
-VEHICLE_TIER="small_airplane"
+VEHICLE_TIER="small_airplane" # small_airplane, medium_airplane, large_airplane, helicopter (or anything else is equivelant to helicopter) 
 HOME_ICAO="LGHI"
 CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
 CITIES_ALERT_THRESHOLD=5
