@@ -15,10 +15,6 @@ HOME_ICAO="LGHI"
 CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
 CITIES_ALERT_THRESHOLD=5
 
-# 🌟 HIGH-ADVENTURE CABIN MANIFEST CONFIGURATION
-JOURNEY_PASSENGERS_ONBOARD=3  # Options: 0 to 3 passengers max for small_airplane
-JOURNEY_PAX_WEIGHTS=(137 177 126) # Fixed individual weights for Passenger 1, 2, and 3
-
 DB_SOURCE="LNM" # Change to "GLOBAL" to use all OurAirports, or "LNM" to restrict to FlightGear-verified airfields
 
 # Storage Directories & JSON Sync Outputs
@@ -773,7 +769,7 @@ fi
 
 # compute baggage weight using tier-specific max (config.sh provides max_baggage)
 if [ "$JOURNEY_MODE" -eq 1 ]; then
-    passengers=$JOURNEY_PASSENGERS_ONBOARD
+    passengers="$journey_zones"
 else
     passengers=$(( RANDOM % 4 ))
 fi
@@ -794,7 +790,7 @@ fi
 # Strict mode: abort if no story file exists
 if [ -z "${story:-}" ]; then
   echo "ERROR: No story file found for ${VEHICLE_TIER} pax=${passengers} bag=${bag_class}."
-  echo "Expected pax${passengers}__bag${bag_class}.txt in stories/en/small"
+  echo "Expected pax${passengers}__bag${bag_class}.txt in stories/en/${VEHICLE_TIER}"
   exit 1
 fi
 
@@ -809,14 +805,25 @@ else
 fi
 echo "========================================================="
 
+# choose manifest wording per tier (singular/plural handled)
+if [ "$VEHICLE_TIER" = "medium_airplane" ] || [ "$VEHICLE_TIER" = "large_airplane" ]; then
+  manifest_word="Zone"
+else
+  manifest_word="Passenger"
+fi
+# pluralize when needed
+if [ "${passengers:-0}" -ne 1 ]; then
+  manifest_word="${manifest_word}s"
+fi
+
 if [ "$IS_LOCAL_FLIGHT" -eq 1 ]; then
-    echo "Manifest    : $passengers Passenger(s) | Baggage: $bag_class"
+    echo "Manifest    : $passengers ${manifest_word} | Baggage: $bag_class"
     echo "Context     : $story"
 else
     echo "Destination : $apt_name"
     echo "Location    : $apt_city, $apt_country (ICAO: $icao)"
     echo "---------------------------------------------------------"
-    echo "Manifest    : $passengers Passenger(s) | Baggage: $bag_class"
+    echo "Manifest    : $passengers ${manifest_word} | Baggage: $bag_class"
     echo "Context     : $story"
 fi
 
@@ -940,26 +947,30 @@ echo "---------------------------------------------------------"
 if [ "$VEHICLE_TIER" = "small_airplane" ] || [ "$VEHICLE_TIER" = "helicopter" ]; then
     crew_label="Pilot Weight"
 else
-    crew_label="Crew Weight"
+    crew_label="Crew Weight "
 fi
 
-printf "• %s : %3i lbs\n" "$crew_label" "$crew"
+printf "• %s :    %3i lbs\n" "$crew_label" "$crew"
 
 if [ "$passengers" -ne 0 ]; then
     i=1
     while [ "$i" -le "$passengers" ]; do
         if [ "$JOURNEY_MODE" -eq 1 ]; then
             # Pull the locked, static weight from your configuration array
-            p_weight="${JOURNEY_PAX_WEIGHTS[$((i-1))]}"
+	    p_weight="${journey_cargo[$((i-1))]}"
         else
             # Roll a dynamic variable weight for random flights
-            p_weight=$(( 120 + RANDOM % 90 ))
+            p_weight=$(( (pax_min + RANDOM % pax_range) * seats_per_zone ))
         fi
-        printf "• Passenger %i       : %3i lbs\n" "$i" "$p_weight"
+
+	label_var="pax${i}_label"
+	label="${!label_var}"
+	printf "• %-12s : %6i lbs\n" "$label" "$p_weight"
+
         i=$(( i + 1 ))
     done
 fi
-printf "• Cargo/Baggage     : %3i lbs (%s load)\n" "$baggage_weight" "$bag_class"
+printf "• Cargo        :    %3i lbs (%s load)\n" "$baggage_weight" "$bag_class"
 echo "========================================================="
 echo "Calculate your Weight & Balance carefully before advancing the throttle!"
 echo "Have a great flight!"
