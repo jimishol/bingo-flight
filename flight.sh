@@ -8,7 +8,7 @@
 LOCALIZATION="${LOCALIZATION:-el}"
 export LOCALIZATION
 
-VEHICLE_TIER="small_airplane" # small_airplane, medium_airplane, large_airplane, helicopter
+VEHICLE_TIER="large_airplane" # small_airplane, medium_airplane, large_airplane, helicopter
 HOME_ICAO="LGHI"
 CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
 CITIES_ALERT_THRESHOLD=5
