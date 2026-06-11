@@ -31,7 +31,7 @@ load_story() {
   fi
 
   # No story file found: print the single-line error as loader output and succeed
-  printf 'Context     : ERROR: No story file. Expected %s in %s\n' "$expected_file" "$rel_dir"
+  printf 'ERROR: No story file. Expected %s in %s\n' "$expected_file" "$rel_dir"
   return 0
 }
 

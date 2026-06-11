@@ -8,7 +8,9 @@
 LOCALIZATION="${LOCALIZATION:-el}"
 export LOCALIZATION
 
-VEHICLE_TIER="large_airplane" # small_airplane, medium_airplane, large_airplane, helicopter
+VEHICLE_TIER="${VEHICLE_TIER:-small_airplane}"
+export VEHICLE_TIER
+
 HOME_ICAO="LGHI"
 CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
 CITIES_ALERT_THRESHOLD=5
@@ -567,8 +569,66 @@ fi
 
 if [ "$JOURNEY_MODE" -eq 0 ]; then
     if [ -z "${1:-}" ]; then
-        IS_LOCAL_FLIGHT=1
-        icao="$HOME_ICAO"
+        if [ -s "$CSV_TARGET_FILE" ]; then
+            echo "Custom target deck active. Rolling random destination from deck..."
+            rolled_icao=$(python3 -c "
+import sys, json, os, random
+
+tier = '$VEHICLE_TIER'
+db_file = '$DB_FILE'
+db_dir = '$DB_DIR'
+csv_file = '$CSV_TARGET_FILE'
+non_repeat = int('$NON_REPEAT_MODE')
+
+exclude_types = set()
+if tier == 'small_airplane': exclude_types.add('heliport')
+elif tier == 'medium_airplane': exclude_types.update(['heliport', 'small_airport'])
+elif tier == 'large_airplane': exclude_types.update(['heliport', 'small_airport', 'medium_airport'])
+
+try:
+    with open(db_file, 'r') as f: db = json.load(f)
+    
+    with open(csv_file, 'r') as f:
+        next(f) # Skip header
+        deck_targets = set([line.strip().upper() for line in f if line.strip()])
+        
+    active_pool = [k for k in deck_targets if k in db and db[k].get('type') not in exclude_types]
+
+    if not active_pool:
+        print('MISSING_DECK')
+        sys.exit(0)
+
+    if non_repeat:
+        history = set()
+        prefixes = set([k[:2] for k in active_pool])
+        for px in prefixes:
+            px_file = os.path.join(db_dir, f'visited_{px}.txt')
+            if os.path.exists(px_file):
+                with open(px_file, 'r') as f: history.update([l.strip().upper() for l in f if l.strip()])
+                
+        unvisited = [icao for icao in active_pool if icao not in history]
+        print(random.choice(unvisited) if unvisited else random.choice(active_pool))
+    else:
+        print(random.choice(active_pool))
+except Exception:
+    print('FAIL')
+")
+            if [ "$rolled_icao" = "MISSING_DECK" ]; then
+                echo "⚠️  NOTICE: Custom deck has no operational airfields for tier '$VEHICLE_TIER'."
+                echo "Switching runtime profile to local abstract manifest..."
+                IS_LOCAL_FLIGHT=1
+                icao="$HOME_ICAO"
+            elif [ "$rolled_icao" = "FAIL" ] || [ -z "$rolled_icao" ]; then
+                echo "ERROR: Dynamic compilation issue generating airfield arrays from deck."
+                exit 1
+            else
+                icao="$rolled_icao"
+                IS_LOCAL_FLIGHT=0
+            fi
+        else
+            IS_LOCAL_FLIGHT=1
+            icao="$HOME_ICAO"
+        fi
     else
         input_token="${1^^}"
         if [[ "$input_token" =~ ^[A-Z]{2}$ ]]; then
@@ -659,9 +719,9 @@ except Exception: print('|||')
     [ -n "$apt_name" ] && is_confirmed_airport=1
 fi
 
-# Fallback 1: If not found locally, search the online OurAirports CSV as a last resort
+# Fallback 1: If not found locally, search the online OurAirports CSV dataset
 if [ -z "$apt_name" ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
-    echo "Notice: ICAO '$icao' not found locally. Searching global OurAirports dataset..."
+    echo "Notice: ICAO '$icao' not found locally. Searching global OurAirports dataset online..."
     parsed_data=$(python3 -c "
 import sys, csv, json, urllib.request, os
 
@@ -672,7 +732,6 @@ db_file = '$DB_FILE'
 try:
     req = urllib.request.Request(csv_url, headers={'User-Agent': 'Mozilla/5.0'})
     with urllib.request.urlopen(req) as response:
-        # Stream the CSV and hunt for the missing ICAO
         lines = [l.decode('utf-8', errors='ignore') for l in response.readlines()]
         reader = csv.DictReader(lines)
         for row in reader:
@@ -683,7 +742,6 @@ try:
                 atype = row.get('type', 'small_airport')
                 print(f\"{name}|{city}|{country}|{atype}\")
                 
-                # We found it! Append it to the local cache so we don't have to download again
                 if os.path.exists(db_file):
                     try:
                         with open(db_file, 'r') as f: data = json.load(f)
@@ -692,6 +750,7 @@ try:
                     except: pass
                 sys.exit(0)
 except Exception: pass
+print('|||')
 " 2>/dev/null)
     
     IFS='|' read -r apt_name apt_city apt_country apt_type <<< "$parsed_data"
@@ -701,12 +760,11 @@ except Exception: pass
     fi
 fi
 
-# Fallback 2: Catch-All for truly invalid/fake ICAOs
+# Fallback 2: Catch-All for truly invalid/fake ICAOs (e.g. XXXY)
 if [ -z "$apt_name" ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
     apt_name="Uncharted Airfield"
     apt_city="Unknown Region"
     apt_country="Unknown"
-    apt_type="small_airport"
     is_confirmed_airport=0
 fi
 
@@ -737,7 +795,7 @@ fi
 # Strict mode: abort if no story file exists
 if [ -z "${story:-}" ]; then
   echo "ERROR: No story file found for ${VEHICLE_TIER} pax=${passengers} bag=${bag_class}."
-  echo "Expected one of: pax${passengers}__bag${bag}.txt or ${VEHICLE_TIER}__pax${passengers}__bag${bag}.txt in stories/en/small"
+  echo "Expected pax${passengers}__bag${bag_class}.txt in stories/en/small"
   exit 1
 fi
 
@@ -782,8 +840,11 @@ if [ "$CONFIRMATION" = true ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
 fi
 
 # ==============================================================================
-# ACT 2: UPDATE LOGS & EVALUATE METRICS (Only reached if confirmed or auto-logged)
+# ACT 2: UPDATE LOGS & EVALUATE METRICS
 # ==============================================================================
+mode_text=""
+alert_text=""
+
 if [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
     prefix="${icao:0:2}"
     prefix_file="$DB_DIR/visited_${prefix}.txt"
@@ -839,27 +900,37 @@ else: print(f'{(done / total) * 100:.1f}%')
             fi
         fi
     fi
+else
+    # Give mode_text a beautiful default so it's never "lost" on local flights!
+    mode_text="[LOCAL] Manifest Operations at Base ($HOME_ICAO). Pattern work untracked."
+fi
 
-    # Check for custom overlay target card deck status
-    deck_status=$(calculate_deck_metrics)
-    if [ "$deck_status" != "INACTIVE" ] && [ -n "$deck_status" ]; then
-        IFS='|' read -r vd_count td_count cd_pct rd_count <<< "$deck_status"
-        deck_text="[DECK] Goals Covered:  $vd_count/$td_count Card Targets ($cd_pct) | $rd_count remaining."
-        deck_hint="💡 (Execute 'flight -c --reset' to clear custom deck)"
-        
-        if [ -n "${alert_text:-}" ]; then
-            alert_text="${alert_text}"$'\n\n'"              ${deck_text}"$'\n'"              ${deck_hint}"
-        else
-            alert_text="${deck_text}"$'\n'"              ${deck_hint}"
-        fi
+# Check for custom overlay target card deck status (Now executes safely for ALL flight types!)
+deck_status=$(calculate_deck_metrics)
+if [ "$deck_status" != "INACTIVE" ] && [ -n "$deck_status" ]; then
+    IFS='|' read -r vd_count td_count cd_pct rd_count deck_left <<< "$deck_status"
+    deck_text="[DECK] Goals Covered:  $vd_count/$td_count Card Targets ($cd_pct) | $rd_count remaining."
+    deck_hint="💡 (Execute 'flight -c --reset' to clear custom deck)"
+    
+    # Add 100% completion text, or list the remaining targets if under threshold
+    if [ "$cd_pct" = "100.0%" ]; then
+        deck_text="${deck_text}"$'\n'"              🏆 DECK COMPLETION: Custom target card finished! 🏆"
+    elif [ -n "$deck_left" ] && [ "$rd_count" -gt 0 ]; then
+        deck_text="${deck_text}"$'\n'"              Remaining Targets: ${deck_left}"
     fi
-
-    # Display compiled stats block
-    echo "---------------------------------------------------------"
-    echo "Log Engine  : $mode_text"
+    
     if [ -n "${alert_text:-}" ]; then
-        echo "Alert       : $alert_text"
+        alert_text="${alert_text}"$'\n\n'"              ${deck_text}"$'\n'"              ${deck_hint}"
+    else
+        alert_text="${deck_text}"$'\n'"              ${deck_hint}"
     fi
+fi
+
+# Display compiled stats block
+echo "---------------------------------------------------------"
+echo "Log Engine  : $mode_text"
+if [ -n "${alert_text:-}" ]; then
+    echo "Alert       : $alert_text"
 fi
 
 # ==============================================================================
