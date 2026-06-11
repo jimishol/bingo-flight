@@ -551,8 +551,66 @@ fi
 
 if [ "$JOURNEY_MODE" -eq 0 ]; then
     if [ -z "${1:-}" ]; then
-        IS_LOCAL_FLIGHT=1
-        icao="$HOME_ICAO"
+        if [ -s "$CSV_TARGET_FILE" ]; then
+            echo "Custom target deck active. Rolling random destination from deck..."
+            rolled_icao=$(python3 -c "
+import sys, json, os, random
+
+tier = '$VEHICLE_TIER'
+db_file = '$DB_FILE'
+db_dir = '$DB_DIR'
+csv_file = '$CSV_TARGET_FILE'
+non_repeat = int('$NON_REPEAT_MODE')
+
+exclude_types = set()
+if tier == 'small_airplane': exclude_types.add('heliport')
+elif tier == 'medium_airplane': exclude_types.update(['heliport', 'small_airport'])
+elif tier == 'large_airplane': exclude_types.update(['heliport', 'small_airport', 'medium_airport'])
+
+try:
+    with open(db_file, 'r') as f: db = json.load(f)
+    
+    with open(csv_file, 'r') as f:
+        next(f) # Skip header
+        deck_targets = set([line.strip().upper() for line in f if line.strip()])
+        
+    active_pool = [k for k in deck_targets if k in db and db[k].get('type') not in exclude_types]
+
+    if not active_pool:
+        print('MISSING_DECK')
+        sys.exit(0)
+
+    if non_repeat:
+        history = set()
+        prefixes = set([k[:2] for k in active_pool])
+        for px in prefixes:
+            px_file = os.path.join(db_dir, f'visited_{px}.txt')
+            if os.path.exists(px_file):
+                with open(px_file, 'r') as f: history.update([l.strip().upper() for l in f if l.strip()])
+                
+        unvisited = [icao for icao in active_pool if icao not in history]
+        print(random.choice(unvisited) if unvisited else random.choice(active_pool))
+    else:
+        print(random.choice(active_pool))
+except Exception:
+    print('FAIL')
+")
+            if [ "$rolled_icao" = "MISSING_DECK" ]; then
+                echo "⚠️  NOTICE: Custom deck has no operational airfields for tier '$VEHICLE_TIER'."
+                echo "Switching runtime profile to local abstract manifest..."
+                IS_LOCAL_FLIGHT=1
+                icao="$HOME_ICAO"
+            elif [ "$rolled_icao" = "FAIL" ] || [ -z "$rolled_icao" ]; then
+                echo "ERROR: Dynamic compilation issue generating airfield arrays from deck."
+                exit 1
+            else
+                icao="$rolled_icao"
+                IS_LOCAL_FLIGHT=0
+            fi
+        else
+            IS_LOCAL_FLIGHT=1
+            icao="$HOME_ICAO"
+        fi
     else
         input_token="${1^^}"
         if [[ "$input_token" =~ ^[A-Z]{2}$ ]]; then
@@ -622,7 +680,9 @@ except Exception:
     fi
 fi
 
-# Fetch metadata attributes for selected airfield
+# ==============================================================================
+# FETCH METADATA ATTRIBUTES & ONLINE FALLBACK ENGINE
+# ==============================================================================
 apt_name=""
 apt_city=""
 apt_country=""
@@ -643,9 +703,9 @@ except Exception: print('|||')
     [ -n "$apt_name" ] && is_confirmed_airport=1
 fi
 
-# Fallback 1: If not found locally, search the online OurAirports CSV as a last resort
+# Fallback 1: If not found locally, search the online OurAirports CSV dataset
 if [ -z "$apt_name" ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
-    echo "Notice: ICAO '$icao' not found locally. Searching global OurAirports dataset..."
+    echo "Notice: ICAO '$icao' not found locally. Searching global OurAirports dataset online..."
     parsed_data=$(python3 -c "
 import sys, csv, json, urllib.request, os
 
@@ -656,7 +716,6 @@ db_file = '$DB_FILE'
 try:
     req = urllib.request.Request(csv_url, headers={'User-Agent': 'Mozilla/5.0'})
     with urllib.request.urlopen(req) as response:
-        # Stream the CSV and hunt for the missing ICAO
         lines = [l.decode('utf-8', errors='ignore') for l in response.readlines()]
         reader = csv.DictReader(lines)
         for row in reader:
@@ -667,7 +726,6 @@ try:
                 atype = row.get('type', 'small_airport')
                 print(f\"{name}|{city}|{country}|{atype}\")
                 
-                # We found it! Append it to the local cache so we don't have to download again
                 if os.path.exists(db_file):
                     try:
                         with open(db_file, 'r') as f: data = json.load(f)
@@ -676,6 +734,7 @@ try:
                     except: pass
                 sys.exit(0)
 except Exception: pass
+print('|||')
 " 2>/dev/null)
     
     IFS='|' read -r apt_name apt_city apt_country apt_type <<< "$parsed_data"
@@ -685,12 +744,11 @@ except Exception: pass
     fi
 fi
 
-# Fallback 2: Catch-All for truly invalid/fake ICAOs
+# Fallback 2: Catch-All for truly invalid/fake ICAOs (e.g. XXXY)
 if [ -z "$apt_name" ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
     apt_name="Uncharted Airfield"
     apt_city="Unknown Region"
     apt_country="Unknown"
-    apt_type="small_airport"
     is_confirmed_airport=0
 fi
 
