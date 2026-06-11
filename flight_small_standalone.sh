@@ -231,10 +231,11 @@ except Exception:
 
 calculate_deck_metrics() {
     python3 -c "
-import sys, os
+import sys, os, json
 
 csv_file = '$CSV_TARGET_FILE'
 db_dir = '$DB_DIR'
+db_file = '$DB_FILE'
 
 if not os.path.exists(csv_file):
     print('INACTIVE')
@@ -249,22 +250,34 @@ try:
             
     total_goals = len(deck_icaos)
     if total_goals == 0:
-        print('0|0|100.0%|0')
+        print('0|0|100.0%|0|')
         sys.exit(0)
         
-    visited_goals = 0
+    history_all = set()
     for icao in deck_icaos:
         px = icao[:2]
         px_file = os.path.join(db_dir, f'visited_{px}.txt')
         if os.path.exists(px_file):
             with open(px_file, 'r') as f:
-                history = [l.strip().upper() for l in f if l.strip()]
-            if icao in history:
-                visited_goals += 1
+                history_all.update([l.strip().upper() for l in f if l.strip()])
+                
+    unvisited = [icao for icao in deck_icaos if icao not in history_all]
+    visited_goals = total_goals - len(unvisited)
                 
     pct = (visited_goals / total_goals) * 100
-    rem = total_goals - visited_goals
-    print(f'{visited_goals}|{total_goals}|{pct:.1f}%|{rem}')
+    rem = len(unvisited)
+    
+    cities = ''
+    if 0 < rem <= int('$CITIES_ALERT_THRESHOLD'):
+        db = {}
+        if os.path.exists(db_file):
+            try:
+                with open(db_file, 'r') as f: db = json.load(f)
+            except: pass
+        # If the ICAO isn't in DB_FILE, fallback to just displaying the ICAO code itself
+        cities = ', '.join([db.get(icao, {}).get('city', icao) for icao in unvisited])
+        
+    print(f'{visited_goals}|{total_goals}|{pct:.1f}%|{rem}|{cities}')
 except Exception:
     print('INACTIVE')
 "
@@ -901,9 +914,16 @@ else: print(f'{(done / total) * 100:.1f}%')
     # Check for custom overlay target card deck status
     deck_status=$(calculate_deck_metrics)
     if [ "$deck_status" != "INACTIVE" ] && [ -n "$deck_status" ]; then
-        IFS='|' read -r vd_count td_count cd_pct rd_count <<< "$deck_status"
+        IFS='|' read -r vd_count td_count cd_pct rd_count deck_left <<< "$deck_status"
         deck_text="[DECK] Goals Covered:  $vd_count/$td_count Card Targets ($cd_pct) | $rd_count remaining."
         deck_hint="💡 (Execute 'flight -c --reset' to clear custom deck)"
+        
+        # Add 100% completion text, or list the remaining targets if under threshold
+        if [ "$cd_pct" = "100.0%" ]; then
+            deck_text="${deck_text}"$'\n'"              🏆 DECK COMPLETION: Custom target card finished! 🏆"
+        elif [ -n "$deck_left" ] && [ "$rd_count" -gt 0 ]; then
+            deck_text="${deck_text}"$'\n'"              Remaining Targets: ${deck_left}"
+        fi
         
         if [ -n "${alert_text:-}" ]; then
             alert_text="${alert_text}"$'\n\n'"              ${deck_text}"$'\n'"              ${deck_hint}"
