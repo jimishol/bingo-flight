@@ -14,7 +14,6 @@ export VEHICLE_TIER
 HOME_ICAO="LGHI"
 CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
 CITIES_ALERT_THRESHOLD=5
-PILOT_WEIGHT=210
 
 # 🌟 HIGH-ADVENTURE CABIN MANIFEST CONFIGURATION
 JOURNEY_PASSENGERS_ONBOARD=3  # Options: 0 to 3 passengers max for small_airplane
@@ -937,7 +936,15 @@ fi
 # ACT 3: WEIGHT DETAILS & PRE-FLIGHT OUTRO
 # ==============================================================================
 echo "---------------------------------------------------------"
-printf "• Pilot Weight      : %3i lbs\n" "$PILOT_WEIGHT"
+
+if [ "$VEHICLE_TIER" = "small_airplane" ] || [ "$VEHICLE_TIER" = "helicopter" ]; then
+    crew_label="Pilot Weight"
+else
+    crew_label="Crew Weight"
+fi
+
+printf "• %s : %3i lbs\n" "$crew_label" "$crew"
+
 if [ "$passengers" -ne 0 ]; then
     i=1
     while [ "$i" -le "$passengers" ]; do
