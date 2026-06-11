@@ -3,7 +3,7 @@
 # ==============================================================================
 # CONFIGURATION & VEHICLE TIER HIERARCHY
 # ==============================================================================
-VEHICLE_TIER="large_airplane" # small_airplane, medium_airplane, large_airplane, helicopter (or anything else is equivelant to helicopter) 
+VEHICLE_TIER="small_airplane" # small_airplane, medium_airplane, large_airplane, helicopter (or anything else is equivelant to helicopter) 
 HOME_ICAO="LGHI"
 CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
 CITIES_ALERT_THRESHOLD=5
@@ -13,13 +13,12 @@ PILOT_WEIGHT=210
 JOURNEY_PASSENGERS_ONBOARD=3  # Options: 0 to 3 passengers max for small_airplane
 JOURNEY_PAX_WEIGHTS=(137 177 126) # Fixed individual weights for Passenger 1, 2, and 3
 
-DB_SOURCE="LNM" # "MWGG" or Change to "LNM" if you wish to cross-reference with Little Navmap
+DB_SOURCE="LNM" # Change to "GLOBAL" to use all OurAirports, or "LNM" to restrict to FlightGear-verified airfields
 
 # Storage Directories & JSON Sync Outputs
 DB_DIR="$HOME/.cache/flight_dispatch"
 DB_FILE="$DB_DIR/airports.json"
-DB_URL="https://raw.githubusercontent.com/mwgg/Airports/master/airports.json"
-VATSIM_URL="https://my.vatsim.net/api/v2/aip/airports"
+DB_URL="https://davidmegginson.github.io/ourairports-data/airports.csv"
 LNM_DB="$HOME/my_github/bingo-flightgear/test_files/little_navmap_navigraph.sqlite"
 
 # Adventure & Target Profile Files
@@ -55,13 +54,13 @@ if [ "$DB_SOURCE" = "LNM" ] && [ ! -f "$LNM_DB" ]; then
     echo "was found at: $LNM_DB"
     echo "---------------------------------------------------------"
     echo "Options:"
-    echo "  1) Abort and change DB_SOURCE to 'MWGG' in flight.conf (or fix path)."
-    echo "  2) Hot-swap runtime configuration over to global MWGG baseline."
+    echo "  1) Abort and change DB_SOURCE to 'GLOBAL' in flight.conf (or fix path)."
+    echo "  2) Hot-swap runtime configuration over to global GLOBAL baseline."
     echo "---------------------------------------------------------"
     read -r -p "Choose fallback routing path (1 or 2): " fallback_choice
     if [ "$fallback_choice" = "2" ]; then
         echo "Modifying active session environment configuration..."
-        DB_SOURCE="MWGG"
+        DB_SOURCE="GLOBAL"
     else
         echo "Operational startup cancelled by user. Exiting."
         exit 1
@@ -69,64 +68,84 @@ if [ "$DB_SOURCE" = "LNM" ] && [ ! -f "$LNM_DB" ]; then
 fi
 
 if [ ! -f "$DB_FILE" ] || [ "$SCRIPT_UPDATED" -eq 1 ] || [ ! -s "$DB_FILE" ]; then
-    echo "Sync baseline stale or missing. Fetching raw global MWGG database..."
-    curl -s -L "$DB_URL" -o "$DB_FILE"
-    
-    if [ "$DB_SOURCE" = "LNM" ] && [ -f "$LNM_DB" ]; then
-        echo "Processing cross-reference pipeline: Aligning MWGG baseline with LNM SQLite..."
-        python3 -c "
-import json
-import sqlite3
-import os
+    echo "Sync baseline stale or missing. Executing cross-reference engine ($DB_SOURCE mode)..."
+    python3 -c "
+import csv, json, urllib.request, sqlite3, os
 
+csv_url = '$DB_URL'
 db_file = '$DB_FILE'
 lnm_db = '$LNM_DB'
+db_source = '$DB_SOURCE'
 
-try:
-    conn = sqlite3.connect(lnm_db)
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT ident, name, city, country,
-        CASE type 
-            WHEN 'H' THEN 'heliport'
-            WHEN 'G' THEN 'small_airport'
-            WHEN 'M' THEN 'medium_airport'
-            ELSE 'large_airport'
-        END 
-        FROM airport
-    ''')
-    lnm_airports = {row[0].upper(): row for row in cursor.fetchall() if row[0]}
-    conn.close()
-except Exception as e:
-    print(f'Sync Error reading LNM SQLite database: {e}')
-    lnm_airports = {}
+valid_icaos = set()
+lnm_fallback_data = {}
 
-if lnm_airports:
-    with open(db_file, 'r') as f:
-        mwgg_data = json.load(f)
-        
-    compiled_data = {}
-    for icao, meta in mwgg_data.items():
-        icao_up = icao.upper()
-        if icao_up in lnm_airports:
-            compiled_data[icao_up] = meta
-
-    for icao, row in lnm_airports.items():
-        if icao not in compiled_data:
-            compiled_data[icao] = {
-                'icao': icao,
-                'name': row[1] if row[1] else 'Unknown Airport Field',
+# 1. If in LNM mode, grab the master list of flyable airports
+if db_source == 'LNM' and os.path.exists(lnm_db):
+    try:
+        conn = sqlite3.connect(lnm_db)
+        cursor = conn.cursor()
+        cursor.execute('''SELECT ident, name, city, country FROM airport WHERE ident IS NOT NULL''')
+        for row in cursor.fetchall():
+            ident = row[0].upper()
+            valid_icaos.add(ident)
+            lnm_fallback_data[ident] = {
+                'icao': ident,
+                'name': row[1] if row[1] else 'Unknown LNM Field',
                 'city': row[2] if row[2] else 'Unknown City',
                 'country': row[3] if row[3] else 'Unknown',
-                'type': row[4] if row[4] else 'small_airport'
+                'type': 'small_airport'
             }
+        conn.close()
+        print(f'Found {len(valid_icaos)} verified flyable airfields in LNM database.')
+    except Exception as e:
+        print(f'Warning reading LNM DB: {e}')
+
+# 2. Download OurAirports and filter it
+try:
+    print('Downloading and merging OurAirports size metadata...')
+    req = urllib.request.Request(csv_url, headers={'User-Agent': 'Mozilla/5.0'})
+    with urllib.request.urlopen(req) as response:
+        lines = [l.decode('utf-8') for l in response.readlines()]
+        
+    reader = csv.DictReader(lines)
+    compiled_data = {}
+    
+    for row in reader:
+        ident = row.get('ident', '').upper()
+        apt_type = row.get('type', 'small_airport')
+        
+        if apt_type == 'closed' or len(ident) < 3 or len(ident) > 4:
+            continue
             
-    with open(db_file, 'w') as f:
+        # If we are in LNM mode, skip airports that aren't in the simulator!
+        if db_source == 'LNM' and valid_icaos and ident not in valid_icaos:
+            continue
+            
+        compiled_data[ident] = {
+            'icao': ident,
+            'name': row.get('name', 'Unknown'),
+            'city': row.get('municipality', 'Unknown'),
+            'country': row.get('iso_country', 'Unknown'),
+            'type': apt_type
+        }
+        
+    # 3. Safety Net: Inject LNM airports that OurAirports might have missed (LNM Mode Only)
+    if db_source == 'LNM' and valid_icaos:
+        for ident in valid_icaos:
+            if ident not in compiled_data and len(ident) >= 3 and len(ident) <= 4:
+                compiled_data[ident] = lnm_fallback_data[ident]
+
+    with open(db_file, 'w', encoding='utf-8') as f:
         json.dump(compiled_data, f, indent=4)
-    print(f'Cross-reference sync engine complete! Balanced target dataset size: {len(compiled_data)} airfields.')
+        
+    print(f'Cross-reference complete! Cached {len(compiled_data)} active airfields.')
+except Exception as e:
+    print(f'Error compiling database: {e}')
 "
-    fi
 fi
+
+
 
 # ==============================================================================
 # HELP & DOCUMENTATION SYSTEM (-h / --help handler)
@@ -624,47 +643,52 @@ except Exception: print('|||')
     [ -n "$apt_name" ] && is_confirmed_airport=1
 fi
 
+# Fallback 1: If not found locally, search the online OurAirports CSV as a last resort
 if [ -z "$apt_name" ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
-    json_response=$(curl -s -L -m 4 -H "Accept: application/json" "$VATSIM_URL/$icao")
-    if [ -n "$json_response" ] && [[ "$json_response" != *"detail"* ]]; then
-        parsed_data=$(python3 -c "
-import sys, json
-try:
-    d = json.loads(sys.stdin.read()).get('data', {})
-    if d: print(f\"{d.get('name', '')}|{d.get('city', '')}|{d.get('country', '')}|{d.get('type', '')}\")
-    else: print('||||')
-except Exception: print('||||')
-" <<< "$json_response" 2>/dev/null)
-        IFS='|' read -r apt_name apt_city apt_country apt_type <<< "$parsed_data"
-        
-        if [ -n "$apt_name" ]; then
-            is_confirmed_airport=1
-            python3 -c "
-import json, sys, os
-db_file = '$DB_FILE'
-icao = '$icao'
-name = \"\"\"$apt_name\"\"\"
-city = \"\"\"$apt_city\"\"\"
-country = \"\"\"$apt_country\"\"\"
-atype = '$apt_type'
+    echo "Notice: ICAO '$icao' not found locally. Searching global OurAirports dataset..."
+    parsed_data=$(python3 -c "
+import sys, csv, json, urllib.request, os
 
-if os.path.exists(db_file):
-    try:
-        with open(db_file, 'r') as f: data = json.load(f)
-        data[icao] = {
-            'icao': icao, 'name': name.strip(), 'city': city.strip(),
-            'country': country.strip(), 'type': atype.strip() if atype.strip() else 'small_airport'
-        }
-        with open(db_file, 'w') as f: json.dump(data, f, indent=4)
-    except Exception: pass
-"
-        fi
+icao = '$icao'
+csv_url = '$DB_URL'
+db_file = '$DB_FILE'
+
+try:
+    req = urllib.request.Request(csv_url, headers={'User-Agent': 'Mozilla/5.0'})
+    with urllib.request.urlopen(req) as response:
+        # Stream the CSV and hunt for the missing ICAO
+        lines = [l.decode('utf-8', errors='ignore') for l in response.readlines()]
+        reader = csv.DictReader(lines)
+        for row in reader:
+            if row.get('ident', '').upper() == icao:
+                name = row.get('name', 'Unknown')
+                city = row.get('municipality', 'Unknown')
+                country = row.get('iso_country', 'Unknown')
+                atype = row.get('type', 'small_airport')
+                print(f\"{name}|{city}|{country}|{atype}\")
+                
+                # We found it! Append it to the local cache so we don't have to download again
+                if os.path.exists(db_file):
+                    try:
+                        with open(db_file, 'r') as f: data = json.load(f)
+                        data[icao] = {'icao': icao, 'name': name, 'city': city, 'country': country, 'type': atype}
+                        with open(db_file, 'w') as f: json.dump(data, f, indent=4)
+                    except: pass
+                sys.exit(0)
+except Exception: pass
+" 2>/dev/null)
+    
+    IFS='|' read -r apt_name apt_city apt_country apt_type <<< "$parsed_data"
+    if [ -n "$apt_name" ]; then
+        echo "✔ Found '$icao' online! Added to local database."
+        is_confirmed_airport=1
     fi
 fi
 
+# Fallback 2: Catch-All for truly invalid/fake ICAOs
 if [ -z "$apt_name" ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
-    apt_name="General Aviation Field"
-    apt_city="Local Region"
+    apt_name="Uncharted Airfield"
+    apt_city="Unknown Region"
     apt_country="Unknown"
     apt_type="small_airport"
     is_confirmed_airport=0
@@ -799,15 +823,20 @@ else: print(f'{(done / total) * 100:.1f}%')
             mode_text="Journey: Leg ${updated_done}/${total_legs} Dispatched ($adv_pct completed prior) | $rem_legs legs remaining."
         fi
     else
-        px_metrics=$(calculate_prefix_metrics "$prefix")
-        IFS='|' read -r vp_count tp_count cp_pct rp_count cities_left <<< "$px_metrics"
-        
-        mode_text="[$prefix] Prefix Progress: $vp_count/$tp_count Fields Met ($cp_pct) | $rp_count remaining."
-        
-        if [ "$cp_pct" = "100.0%" ]; then
-            alert_text="🏆 MISSION SUCCESS: Lifetime territory [$prefix] has been 100% completed! 🏆"
-        elif [ -n "$cities_left" ] && [ "$rp_count" -gt 0 ]; then
-            alert_text="Only $cities_left left to complete your territory card!"
+        if [ "$is_confirmed_airport" -eq 0 ]; then
+            mode_text="[UNVERIFIED ICAO] Off the grid. Not tracked in regional career metrics."
+            alert_text="⚠️ Destination uncharted in master database!"
+        else
+            px_metrics=$(calculate_prefix_metrics "$prefix")
+            IFS='|' read -r vp_count tp_count cp_pct rp_count cities_left <<< "$px_metrics"
+            
+            mode_text="[$prefix] Prefix Progress: $vp_count/$tp_count Fields Met ($cp_pct) | $rp_count remaining."
+            
+            if [ "$cp_pct" = "100.0%" ]; then
+                alert_text="🏆 MISSION SUCCESS: Lifetime territory [$prefix] has been 100% completed! 🏆"
+            elif [ -n "$cities_left" ] && [ "$rp_count" -gt 0 ]; then
+                alert_text="Only $cities_left left to complete your territory card!"
+            fi
         fi
     fi
 
