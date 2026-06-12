@@ -4,27 +4,22 @@
 # CONFIGURATION & VEHICLE TIER HIERARCHY
 # ==============================================================================
 
-# set localization; change to "el" to prefer Greek stories, fallback to "en" automatically
-LOCALIZATION="${LOCALIZATION:-el}"
-export LOCALIZATION
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-VEHICLE_TIER="${VEHICLE_TIER:-small_airplane}"
-export VEHICLE_TIER
+# Source the user preferences; crashes cleanly if missing
+source "$SCRIPT_DIR/flight.conf"
 
-HOME_ICAO="LGHI"
-CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
-CITIES_ALERT_THRESHOLD=5
+# Resolve localization: if empty, slice the first 2 characters of $LANG (fallback to "en")
+LOCALIZATION="${LOCALIZATION:-${LANG:0:2}}"
 
-DB_SOURCE="LNM" # Change to "GLOBAL" to use all OurAirports, or "LNM" to restrict to FlightGear-verified airfields
-
-# Storage Directories & JSON Sync Outputs
+# ==============================================================================
+# INTERNAL STORAGE MECHANICS (Application State)
+# ==============================================================================
+# These are internal system paths that the main script handles automatically.
 DB_DIR="$HOME/.cache/flight_dispatch"
 DB_FILE="$DB_DIR/airports.json"
-DB_URL="https://davidmegginson.github.io/ourairports-data/airports.csv"
-LNM_DB="$HOME/my_github/bingo-flightgear/test_files/little_navmap_navigraph.sqlite"
 
 # Adventure & Target Profile Files
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
 JOURNEY_LOG="$DB_DIR/journey_log.txt"
 HASH_FILE="$DB_DIR/.script_hash"
