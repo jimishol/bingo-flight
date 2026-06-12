@@ -490,20 +490,27 @@ if [ "${1:-}" = "-j" ] || [ "${1:-}" = "--journey" ]; then
         exit 0
     elif [ -n "${2:-}" ]; then
 	if [ -f "$2" ]; then
-            echo "Initializing fresh expedition track from: $(basename "$2")"
-            
-            # Unrestricted Extractor: Trust the pilot, grab all sequential idents, and remove duplicates
-            mapfile -t new_legs < <(grep -oP '(?<=<ident type="string">)[^<]+(?=</ident>)' "$2" | uniq)
-            
-            if [ ${#new_legs[@]} -eq 0 ]; then
-                # Fallback check if the file format uses explicit airport tags
-                mapfile -t new_legs < <(grep -oP '(?<=<airport type="string">)[^<]+(?=</airport>)' "$2" | uniq)
-            fi
-
-            if [ ${#new_legs[@]} -eq 0 ]; then
-                echo "ERROR: No valid journey legs found inside the file!"
-                exit 1
-            fi
+	    # Ingest fresh expedition track from: $2
+	    echo "Initializing fresh expedition track from: $(basename "$2")"
+	    
+	    # Check 1: Try standard FlightGear identifier string attributes
+	    mapfile -t new_legs < <(grep -oP '(?<=<ident type="string">)[^<]+(?=</ident>)' "$2" | uniq)
+	    
+	    # Check 2: Fallback to FlightGear raw airport string tags
+	    if [ ${#new_legs[@]} -eq 0 ]; then
+	        mapfile -t new_legs < <(grep -oP '(?<=<airport type="string">)[^<]+(?=</airport>)' "$2" | uniq)
+	    fi
+	    
+	    # Check 3: Fallback to Little Navmap universal waypoint schema
+	    if [ ${#new_legs[@]} -eq 0 ]; then
+	        mapfile -t new_legs < <(grep -oP '(?<=<Ident>)[^<]+(?=</Ident>)' "$2" | uniq)
+	    fi
+	    
+	    # Final Verification
+	    if [ ${#new_legs[@]} -eq 0 ]; then
+	        echo "ERROR: No valid journey legs found inside the file!"
+	        exit 1
+	    fi
             
             true > "$JOURNEY_LOG"
             for leg in "${new_legs[@]}"; do
