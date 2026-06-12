@@ -883,12 +883,18 @@ done = $updated_done - 1
 if total <= 0: print('0.0%')
 else: print(f'{(done / total) * 100:.1f}%')
 ")
-        if [ "$rem_legs" -eq 0 ]; then
-            mode_text="Journey: Leg ${updated_done}/${total_legs} (100.0% Dispatched) | 🏁 FINAL LEG!"
-            alert_text="🚀 FINAL DESTINATION INBOUND: Bring her home safe!"
-        else
-            mode_text="Journey: Leg ${updated_done}/${total_legs} Dispatched ($adv_pct completed prior) | $rem_legs legs remaining."
-        fi
+	if [ "$rem_legs" -eq 0 ]; then
+	    mode_text="Journey: Leg ${updated_done}/${total_legs} (100.0% Dispatched) | 🏁 FINAL LEG!"
+	    alert_text="🚀 FINAL DESTINATION INBOUND: Bring her home safe!"
+	    
+	    # Add journey reset hint even on final leg
+	    alert_text="${alert_text}"$'\n'"              💡 (Execute '\''flight -j --reset'\'' to clear journey)"
+	else
+	    mode_text="Journey: Leg ${updated_done}/${total_legs} Dispatched ($adv_pct completed prior) | $rem_legs legs remaining."
+	
+	    # Normal leg → journey reset hint
+	    alert_text="💡 (Execute 'flight -j --reset' to clear journey)"
+	fi
     else
         if [ "$is_confirmed_airport" -eq 0 ]; then
             mode_text="[UNVERIFIED ICAO] Off the grid. Not tracked in regional career metrics."
