@@ -563,71 +563,18 @@ if [ "${1:-}" = "-n" ] || [ "${1:-}" = "--next" ]; then
 fi
 
 if [ "$JOURNEY_MODE" -eq 0 ]; then
+    # 🌟 FIX: If no arguments/prefixes are supplied, IMMEDIATELY drop to local flight mode
     if [ -z "${1:-}" ]; then
-        if [ -s "$CSV_TARGET_FILE" ]; then
-            echo "Custom target deck active. Rolling random destination from deck..."
-            rolled_icao=$(python3 -c "
-import sys, json, os, random
-
-tier = '$VEHICLE_TIER'
-db_file = '$DB_FILE'
-db_dir = '$DB_DIR'
-csv_file = '$CSV_TARGET_FILE'
-non_repeat = int('$NON_REPEAT_MODE')
-
-exclude_types = set()
-if tier == 'small_airplane': exclude_types.add('heliport')
-elif tier == 'medium_airplane': exclude_types.update(['heliport', 'small_airport'])
-elif tier == 'large_airplane': exclude_types.update(['heliport', 'small_airport', 'medium_airport'])
-
-try:
-    with open(db_file, 'r') as f: db = json.load(f)
-    
-    with open(csv_file, 'r') as f:
-        next(f) # Skip header
-        deck_targets = set([line.strip().upper() for line in f if line.strip()])
-        
-    active_pool = [k for k in deck_targets if k in db and db[k].get('type') not in exclude_types]
-
-    if not active_pool:
-        print('MISSING_DECK')
-        sys.exit(0)
-
-    if non_repeat:
-        history = set()
-        prefixes = set([k[:2] for k in active_pool])
-        for px in prefixes:
-            px_file = os.path.join(db_dir, f'visited_{px}.txt')
-            if os.path.exists(px_file):
-                with open(px_file, 'r') as f: history.update([l.strip().upper() for l in f if l.strip()])
-                
-        unvisited = [icao for icao in active_pool if icao not in history]
-        print(random.choice(unvisited) if unvisited else random.choice(active_pool))
-    else:
-        print(random.choice(active_pool))
-except Exception:
-    print('FAIL')
-")
-            if [ "$rolled_icao" = "MISSING_DECK" ]; then
-                echo "⚠️  NOTICE: Custom deck has no operational airfields for tier '$VEHICLE_TIER'."
-                echo "Switching runtime profile to local abstract manifest..."
-                IS_LOCAL_FLIGHT=1
-                icao="$HOME_ICAO"
-            elif [ "$rolled_icao" = "FAIL" ] || [ -z "$rolled_icao" ]; then
-                echo "ERROR: Dynamic compilation issue generating airfield arrays from deck."
-                exit 1
-            else
-                icao="$rolled_icao"
-                IS_LOCAL_FLIGHT=0
-            fi
-        else
-            IS_LOCAL_FLIGHT=1
-            icao="$HOME_ICAO"
-        fi
+        IS_LOCAL_FLIGHT=1
+        icao="$HOME_ICAO"
     else
+        # Only process custom target decks or prefix rolling if the user explicitly typed an argument
         input_token="${1^^}"
         if [[ "$input_token" =~ ^[A-Z]{2}$ ]]; then
             echo "Rolling the dice for random airfield matching prefix '$input_token'..."
+            
+            # If a custom deck is active, we check if it has matching prefix fields
+            # Otherwise, we roll from the database pool
             rolled_icao=$(python3 -c "
 import sys, json, os, random
 
@@ -916,7 +863,7 @@ else: print(f'{(done / total) * 100:.1f}%')
     if [ "$deck_status" != "INACTIVE" ] && [ -n "$deck_status" ]; then
         IFS='|' read -r vd_count td_count cd_pct rd_count deck_left <<< "$deck_status"
         deck_text="[DECK] Goals Covered:  $vd_count/$td_count Card Targets ($cd_pct) | $rd_count remaining."
-        deck_hint="💡 (Execute 'flight -c --reset' to clear custom deck)"
+	deck_hint="💡 (Execute 'flight -c --reset' to unregister this completed target deck.)"
         
         # Add 100% completion text, or list the remaining targets if under threshold
         if [ "$cd_pct" = "100.0%" ]; then
