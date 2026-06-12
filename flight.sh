@@ -524,7 +524,7 @@ if [ "${1:-}" = "-j" ] || [ "${1:-}" = "--journey" ]; then
 
     if [ ! -f "$JOURNEY_LOG" ] || [ ! -s "$JOURNEY_LOG" ]; then
         echo "ERROR: High-adventure flight plan log is uninitialized!"
-        echo "Provide a file to start: flight -j path/to/plan.fgfp"
+	echo "Provide a file to start: flight -j path/to/plan.[fgfp|lnmpln]"
         exit 1
     fi
 
