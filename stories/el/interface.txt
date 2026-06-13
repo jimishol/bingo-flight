@@ -3,17 +3,16 @@
 # ==============================================================================
 lbl_proposal=ΠΡΟΤΑΣΗ ΑΠΟΣΤΟΛΗΣ
 lbl_briefing=ΕΝΗΜΕΡΩΣΗ ΠΤΗΣΗΣ
-lbl_destination=Προορισμός
+lbl_destination="Προορισμός  "
 lbl_location=Τοποθεσία
 lbl_manifest=Κατάσταση
 lbl_baggage=Αποσκευές
-lbl_context=Πλαίσιο
+lbl_context="Πλαίσιο "
 lbl_log_engine=Μηχανή Καταγραφής
-lbl_alert=Ειδοποίηση
+lbl_alert="Ειδοποίηση  "
 lbl_crew_pilot=Βάρος Πιλότου
 lbl_crew_team=Βάρος Πληρώματος
-lbl_cargo=Φορτίο
-lbl_load=φορτίο
+lbl_cargo="Φορτίο      "
 
 # Act 1 Interactive Confirmation Gate Strings
 lbl_confirm_prompt=Έχετε διάθεση να πετάξετε εκεί σήμερα; Να καταχωρίσω τον προορισμό πτήσης; (y/N): 
@@ -23,3 +22,9 @@ lbl_confirm_cancel=Η αποστολή ακυρώθηκε. Εκκαθάριση 
 # Final Outro Lines
 lbl_outro_balance=Υπολογίστε το Βάρος & την Ισορροπία προσεκτικά πριν την έναρξη της απογείωσης!
 lbl_outro_fly=Καλή πτήση!
+
+lbl_alert_prefix_start=🏆 ΟΛΟΚΛΗΡΩΣΗ ΠΕΡΙΟΧΗΣ: Έχετε επισκεφτεί όλα τα αεροδρόμια της περιοχής
+lbl_alert_prefix_end=! 🏆
+
+lbl_alert_deck_complete=🏆 ΟΛΟΚΛΗΡΩΣΗ ΤΡΑΠΟΥΛΑΣ: Η προσαρμοσμένη κάρτα στόχων ολοκληρώθηκε! 🏆
+lbl_alert_journey_final=🚀 ΔΙΑΝΥΕΤΕ ΤΟ ΤΕΛΕΥΤΑΙΟ ΣΚΕΛΟΣ: Πετάξτε με προσοχή και καλό τερματισμό! 🚀

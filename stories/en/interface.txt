@@ -10,10 +10,9 @@ lbl_baggage=Baggage
 lbl_context=Context
 lbl_log_engine=Log Engine
 lbl_alert=Alert
-lbl_crew_pilot=Pilot Weight
-lbl_crew_team=Crew Weight
+lbl_crew_pilot="Pilot Weight "
+lbl_crew_team="Crew Weight "   
 lbl_cargo=Cargo
-lbl_load=load
 
 # Act 1 Interactive Confirmation Gate Strings
 lbl_confirm_prompt=Are you in the mood to fly there today? Should I file the flight destination? (y/N): 
@@ -23,3 +22,9 @@ lbl_confirm_cancel=Dispatch canceled. Clearing active routing tables.
 # Final Outro Lines
 lbl_outro_balance=Calculate your Weight & Balance carefully before advancing the throttle!
 lbl_outro_fly=Have a great flight!
+
+lbl_alert_prefix_start=🏆 MISSION SUCCESS: Lifetime territory
+lbl_alert_prefix_end=airports are all visited! 🏆
+
+lbl_alert_deck_complete=🏆 DECK COMPLETION: Custom target card finished! 🏆
+lbl_alert_journey_final=🚀 YOU ARE ON THE FINAL LEG: Fly with care and have a great finish! 🚀

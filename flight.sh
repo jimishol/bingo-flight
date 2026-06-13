@@ -858,10 +858,8 @@ else: print(f'{(done / total) * 100:.1f}%')
 ")
 	if [ "$rem_legs" -eq 0 ]; then
 	    mode_text="Journey: Leg ${updated_done}/${total_legs} (100.0% Dispatched) | 🏁 FINAL LEG!"
-	    alert_text="🚀 FINAL DESTINATION INBOUND: Bring her home safe!"
+	    alert_text="$lbl_alert_journey_final"
 	    
-	    # Add journey reset hint even on final leg
-	    alert_text="${alert_text}"$'\n'"              💡 (Execute '\''flight -j --reset'\'' to clear journey)"
 	else
 	    mode_text="Journey: Leg ${updated_done}/${total_legs} Dispatched ($adv_pct completed prior) | $rem_legs legs remaining."
 	
@@ -879,7 +877,7 @@ else: print(f'{(done / total) * 100:.1f}%')
             mode_text="[$prefix] Prefix Progress: $vp_count/$tp_count Fields Met ($cp_pct) | $rp_count remaining."
             
             if [ "$cp_pct" = "100.0%" ]; then
-                alert_text="🏆 MISSION SUCCESS: Lifetime territory [$prefix] has been 100% completed! 🏆"
+                alert_text="${lbl_alert_prefix_start} [${prefix}] ${lbl_alert_prefix_end}"
             elif [ -n "$cities_left" ] && [ "$rp_count" -gt 0 ]; then
                 alert_text="Only $cities_left left to complete your territory card!"
             fi
@@ -899,7 +897,7 @@ if [ "$deck_status" != "INACTIVE" ] && [ -n "$deck_status" ]; then
     
     # Add 100% completion text, or list the remaining targets if under threshold
     if [ "$cd_pct" = "100.0%" ]; then
-        deck_text="${deck_text}"$'\n'"              🏆 DECK COMPLETION: Custom target card finished! 🏆"
+	deck_text="${deck_text}"$'\n'"              ${lbl_alert_deck_complete}"
     elif [ -n "$deck_left" ] && [ "$rd_count" -gt 0 ]; then
         deck_text="${deck_text}"$'\n'"              Remaining Targets: ${deck_left}"
     fi
@@ -944,13 +942,13 @@ if [ "$passengers" -ne 0 ]; then
 
 	label_var="pax${i}_label"
 	label="${!label_var}"
-	printf "• %-12s : %6i lbs\n" "$label" "$p_weight"
+	printf "• %-12s  : %6i lbs\n" "$label" "$p_weight"
 
         i=$(( i + 1 ))
     done
 fi
 
-printf "• %-12s :  %3i lbs (%s %s)\n" "$lbl_cargo" "$baggage_weight" "$bag_class" "$lbl_load"
+printf "• %-12s  :  %3i lbs (%s %s)\n" "$lbl_cargo" "$baggage_weight" "$bag_class" "load"
 echo "========================================================="
 echo "$lbl_outro_balance"
 echo "$lbl_outro_fly"
