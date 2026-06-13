@@ -612,8 +612,15 @@ try:
         history = set()
         if os.path.exists(px_file):
             with open(px_file, 'r') as f: history = set([l.strip().upper() for l in f if l.strip()])
+        # 1. Υπολογισμός unvisited
         unvisited = [icao for icao in active_pool if icao not in history]
-        print(random.choice(unvisited) if unvisited else random.choice(active_pool))
+        
+        # 2. Έλεγχος εξάντλησης: Αν το candidate set είναι άδειο, σταματάμε αμέσως!
+        if not unvisited:
+            print('POOL_EXHAUSTED')
+            sys.exit(0)
+            
+        print(random.choice(unvisited))
     else:
         print(random.choice(active_pool))
 except Exception:
@@ -624,6 +631,13 @@ except Exception:
                 echo "Switching runtime profile to local abstract manifest..."
                 IS_LOCAL_FLIGHT=1
                 icao="$HOME_ICAO"
+            elif [ "$rolled_icao" = "POOL_EXHAUSTED" ]; then
+                # Dynamically bind localized interface strings with the active token context
+		echo -e "\n🛑 ERROR: Cannot execute non-repeat roll (-n) for territory prefix '${input_token}'." >&2
+		echo -e "   All flyable airfields under your current operational criteria have been visited!" >&2
+		echo -e "   Run 'flight -c --reset' to clear your custom DECK, 'flight -f' to clear your visited history (or both)," >&2
+		echo -e "   or simply run the flight command without the '-n' option.\n" >&2
+                exit 1
             elif [ "$rolled_icao" = "FAIL" ] || [ -z "$rolled_icao" ]; then
                 echo "ERROR: Dynamic compilation issue generating airfield arrays."
                 exit 1
