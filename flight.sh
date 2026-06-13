@@ -921,7 +921,7 @@ if [ "$passengers" -ne 0 ]; then
         i=$(( i + 1 ))
     done
 fi
-printf "• Cargo        :    %3i lbs (%s load)\n" "$baggage_weight" "$bag_class"
+printf "• Cargo        :  %3i lbs (%s load)\n" "$baggage_weight" "$bag_class"
 echo "========================================================="
 echo "Calculate your Weight & Balance carefully before advancing the throttle!"
 echo "Have a great flight!"

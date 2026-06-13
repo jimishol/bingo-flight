@@ -1,1 +1,4 @@
-Cargo run. Hauling critical generator components and heavy bundles of texts.
+Cargo transport. Transporting critical generator components and heavy document packages.
+Critical equipment transport. Loading heavy crates with generator spare parts and technical documents.
+Special cargo mission. Carrying bulky packages and sensitive electromechanical components.
+

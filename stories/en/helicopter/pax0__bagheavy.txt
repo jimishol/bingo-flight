@@ -1,1 +1,4 @@
-Cargo run. Hauling critical generator components and heavy bundles of texts.
+Equipment transport. Moving heavy crates with technical tools and documents to an isolated mountain facility.
+Special logistics mission. Loading heavy generator parts and document packages for the oil drilling platform.
+Critical material transport. Loading bulky mechanical parts and sensitive electromechanical equipment.
+

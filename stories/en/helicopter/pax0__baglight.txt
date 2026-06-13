@@ -1,1 +1,4 @@
-Ferry flight. Repositioning the aircraft to another hangar for a checkup.
+Repositioning flight. Moving the helicopter to the main base for technical inspection of the rotors.
+Maintenance transfer. Moving the helicopter to the base hangar for a scheduled inspection.
+Escort flight. Ferrying to the platform for technical inspection, refueling, and preparation.
+

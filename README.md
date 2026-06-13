@@ -47,14 +47,13 @@ When structuring or translating your story text assets inside the `stories/` dir
 * **Line-by-Line Variety:** Story text files do not have to be limited to a single static block of text. They can contain **multiple non-empty lines**.
 * **Dynamic Selection:** Each distinct line within a story file represents a selectable variant. The engine will read the file and dynamically load one of these variant strings, providing fresh, contextual immersion even if you roll the same passenger or baggage configurations multiple times!
 
-```markdown
 ## 🛠️ Story Translation & Localization Workflow (Scratch Notes)
 
 The repository uses `blueprint_sync.sh` at the root level as a centralized CLI engine to orchestrate, compile, and expand multi-variant story structures across localizations (`stories/<lang>/<tier>`).
 
 ### Architecture Commands
 1. **Clone & Compile New Translation Base**
-   ```bash
+```bash
    ./blueprint_sync.sh clone <from_lang> <tier> <to_lang>
 
 ```
@@ -64,21 +63,17 @@ The repository uses `blueprint_sync.sh` at the root level as a centralized CLI e
 
 2. **Expand Master Blueprint into Flat Files**
 ```bash
-./blueprint_sync.sh expand <lang> <tier>
+   ./blueprint_sync.sh expand <lang> <tier>
 
 ```
 
-
 * *Example:* `./blueprint_sync.sh expand en helicopter`
 * *Safety Gate (Strict Gating):* Explodes a single `blueprint.txt` back into its 13 individual structural text fragments (pax/bag combinations and journey profiles). Will strictly **abort** if any other files or directories exist within that workspace to prevent asset corruption.
-
-
+* *Post-Processing Cleanup:* Following a successful compilation pass, the original staging file `blueprint.txt` is completely redundant and can be safely deleted or wiped from the workspace to maintain a clean directory state.
 
 ### Rules for Translation Modifications
 
 * Every narrative line inside a `[filename.txt]` component block in the blueprint must strictly reside on a **single line per variant**.
 * Do not introduce arbitrary newlines inside variants, as the parser uses native `while read` iterations to register unique strings sequentially.
 * The local generated blueprint build structures (`/blueprint.txt`) are untracked globally by `.gitignore` to maintain an atomic staging area.
-
-```
 

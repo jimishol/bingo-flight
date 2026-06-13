@@ -1,1 +1,4 @@
-CRITICAL LOAD: A fully packed family group with massive luggage. Expect absolute performance limits!
+CRITICAL LOAD: A fully loaded family with massive baggage. Expect absolute performance limits!
+CRITICAL LOAD: An entire family loaded to the limit with large suitcases. Performance may hit its boundaries.
+CRITICAL LOAD: Full family loading with bulky baggage; expect performance constraints.
+

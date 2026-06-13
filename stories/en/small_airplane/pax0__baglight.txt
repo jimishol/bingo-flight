@@ -1,1 +1,4 @@
-Ferry flight. Repositioning the aircraft to another hangar for a checkup.
+Ferry flight. Transferring the aircraft to another hangar for inspection.
+Ferry flight for maintenance. Moving the airplane to a hangar for a scheduled inspection.
+Escort flight. Ferrying to the hangar for technical inspection and preparation.
+
