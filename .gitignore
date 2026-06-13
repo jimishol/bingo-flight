@@ -1,1 +1,4 @@
 test_files/
+
+# Ignore local generated blueprint build text files
+**/blueprint.txt
