@@ -19,7 +19,7 @@ DB_SOURCE="LNM" # Change to "GLOBAL" to use all OurAirports, or "LNM" to restric
 DB_DIR="$HOME/.cache/flight_dispatch"
 DB_FILE="$DB_DIR/airports.json"
 DB_URL="https://davidmegginson.github.io/ourairports-data/airports.csv"
-LNM_DB="$HOME/my_github/bingo-flightgear/test_files/little_navmap_navigraph.sqlite"
+LNM_DB="$HOME/my_github/bingo-flight/test_files/little_navmap_navigraph.sqlite"
 
 # Adventure & Target Profile Files
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
