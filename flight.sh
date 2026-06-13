@@ -13,6 +13,34 @@ source "$SCRIPT_DIR/flight.conf"
 LOCALIZATION="${LOCALIZATION:-${LANG:0:2}}"
 
 # ==============================================================================
+# LOCALIZATION ENGINE: STRICT INTERFACE PARSER (NO SAFENETS)
+# ==============================================================================
+INTERFACE_FILE=""
+TARGET_LOC_FILE="$SCRIPT_DIR/stories/$LOCALIZATION/interface.txt"
+BASELINE_EN_FILE="$SCRIPT_DIR/stories/en/interface.txt"
+
+# Select local override file, or fall back to English baseline truth
+if [ -f "$TARGET_LOC_FILE" ] && [ -s "$TARGET_LOC_FILE" ]; then
+    INTERFACE_FILE="$TARGET_LOC_FILE"
+elif [ -f "$BASELINE_EN_FILE" ] && [ -s "$BASELINE_EN_FILE" ]; then
+    INTERFACE_FILE="$BASELINE_EN_FILE"
+else
+    echo "FATAL ERROR: Initialization failed. Baseline English interface asset" >&2
+    echo "is missing or corrupted at: $BASELINE_EN_FILE" >&2
+    exit 1
+fi
+
+# Parse the resolved configuration file line-by-line into clean shell keys
+while IFS='=' read -r key value || [ -n "$key" ]; do
+    key=$(echo "$key" | xargs 2>/dev/null)
+    [[ "$key" =~ ^#.* ]] && continue
+    [ -z "$key" ] && continue
+
+    value=$(echo "$value" | xargs 2>/dev/null)
+    printf -v "$key" "%s" "$value"
+done < "$INTERFACE_FILE"
+
+# ==============================================================================
 # INTERNAL STORAGE MECHANICS (Application State)
 # ==============================================================================
 # These are internal system paths that the main script handles automatically.
@@ -744,9 +772,9 @@ fi
 # ==============================================================================
 echo "========================================================="
 if [ "$CONFIRMATION" = true ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
-    echo "                    DISPATCH PROPOSAL                    "
+    echo "                    $lbl_proposal                    "
 else
-    echo "                    DISPATCH BRIEFING                    "
+    echo "                    $lbl_briefing                    "
 fi
 echo "========================================================="
 
@@ -762,28 +790,28 @@ if [ "${passengers:-0}" -ne 1 ]; then
 fi
 
 if [ "$IS_LOCAL_FLIGHT" -eq 1 ]; then
-    echo "Manifest    : $passengers ${manifest_word} | Baggage: $bag_class"
-    echo "Context     : $story"
+    echo "$lbl_manifest    : $passengers ${manifest_word} | $lbl_baggage: $bag_class"
+    echo "$lbl_context     : $story"
 else
-    echo "Destination : $apt_name"
-    echo "Location    : $apt_city, $apt_country (ICAO: $icao)"
+    echo "$lbl_destination : $apt_name"
+    echo "$lbl_location    : $apt_city, $apt_country (ICAO: $icao)"
     echo "---------------------------------------------------------"
-    echo "Manifest    : $passengers ${manifest_word} | Baggage: $bag_class"
-    echo "Context     : $story"
+    echo "$lbl_manifest    : $passengers ${manifest_word} | $lbl_baggage: $bag_class"
+    echo "$lbl_context     : $story"
 fi
 
 # Trigger the mood confirmation gate if enabled
 if [ "$CONFIRMATION" = true ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
     echo "---------------------------------------------------------"
-    read -r -p "Are you in the mood to fly there today? Should I file the flight destination? (y/N): " choice
+    read -r -p "$lbl_confirm_prompt" choice
     case "$choice" in 
         [Yy]*) 
             echo ""
-            echo "✔ Flight destination filed successfully! Updating pilot records..." 
+            echo "✔ $lbl_confirm_success" 
             ;;
         *) 
             echo ""
-            echo "❌ Dispatch canceled. Clearing active routing tables."
+            echo "❌ $lbl_confirm_cancel"
             echo "========================================================="
             exit 0 
             ;;
@@ -885,9 +913,9 @@ fi
 
 # Display compiled stats block
 echo "---------------------------------------------------------"
-echo "Log Engine  : $mode_text"
+echo "$lbl_log_engine  : $mode_text"
 if [ -n "${alert_text:-}" ]; then
-    echo "Alert       : $alert_text"
+    echo "$lbl_alert       : $alert_text"
 fi
 
 # ==============================================================================
@@ -896,9 +924,9 @@ fi
 echo "---------------------------------------------------------"
 
 if [ "$VEHICLE_TIER" = "small_airplane" ] || [ "$VEHICLE_TIER" = "helicopter" ]; then
-    crew_label="Pilot Weight"
+    crew_label="$lbl_crew_pilot"
 else
-    crew_label="Crew Weight "
+    crew_label="$lbl_crew_team"
 fi
 
 printf "• %s :    %3i lbs\n" "$crew_label" "$crew"
@@ -921,7 +949,8 @@ if [ "$passengers" -ne 0 ]; then
         i=$(( i + 1 ))
     done
 fi
-printf "• Cargo        :  %3i lbs (%s load)\n" "$baggage_weight" "$bag_class"
+
+printf "• %-12s :  %3i lbs (%s %s)\n" "$lbl_cargo" "$baggage_weight" "$bag_class" "$lbl_load"
 echo "========================================================="
-echo "Calculate your Weight & Balance carefully before advancing the throttle!"
-echo "Have a great flight!"
+echo "$lbl_outro_balance"
+echo "$lbl_outro_fly"

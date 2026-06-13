@@ -76,4 +76,4 @@ The repository uses `blueprint_sync.sh` at the root level as a centralized CLI e
 * Every narrative line inside a `[filename.txt]` component block in the blueprint must strictly reside on a **single line per variant**.
 * Do not introduce arbitrary newlines inside variants, as the parser uses native `while read` iterations to register unique strings sequentially.
 * The local generated blueprint build structures (`/blueprint.txt`) are untracked globally by `.gitignore` to maintain an atomic staging area.
-
+* In `stories/<lang>/` can exist interface.txt as translation of the default `stories/en/interface.txt` that has to exist.

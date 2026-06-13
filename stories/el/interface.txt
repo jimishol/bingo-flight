@@ -1,0 +1,25 @@
+# ==============================================================================
+# BINGO-FLIGHT STATIC UI INTERFACE TRANSLATIONS (GREEK OVERLAY)
+# ==============================================================================
+lbl_proposal=ΠΡΟΤΑΣΗ ΑΠΟΣΤΟΛΗΣ
+lbl_briefing=ΕΝΗΜΕΡΩΣΗ ΠΤΗΣΗΣ
+lbl_destination=Προορισμός
+lbl_location=Τοποθεσία
+lbl_manifest=Κατάσταση
+lbl_baggage=Αποσκευές
+lbl_context=Πλαίσιο
+lbl_log_engine=Μηχανή Καταγραφής
+lbl_alert=Ειδοποίηση
+lbl_crew_pilot=Βάρος Πιλότου
+lbl_crew_team=Βάρος Πληρώματος
+lbl_cargo=Φορτίο
+lbl_load=φορτίο
+
+# Act 1 Interactive Confirmation Gate Strings
+lbl_confirm_prompt=Έχετε διάθεση να πετάξετε εκεί σήμερα; Να καταχωρίσω τον προορισμό πτήσης; (y/N): 
+lbl_confirm_success=Ο προορισμός πτήσης καταχωρίστηκε επιτυχώς! Ενημέρωση αρχείων πιλότου...
+lbl_confirm_cancel=Η αποστολή ακυρώθηκε. Εκκαθάριση ενεργών πινάκων δρομολόγησης.
+
+# Final Outro Lines
+lbl_outro_balance=Υπολογίστε το Βάρος & την Ισορροπία προσεκτικά πριν την έναρξη της απογείωσης!
+lbl_outro_fly=Καλή πτήση!

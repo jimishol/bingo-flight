@@ -1,0 +1,25 @@
+# ==============================================================================
+# BINGO-FLIGHT STATIC UI INTERFACE TRANSLATIONS (ENGLISH BASELINE)
+# ==============================================================================
+lbl_proposal=DISPATCH PROPOSAL
+lbl_briefing=DISPATCH BRIEFING
+lbl_destination=Destination
+lbl_location=Location
+lbl_manifest=Manifest
+lbl_baggage=Baggage
+lbl_context=Context
+lbl_log_engine=Log Engine
+lbl_alert=Alert
+lbl_crew_pilot=Pilot Weight
+lbl_crew_team=Crew Weight
+lbl_cargo=Cargo
+lbl_load=load
+
+# Act 1 Interactive Confirmation Gate Strings
+lbl_confirm_prompt=Are you in the mood to fly there today? Should I file the flight destination? (y/N): 
+lbl_confirm_success=Flight destination filed successfully! Updating pilot records...
+lbl_confirm_cancel=Dispatch canceled. Clearing active routing tables.
+
+# Final Outro Lines
+lbl_outro_balance=Calculate your Weight & Balance carefully before advancing the throttle!
+lbl_outro_fly=Have a great flight!
