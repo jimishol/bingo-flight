@@ -34,58 +34,27 @@ fi
 # INTERFACE.TXT PARSER (POSIX-SAFE, NO sed/xargs/awk, PRESERVES INDENTATION)
 # ==============================================================================
 
-while IFS='=' read -r key value || [ -n "$key" ]; do
-    #
-    # 1. Skip comments and empty lines
-    #
-    case "$key" in
-        ''|\#*) continue ;;
-    esac
+# --- Inside flight.sh ---
+source "$SCRIPT_DIR/lib/interface_parser.sh"
 
-    #
-    # 2. Remove UTF‑8 BOM from key (pure POSIX)
-    #
-    case "$key" in
-        $'\xEF\xBB\xBF'*) key="${key#"$'\xEF\xBB\xBF'"}" ;;
-    esac
+# Define Paths (same logic as before)
+TARGET_LOC_FILE="$SCRIPT_DIR/stories/$LOCALIZATION/interface.txt"
+BASELINE_EN_FILE="$SCRIPT_DIR/stories/en/interface.txt"
 
-    #
-    # 3. Sanitize key: allow only A–Z a–z 0–9 _
-    #    (no sed, no tr — pure shell loop)
-    #
-    clean_key=""
-    i=1
-    while [ $i -le ${#key} ]; do
-        c=$(printf '%s' "$key" | cut -c $i)
-        case "$c" in
-            [A-Za-z0-9_]) clean_key="$clean_key$c" ;;
-        esac
-        i=$((i+1))
-    done
-    key="$clean_key"
+# Select File
+if [ -f "$TARGET_LOC_FILE" ] && [ -s "$TARGET_LOC_FILE" ]; then
+    INTERFACE_FILE="$TARGET_LOC_FILE"
+elif [ -f "$BASELINE_EN_FILE" ] && [ -s "$BASELINE_EN_FILE" ]; then
+    INTERFACE_FILE="$BASELINE_EN_FILE"
+else
+    echo "FATAL: Interface assets missing." >&2; exit 1
+fi
 
-    #
-    # 4. Skip if key vanished after sanitization
-    #
-    [ -z "$key" ] && continue
-
-    #
-    # 5. Remove surrounding quotes ONLY if both ends match
-    #    (preserves indentation, Greek, spacing)
-    #
-    case "$value" in
-        \"*\")
-            value="${value#\"}"
-            value="${value%\"}"
-            ;;
-    esac
-
-    #
-    # 6. Assign final value to shell variable
-    #
-    printf -v "$key" "%s" "$value"
-
-done < "$INTERFACE_FILE"
+# Load Assets
+if ! load_interface_assets "$INTERFACE_FILE"; then
+    echo "FATAL: Could not parse interface file: $INTERFACE_FILE" >&2
+    exit 1
+fi
 
 # ==============================================================================
 # INTERNAL STORAGE MECHANICS (Application State)
