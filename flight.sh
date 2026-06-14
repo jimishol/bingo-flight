@@ -228,8 +228,6 @@ except Exception as e:
 "
 fi
 
-
-
 # ==============================================================================
 # HELP & DOCUMENTATION SYSTEM (-h / --help handler)
 # ==============================================================================
@@ -237,31 +235,34 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
     echo "========================================================="
     echo "                FLIGHT DISPATCH SERVICE HELP             "
     echo "========================================================="
-    echo "Commands:"
+    echo "Usage Syntax: flight [OPTION] [TARGET/FILE]"
+    echo "---------------------------------------------------------"
+    echo "Standard Commands:"
     echo "  flight                   - Roll the dice for a basic abstract manifest."
     echo "  flight <ICAO>            - Briefing & career tracking for a specific field."
-    echo "  flight <PX>              - Dispatches a random airfield matching a 2-letter prefix."
+    echo "  flight <PX>              - Dispatches a random airfield matching 2-letter prefix."
     echo "  flight -n | --next <PX>  - Dispatches an UNVISITED random airfield matching prefix."
-    echo "  flight -j | --journey    - Run next leg of loaded journey.fgfp adventure."
+    echo ""
+    echo "Adventure & Management:"
+    echo "  flight -j | --journey    - Run next leg of loaded adventure."
     echo "  flight -j <file.fgfp>    - Load a high-adventure .fgfp path flight plan."
     echo "  flight -j --reset        - Restart loaded adventure back to the first leg."
     echo "  flight -c <file.csv>     - Create/overwrite custom target card from external CSV."
     echo "  flight -c --reset        - Remove active target deck filter overlay."
     echo "  flight -f | --files      - View active logbooks and cache folder storage."
-    echo "  flight -e | --edit <PX>  - Open a country logbook in your editor (e.g., flight -e IT)."
+    echo "  flight -e <PX>           - Open a specific country logbook in your editor."
     echo "  flight --reset           - Wipe out all country/territory logbook files."
     echo "  flight -h | --help       - Display this operational guide."
     echo "---------------------------------------------------------"
+    echo "💡 SYNTAX NOTE: Options (like -n, -j, -c) must precede any targets."
+    echo "   Correct: 'flight -n LG'  |  Incorrect: 'flight LG -n'"
+    echo "---------------------------------------------------------"
     echo "💡 HIT 100% IN A COUNTRY OR CUSTOM CARD? NEXT STEPS:"
     echo "  1. Explore Locally : You can still fly inside completed regions."
-    echo "                       Briefings remain normal for local sightseeing."
     echo "  2. Expand Horizons : Cross borders to an adjacent country prefix"
-    echo "                       (e.g. leave LG for LI or LT) to auto-generate"
-    echo "                       a fresh regional tracker log book."
-    echo "  3. Swap Custom Card: Use 'flight -c <file.csv>' to ingest a fresh card,"
-    echo "                       or drop it entirely via 'flight -c --reset'."
-    echo "  4. Reset Territory : Run 'flight -f' to open the log directory"
-    echo "                       and delete that specific country's text file."
+    echo "                       (e.g. leave LG for LI) to auto-generate a new log."
+    echo "  3. Swap Custom Card: Use 'flight -c <file.csv>' to ingest a fresh card."
+    echo "  4. Reset Territory : Run 'flight -f' to access the log directory."
     echo "========================================================="
     exit 0
 fi
