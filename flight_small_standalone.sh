@@ -571,8 +571,7 @@ if [ "$JOURNEY_MODE" -eq 0 ]; then
         # Only process custom target decks or prefix rolling if the user explicitly typed an argument
         input_token="${1^^}"
         if [[ "$input_token" =~ ^[A-Z]{2}$ ]]; then
-            echo "Rolling the dice for random airfield matching prefix '$input_token'..."
-            
+	    echo "Rolling the dice for a random airfield matching prefix '$input_token' (DECK-aware)..."
             # If a custom deck is active, we check if it has matching prefix fields
             # Otherwise, we roll from the database pool
             rolled_icao=$(python3 -c "

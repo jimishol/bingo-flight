@@ -600,7 +600,7 @@ if [ "$JOURNEY_MODE" -eq 0 ]; then
     else
         input_token="${1^^}"
         if [[ "$input_token" =~ ^[A-Z]{2}$ ]]; then
-            echo "Rolling the dice for random airfield matching prefix '$input_token'..."
+	    echo "Rolling the dice for a random airfield matching prefix '$input_token' (DECK-aware)..."
             rolled_icao=$(python3 -c "
 import sys, json, os, random
 
