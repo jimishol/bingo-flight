@@ -659,10 +659,10 @@ except Exception:
                 icao="$HOME_ICAO"
             elif [ "$rolled_icao" = "POOL_EXHAUSTED" ]; then
                 # Dynamically bind localized interface strings with the active token context
-		echo -e "\n🛑 ERROR: Cannot execute non-repeat roll (-n) for territory prefix '${input_token}'." >&2
-		echo -e "   All flyable airfields under your current operational criteria have been visited!" >&2
-		echo -e "   Run 'flight -c --reset' to clear your custom DECK, 'flight -f' to clear your visited history (or both)," >&2
-		echo -e "   or simply run the flight command without the '-n' option.\n" >&2
+		echo -e "   ${lbl_err_non_repeat_1//%TOKEN%/$input_token}" >&2
+		echo -e "   $lbl_err_non_repeat_2" >&2
+		echo -e "   $lbl_err_non_repeat_3" >&2
+		echo -e "   $lbl_err_non_repeat_4\n" >&2
                 exit 1
             elif [ "$rolled_icao" = "FAIL" ] || [ -z "$rolled_icao" ]; then
                 echo "ERROR: Dynamic compilation issue generating airfield arrays."

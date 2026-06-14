@@ -28,3 +28,8 @@ lbl_alert_prefix_end=airports are all visited! 🏆
 
 lbl_alert_deck_complete=🏆 DECK COMPLETION: Custom target card finished! 🏆
 lbl_alert_journey_final=🚀 YOU ARE ON THE FINAL LEG: Fly with care and have a great finish! 🚀
+
+lbl_err_non_repeat_1=🛑 ERROR: Cannot execute non-repeat roll (-n) for territory prefix %TOKEN%.
+lbl_err_non_repeat_2=All flyable airfields under your current operational criteria have been visited!
+lbl_err_non_repeat_3=Run 'flight -c --reset' to clear your custom DECK, 'flight -f' to clear your visited history (or both),
+lbl_err_non_repeat_4=or simply run the flight command without the '-n' option.
