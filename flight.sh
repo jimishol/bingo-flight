@@ -875,7 +875,7 @@ else: print(f'{(done / total) * 100:.1f}%')
 	    alert_text="$lbl_alert_journey_final"
 	    
 	else
-	    mode_text="Journey: Leg ${updated_done}/${total_legs} Dispatched ($adv_pct completed prior) | $rem_legs legs remaining."
+	    mode_text="Journey: Leg ${updated_done}/${total_legs} Dispatched ($adv_pct completed prior)."
 	
 	    # Normal leg → journey reset hint
 	    alert_text="💡 (Execute 'flight -j --reset' to clear journey)"
@@ -888,7 +888,7 @@ else: print(f'{(done / total) * 100:.1f}%')
             px_metrics=$(calculate_prefix_metrics "$prefix")
             IFS='|' read -r vp_count tp_count cp_pct rp_count cities_left <<< "$px_metrics"
             
-            mode_text="[$prefix] Prefix Progress: $vp_count/$tp_count Fields Met ($cp_pct) | $rp_count remaining."
+            mode_text="[$prefix] Prefix Progress: $vp_count/$tp_count Fields Met ($cp_pct)."
             
             if [ "$cp_pct" = "100.0%" ]; then
                 alert_text="${lbl_alert_prefix_start} [${prefix}] ${lbl_alert_prefix_end}"
@@ -906,7 +906,7 @@ fi
 deck_status=$(calculate_deck_metrics)
 if [ "$deck_status" != "INACTIVE" ] && [ -n "$deck_status" ]; then
     IFS='|' read -r vd_count td_count cd_pct rd_count deck_left <<< "$deck_status"
-    deck_text="[DECK] Goals Covered:  $vd_count/$td_count Card Targets ($cd_pct) | $rd_count remaining."
+    deck_text="[DECK] Goals Covered:  $vd_count/$td_count Card Targets ($cd_pct)."
     deck_hint="💡 (Execute 'flight -c --reset' to unregister this completed target deck.)"
     
     # Add 100% completion text, or list the remaining targets if under threshold
