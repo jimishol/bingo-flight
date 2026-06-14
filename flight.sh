@@ -30,14 +30,61 @@ else
     exit 1
 fi
 
-# Parse the resolved configuration file line-by-line into clean shell keys
+# ==============================================================================
+# INTERFACE.TXT PARSER (POSIX-SAFE, NO sed/xargs/awk, PRESERVES INDENTATION)
+# ==============================================================================
+
 while IFS='=' read -r key value || [ -n "$key" ]; do
-    key=$(echo "$key" | xargs 2>/dev/null)
-    [[ "$key" =~ ^#.* ]] && continue
+    #
+    # 1. Skip comments and empty lines
+    #
+    case "$key" in
+        ''|\#*) continue ;;
+    esac
+
+    #
+    # 2. Remove UTF‑8 BOM from key (pure POSIX)
+    #
+    case "$key" in
+        $'\xEF\xBB\xBF'*) key="${key#"$'\xEF\xBB\xBF'"}" ;;
+    esac
+
+    #
+    # 3. Sanitize key: allow only A–Z a–z 0–9 _
+    #    (no sed, no tr — pure shell loop)
+    #
+    clean_key=""
+    i=1
+    while [ $i -le ${#key} ]; do
+        c=$(printf '%s' "$key" | cut -c $i)
+        case "$c" in
+            [A-Za-z0-9_]) clean_key="$clean_key$c" ;;
+        esac
+        i=$((i+1))
+    done
+    key="$clean_key"
+
+    #
+    # 4. Skip if key vanished after sanitization
+    #
     [ -z "$key" ] && continue
 
-    value=$(echo "$value" | xargs 2>/dev/null)
+    #
+    # 5. Remove surrounding quotes ONLY if both ends match
+    #    (preserves indentation, Greek, spacing)
+    #
+    case "$value" in
+        \"*\")
+            value="${value#\"}"
+            value="${value%\"}"
+            ;;
+    esac
+
+    #
+    # 6. Assign final value to shell variable
+    #
     printf -v "$key" "%s" "$value"
+
 done < "$INTERFACE_FILE"
 
 # ==============================================================================
