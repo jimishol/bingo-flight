@@ -10,8 +10,8 @@ lbl_baggage=Baggage
 lbl_context=Context
 lbl_log_engine=Log Engine
 lbl_alert=Alert
-lbl_crew_pilot="Pilot Weight "
-lbl_crew_team="Crew Weight "   
+lbl_crew_pilot=Pilot Weight
+lbl_crew_team=Crew Weight
 lbl_cargo=Cargo
 
 # Act 1 Interactive Confirmation Gate Strings

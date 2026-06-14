@@ -10,9 +10,9 @@ lbl_baggage=Αποσκευές
 lbl_context="Πλαίσιο "
 lbl_log_engine=Μηχανή Καταγραφής
 lbl_alert="Ειδοποίηση  "
-lbl_crew_pilot=Βάρος Πιλότου
-lbl_crew_team=Βάρος Πληρώματος
-lbl_cargo="Φορτίο      "
+lbl_crew_pilot="Βάρος Πιλότου        "
+lbl_crew_team="Βάρος Πληρώματος     "
+lbl_cargo="Φορτίο              "
 
 # Act 1 Interactive Confirmation Gate Strings
 lbl_confirm_prompt=Έχετε διάθεση να πετάξετε εκεί σήμερα; Να καταχωρίσω τον προορισμό πτήσης; (y/N): 

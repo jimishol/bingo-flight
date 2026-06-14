@@ -1,41 +1,87 @@
 #!/usr/bin/env bash
-# lib/config.sh - load flight_tiers.conf into shell variables
+# lib/config.sh - load flight_tiers.conf using strict native interface parser rules
 # Usage: source "$SCRIPT_DIR/lib/config.sh"
 
 TIERS_CONF="${SCRIPT_DIR:-.}/flight_tiers.conf"
 
-cfg_get() {
-  local section="$1" key="$2" file="$3"
-  # Use exact match for [section] and clean up whitespaces safely
-  awk -v sec="[$section]" -v key="$key" '
-    $0 == sec {found=1; next}
-    found && /^[[:space:]]*\[/ {exit}
-    found && $0 ~ "^[[:space:]]*"key"[[:space:]]*=" {
-      sub(/^[^=]*=[[:space:]]*/, "", $0); # Αφαίρεση του "key ="
-      sub(/[[:space:]]*#.*/, "", $0);     # 🎯 EXTRA: Εξαφάνιση inline σχολίων (#...)
-      gsub(/^[ \t]+|[ \t]+$/, "", $0);    # Καθαρισμός εναπομείναντων κενών
-      print $0;
-      exit
-    }
-  ' "$file" 2>/dev/null || true
-}
+if [ -z "$VEHICLE_TIER" ]; then
+    echo "ERROR: VEHICLE_TIER is not set. Cannot parse profile rules." >&2
+    (return 0 2>/dev/null) && return 1 || exit 1
+fi
 
-max_baggage="${max_baggage:-$(cfg_get "${VEHICLE_TIER}" "max_baggage" "$TIERS_CONF")}"
-threshold_medium="${threshold_medium:-$(cfg_get "${VEHICLE_TIER}" "threshold_medium" "$TIERS_CONF")}"
-threshold_heavy="${threshold_heavy:-$(cfg_get "${VEHICLE_TIER}" "threshold_heavy" "$TIERS_CONF")}"
-crew="${crew:-$(cfg_get "${VEHICLE_TIER}" "crew" "$TIERS_CONF")}"
+if [ ! -f "$TIERS_CONF" ]; then
+    echo "ERROR: Configuration file not found at: $TIERS_CONF" >&2
+    (return 0 2>/dev/null) && return 1 || exit 1
+fi
+
+# ==============================================================================
+# OPTIMIZED NATIVE INI PARSER - STRICT KEY SANITIZATION & SPACE CONSTANCY
+# ==============================================================================
+_active_section=""
+
+while IFS='=' read -r key value || [ -n "$key" ]; do
+    # 1. Παράκαμψη κενών γραμμών και σχολίων στην αρχή
+    case "$key" in
+        ''|\#*) continue ;;
+    esac
+
+    # 2. Ασφαλής αφαίρεση inline σχολίων και Windows Carriage Returns (\r)
+    key="${key%%#*}"
+    value="${value%%#*}"
+    key="${key%$'\r'}"
+    value="${value%$'\r'}"
+
+    # 3. ABSOLUTE KEY SANITIZATION: Το μυστικό όπλο!
+    # Φιλτράρει ΟΛΑ τα αόρατα κενά, NBSPs και σκουπίδια. Κρατάει ΜΟΝΟ
+    # γράμματα, νούμερα, underscores και αγκύλες [ ].
+    clean_key=""
+    for (( i=0; i<${#key}; i++ )); do
+        c="${key:$i:1}"
+        case "$c" in
+            [A-Za-z0-9_\[\]]) clean_key="$clean_key$c" ;;
+        esac
+    done
+    key="$clean_key"
+
+    # Αν το key άδειασε εντελώς, πάμε στην επόμενη γραμμή
+    [ -z "$key" ] && continue
+
+    # 4. Ανίχνευση INI Section (π.χ. [medium_airplane])
+    case "$key" in
+        \[*\])
+            _active_section="${key#\[}"
+            _active_section="${_active_section%\]}"
+            continue
+            ;;
+    esac
+
+    # 5. Επεξεργασία δεδομένων ΜΟΝΟ αν είμαστε στο σωστό VEHICLE_TIER
+    if [ "$_active_section" = "$VEHICLE_TIER" ]; then
+
+        # 6. Καθαρισμός standard κενών (leading/trailing trim) από το value
+        value="${value#"${value%%[! \t]*}"}"
+        value="${value%"${value##*[! \t]}"}"
+
+        # 7. Αφαίρεση εξωτερικών διπλών εισαγωγικών με προστασία εσωτερικών spaces
+        case "$value" in
+            \"*\")
+                value="${value#\"}"
+                value="${value%\"}"
+                ;;
+        esac
+
+        # 8. Έλεγχος εγκυρότητας μεταβλητής (Σε 1 γραμμή για αποφυγή line-continuation bugs)
+        case "$key" in
+            max_baggage|threshold_medium|threshold_heavy|crew|pax_min|pax_range|seats_per_zone|pax1_label|pax2_label|pax3_label|journey_zones|journey_cargo)
+                printf -v "$key" "%s" "$value"
+                ;;
+        esac
+    fi
+done < "$TIERS_CONF"
+
+# Μετατροπή του "137 177 126" σε array για τα journey legs
+read -r -a journey_cargo <<< "${journey_cargo:-}"
+
+# Εξαγωγή των μεταβλητών στο session του flight.sh
 export max_baggage threshold_medium threshold_heavy crew
-
-pax_min="${pax_min:-$(cfg_get "${VEHICLE_TIER}" "pax_min" "$TIERS_CONF")}"
-pax_range="${pax_range:-$(cfg_get "${VEHICLE_TIER}" "pax_range" "$TIERS_CONF")}"
-seats_per_zone="${seats_per_zone:-$(cfg_get "${VEHICLE_TIER}" "seats_per_zone" "$TIERS_CONF")}"
-pax1_label="${pax1_label:-$(cfg_get "${VEHICLE_TIER}" "pax1_label" "$TIERS_CONF")}"
-pax2_label="${pax2_label:-$(cfg_get "${VEHICLE_TIER}" "pax2_label" "$TIERS_CONF")}"
-pax3_label="${pax3_label:-$(cfg_get "${VEHICLE_TIER}" "pax3_label" "$TIERS_CONF")}"
-journey_zones="${journey_zones:-$(cfg_get "${VEHICLE_TIER}" "journey_zones" "$TIERS_CONF")}"
-journey_cargo_raw="$(cfg_get "${VEHICLE_TIER}" "journey_cargo" "$TIERS_CONF")"
-
-# split "137 177 126" into array
-read -r -a journey_cargo <<< "$journey_cargo_raw"
-
 export pax_min pax_range seats_per_zone pax1_label pax2_label pax3_label journey_zones journey_cargo

@@ -988,7 +988,7 @@ else
     crew_label="$lbl_crew_team"
 fi
 
-printf "• %s :    %3i lbs\n" "$crew_label" "$crew"
+printf "• %-21s : %6i lbs\n" "$crew_label" "$crew"
 
 if [ "$passengers" -ne 0 ]; then
     i=1
@@ -1003,13 +1003,13 @@ if [ "$passengers" -ne 0 ]; then
 
 	label_var="pax${i}_label"
 	label="${!label_var}"
-	printf "• %-12s  : %6i lbs\n" "$label" "$p_weight"
+	printf "• %-20s  : %6i lbs\n" "$label" "$p_weight"
 
         i=$(( i + 1 ))
     done
 fi
 
-printf "• %-12s  :  %3i lbs (%s %s)\n" "$lbl_cargo" "$baggage_weight" "$bag_class" "load"
+printf "• %-20s  : %6i lbs (%s %s)\n" "$lbl_cargo" "$baggage_weight" "$bag_class" "load"
 echo "========================================================="
 echo "$lbl_outro_balance"
 echo "$lbl_outro_fly"
