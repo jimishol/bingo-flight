@@ -1,6 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=FG Navigation Suite
-Exec=/home/jimishol/.local/share/applications/fgnav.sh
-Icon=/home/jimishol/games/flightgear-navigation_tools/LittleNavmap-linux-ubuntu-24.04-3.0.18/littlenavmap.svg
+Comment=Launch FlightGear telemetry bridge and LittleNavMap simultaneously
+Exec=sh -c "$HOME/.local/share/applications/fgnav.sh"
+Icon=airplane
 Terminal=false
+Categories=Game;Simulation;

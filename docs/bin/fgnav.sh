@@ -1,14 +1,17 @@
 #!/bin/bash
+# fgnav.sh - Companion Suite Orchestration Script
 
-# Start FGconnect in background
-cd ~/games/git/fgconnect || exit 1
+# 1. Spawn FGconnect server in the background
+cd "$HOME/path/to/fgconnect" || exit 1
 python3 gui_tk.py &
 sleep 1
-hyprctl dispatch movetoworkspacesilent special:magic
 
-# Start Little Navmap in foreground (blocking)
-cd ~/games/flightgear-navigation_tools/LittleNavmap-linux-ubuntu-24.04-3.0.18 || exit 1
+# Optional: Window manager rules (e.g., Hyprland workspace pinning)
+# hyprctl dispatch movetoworkspacesilent special:magic
+
+# 2. Open Little Navmap in the foreground (blocking execution thread)
+cd "$HOME/path/to/littlenavmap_folder" || exit 1
 ./littlenavmap
 
-# When Little Navmap closes, kill FGconnect
+# 3. Clean up telemetry hooks automatically upon map exit
 pkill -f gui_tk.py
