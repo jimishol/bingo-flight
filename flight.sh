@@ -924,7 +924,7 @@ deck_status=$(calculate_deck_metrics)
 if [ "$deck_status" != "INACTIVE" ] && [ -n "$deck_status" ]; then
     IFS='|' read -r vd_count td_count cd_pct rd_count deck_left <<< "$deck_status"
     deck_text="[DECK] Goals Covered:  $vd_count/$td_count Card Targets ($cd_pct)."
-    deck_hint="💡 (Execute 'flight -c --reset' to unregister this completed target deck.)"
+    deck_hint="💡 (Execute 'flight -c --reset' to unregister the target deck.)"
     
     # Add 100% completion text, or list the remaining targets if under threshold
     if [ "$cd_pct" = "100.0%" ]; then

@@ -1,8 +1,33 @@
 # Bingo-Flight Dispatch Engine
 
-A lightweight, terminal-native flight dispatch and career-tracking engine written in pure Bash and Python 3. Tailored for flight simulation enthusiasts who value terminal efficiency over web-browser bloat, this self-contained system automates dispatch manifest planning, handles multi-zone cabin payloads, generates localized scenario briefings, and provides a raw command-line logbook to track lifetime aviation goals without tracking pixels, telemetry, or server setups.
+A lightweight, terminal-native flight dispatch and career-tracking engine written in pure Bash and Python 3. Tailored for flight simulation enthusiasts who value terminal efficiency, this self-contained system automates dispatch manifest planning, handles multi-zone cabin payloads, generates localized scenario briefings, and provides a raw command-line logbook to track lifetime aviation goals without tracking pixels, telemetry, or server setups.
 
----
+```text
+~ 🐧 flight lg
+Rolling the dice for a random airfield matching prefix 'LG' (DECK-aware)...
+=========================================================
+                    DISPATCH BRIEFING                    
+=========================================================
+Destination : Sedes Air Base
+Location    : Sedes, GR (ICAO: LGSD)
+---------------------------------------------------------
+Manifest    : 3 Passengers | Baggage: heavy
+Context     : CRITICAL LOAD: A fully loaded family with massive baggage. Expect absolute performance limits!
+---------------------------------------------------------
+Log Engine  : [LG] Prefix Progress: 5/53 Fields Met (9.4%).
+Alert       : [DECK] Goals Covered:  4/14 Card Targets (28.6%).
+              💡 (Execute 'flight -c --reset' to unregister the target deck.)
+---------------------------------------------------------
+• Pilot Weight          :    210 lbs
+• Passenger 1           :    200 lbs
+• Passenger 2           :    190 lbs
+• Passenger 3           :    129 lbs
+• Cargo                 :     81 lbs (heavy load)
+=========================================================
+Calculate your Weight & Balance carefully before advancing the throttle!
+Have a great flight!
+~ 🐧 
+```
 
 ## 🚀 Features
 
@@ -31,7 +56,7 @@ The project splits operational mechanics across dedicated, isolated functional c
 ### 1. Project Directory Placement
 Clone the repository and jump into the engine root directory:
 ```bash
-git clone [https://github.com/yourusername/bingo-flight.git](https://github.com/yourusername/bingo-flight.git)
+git clone [https://github.com/jimishol/bingo-flight.git](https://github.com/jimishol/bingo-flight.git)
 cd bingo-flight
 
 ```
@@ -50,7 +75,7 @@ CONFIRMATION=false
 
 # Provider options: "GLOBAL" (OurAirports stream) or "LNM" (Local Little Navmap Cache)
 DB_SOURCE="LNM"
-LNM_DB="$HOME/.cache/flight_dispatch/navigraph_cache.sqlite"
+LNM_DB="/path/to/where_LNM_stores/navigraph_cache.sqlite"
 
 ```
 
@@ -58,7 +83,7 @@ LNM_DB="$HOME/.cache/flight_dispatch/navigraph_cache.sqlite"
 > This field defines the pilot's primary operational base. Within the destination generation engine, under **unvisited target tracking (`-n`)**, the pilot's home base is **always considered automatically visited** inside its respective territory prefix. This means the engine will never generate the pilot's home field as a destination target when using the `-n` option, explicitly forcing the exploration of other unvisited airfields.
 
 ### 3. Dynamic Environment Overrides (Hot-Swapping)
-You do not need to modify `flight.conf` every time you change your tier. By passing the tier environment variable directly ahead of the script invocation, you can execute complex single-flight testing arrays seamlessly:
+You do not need to modify `flight.conf` every time you change your tier — the default is small_airplane. By passing the tier environment variable directly ahead of the script invocation, you can execute complex single-flight testing arrays seamlessly:
 
 
 ```bash
@@ -98,7 +123,7 @@ VEHICLE_TIER=helicopter ./flight.sh -n lg
 
 | Directive | Action |
 | --- | --- |
-| `flight` | Spawns an introductory flight briefing at your specified `HOME_ICAO`. |
+| `flight` | Spawn a local dispatch briefing; may show **no destination** when producing base/pattern work at `HOME_ICAO`. |
 | `flight <ICAO>` | Generates a fixed route dispatch to a targeted airfield. |
 | `flight <PREFIX>` | Selects a random destination matching a 2-letter country prefix code (e.g., `LG`). |
 | `flight -n <PREFIX>` | Dispatches a random **UNVISITED** airport code matching the country code to avoid tracking repetitions. |
@@ -199,7 +224,7 @@ Distance NM;Heading °T;Ident;ICAO;FAA;IATA;Local Code;Name;City;State or Provin
 
 A clean, minimalist layout containing only the identification column key (valid real-world ICAOs only):
 ```text
-ident
+Ident
 LGHI
 LGIR
 LIML
@@ -242,7 +267,7 @@ When structuring or translating your story text assets inside the `stories/` dir
 
 **Example Node Asset:**
 If a standard dispatch rolls 0 passengers alongside heavy cargo space allocation, the file engine pulls a random line option from `stories/en/small_airplane/pax0__bagheavy.txt`:
-> *"Loading heavy crates with generator spare parts and technical documents."*
+> *"Critical equipment transport. Loading heavy crates with generator spare parts and technical documents."*
 
 ### 🖥️ Structural UI Localization (`interface.txt`)
 While story files provide narrative context for individual flight variants, global UI indicators, interactive gate text prompts, and systems error strings are driven by an isolated interface lookup module.
