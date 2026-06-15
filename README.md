@@ -54,6 +54,9 @@ LNM_DB="$HOME/.cache/flight_dispatch/navigraph_cache.sqlite"
 
 ```
 
+> ⚓ **The Role of `HOME_ICAO`:**
+> This field defines the pilot's primary operational base. Within the destination generation engine, under **unvisited target tracking (`-n`)**, the pilot's home base is **always considered automatically visited** inside its respective territory prefix. This means the engine will never generate the pilot's home field as a destination target when using the `-n` option, explicitly forcing the exploration of other unvisited airfields.
+
 ### 3. Dynamic Environment Overrides (Hot-Swapping)
 You do not need to modify `flight.conf` every time you change your tier. By passing the tier environment variable directly ahead of the script invocation, you can execute complex single-flight testing arrays seamlessly:
 
