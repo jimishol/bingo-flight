@@ -499,11 +499,10 @@ if [ "${1:-}" = "-f" ] || [ "${1:-}" = "--files" ]; then
         done
     )
     echo "---------------------------------------------------------"
-    echo "Type 'exit' when you are finished to return to normal shell."
-    echo "========================================================="
     (
         cd "$DB_DIR" || exit 1
-        echo "Spawning logbook viewer shell. Type 'exit' to return to your workspace."
+        echo "🚀 Spawning logbook workspace shell. Type 'exit' to close."
+        echo "========================================================="
         $SHELL
     )
     exit 0

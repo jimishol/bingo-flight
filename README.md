@@ -38,9 +38,8 @@ visited_LI.txt         |  7  /121      | Last: LIRL
 visited_LT.txt         |  3  /75       | Last: LTCS
 visited_WS.txt         |  1  /7        | Last: WSAP
 ---------------------------------------------------------
-Type 'exit' when you are finished to return to normal shell.
+🚀 Spawning logbook workspace shell. Type 'exit' to close.
 =========================================================
-Spawning logbook viewer shell. Type 'exit' to return to your workspace.
 ~/.cache/flight_dispatch 🐧 
 ```
 
