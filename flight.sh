@@ -934,9 +934,9 @@ if [ "$deck_status" != "INACTIVE" ] && [ -n "$deck_status" ]; then
     fi
     
     if [ -n "${alert_text:-}" ]; then
-        alert_text="${alert_text}"$'\n\n'"              ${deck_text}"$'\n'"              ${deck_hint}"
+        alert_text="${alert_text}"$'\n\n'"                     ${deck_text}"$'\n'"                     ${deck_hint}"
     else
-        alert_text="${deck_text}"$'\n'"              ${deck_hint}"
+        alert_text="${deck_text}"$'\n'"                     ${deck_hint}"
     fi
 fi
 
