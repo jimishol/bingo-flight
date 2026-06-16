@@ -8,25 +8,40 @@ Rolling the dice for a random airfield matching prefix 'LG' (DECK-aware)...
 =========================================================
                     DISPATCH BRIEFING                    
 =========================================================
-Destination : Sedes Air Base
-Location    : Sedes, GR (ICAO: LGSD)
+Destination : Tanagra Air Base
+Location    : Tanagra, GR (ICAO: LGTG)
 ---------------------------------------------------------
 Manifest    : 3 Passengers | Baggage: heavy
-Context     : CRITICAL LOAD: A fully loaded family with massive baggage. Expect absolute performance limits!
+Context     : CRITICAL LOAD: An entire family loaded to the limit with large suitcases. Performance may hit its boundaries.
 ---------------------------------------------------------
-Log Engine  : [LG] Prefix Progress: 5/53 Fields Met (9.4%).
-Alert       : [DECK] Goals Covered:  4/14 Card Targets (28.6%).
-              💡 (Execute 'flight -c --reset' to unregister the target deck.)
+Log Engine  : [LG] Prefix Progress: 26/53 Fields Met (49.1%).
 ---------------------------------------------------------
 • Pilot Weight          :    210 lbs
-• Passenger 1           :    200 lbs
-• Passenger 2           :    190 lbs
-• Passenger 3           :    129 lbs
-• Cargo                 :     81 lbs (heavy load)
+• Passenger 1           :    150 lbs
+• Passenger 2           :    181 lbs
+• Passenger 3           :    208 lbs
+• Cargo                 :     97 lbs (heavy load)
 =========================================================
 Calculate your Weight & Balance carefully before advancing the throttle!
 Have a great flight!
-~ 🐧 
+~ 🐧 flight -f
+=========================================================
+                LOGBOOK STORAGE MANAGEMENT                
+=========================================================
+Cache Directory: /home/jimishol/.cache/flight_dispatch
+---------------------------------------------------------
+TRACKING FILE          | PROGRESS      | LAST KNOWN POSITION
+---------------------------------------------------------
+journey_log.txt        |  3  /15       | Last: LTAR
+visited_LG.txt         | 26  /53       | Last: LGTG
+visited_LI.txt         |  7  /121      | Last: LIRL
+visited_LT.txt         |  3  /75       | Last: LTCS
+visited_WS.txt         |  1  /7        | Last: WSAP
+---------------------------------------------------------
+Type 'exit' when you are finished to return to normal shell.
+=========================================================
+Spawning logbook viewer shell. Type 'exit' to return to your workspace.
+~/.cache/flight_dispatch 🐧 
 ```
 
 ## 🚀 Features
