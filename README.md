@@ -69,10 +69,16 @@ The project splits operational mechanics across dedicated, isolated functional c
 
 ### 1. Project Directory Placement
 Clone the repository and jump into the engine root directory:
-```bash
-git clone [https://github.com/jimishol/bingo-flight.git](https://github.com/jimishol/bingo-flight.git)
-cd bingo-flight
 
+```bash
+git clone https://github.com/jimishol/bingo-flight.git
+cd bingo-flight
+```
+
+After cloning, create your local configs:
+
+```bash
+cp flight.conf.example flight.conf && cp flight_tiers.conf.example flight_tiers.conf
 ```
 
 *(Note: If file executable permissions are altered during structural downloads across varying operating system layouts, apply `chmod +x flight.sh` to restore binary invocation rights).*

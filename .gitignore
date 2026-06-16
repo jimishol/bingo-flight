@@ -2,3 +2,5 @@ test_files/
 
 # Ignore local generated blueprint build text files
 **/blueprint.txt
+flight.conf
+flight_tiers.conf
