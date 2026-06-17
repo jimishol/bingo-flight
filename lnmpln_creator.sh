@@ -12,12 +12,25 @@ mkdir -p "$DB_DIR"
 # 1. Read the raw text stream from the standard input process pipeline (tee)
 RAW_STREAM=$(cat)
 
-# 2. Isolate the Briefing block using structural terminal boundaries
-# Note: Keeping Greek matching labels as the flight engine outputs localized text
-briefing=$(echo "$RAW_STREAM" | sed -n '/^Προορισμός/,/^• Φορτίο/p')
+# ==============================================================================
+# 2. LANGUAGE-AGNOSTIC BRIEFING EXTRACTION (Structural Boundary Isolation)
+# ==============================================================================
+# Drops everything from the start through the SECOND line starting with '=',
+# and drops everything from the FINAL line starting with '=' to the end of stream.
+briefing=$(echo "$RAW_STREAM" | awk '
+    /^=/ { eq_count++ }
+    
+    # Core Strategy: Only capture data when we are inside the briefing body
+    eq_count == 2 && !/^=/ { 
+        lines[++idx] = $0 
+    }
+    
+    END { 
+        for (i = 1; i <= idx; i++) print lines[i] 
+    }
+')
 
-# Safety catch: If briefing is empty (e.g. execution error), clear the plan file and abort
-# Uses explicit null command ':' before redirection to prevent LSP/linter warnings
+# Safety catch: If stream does not contain a structured briefing matrix, wipe and abort
 if [ -z "$briefing" ]; then
     : > "$LNM_OUTPUT_FILE"
     exit 0
@@ -26,12 +39,6 @@ fi
 # 3. Parse the destination ICAO marker out of the raw text stream
 DEST_ICAO=$(echo "$RAW_STREAM" | grep -oP '\(ICAO: \K[A-Z0-9]+' | head -n 1)
 
-# Abort cleanly by blanking out the layout file if no target airfield is resolved
-if [ -z "$DEST_ICAO" ]; then
-    : > "$LNM_OUTPUT_FILE"
-    exit 0
-fi
-
 # ==============================================================================
 # 4. RESOLVE DEPARTURE POINT VIA RECENT LITTLE NAVMAP WORKSPACE FILE
 # ==============================================================================
@@ -39,7 +46,6 @@ DEP_ICAO=""
 
 if [ -f "$LNM_RECENT_PLAN" ]; then
     # Capture the LAST waypoint identifier tag inside the active flight plan
-    # (Your previous destination footprint acts as your current departure node)
     DEP_ICAO=$(grep -oP '(?<=<Ident>)[A-Z0-9]+(?=</Ident>)' "$LNM_RECENT_PLAN" | tail -n 1)
 fi
 
@@ -48,14 +54,39 @@ if [ -z "$DEP_ICAO" ]; then
     DEP_ICAO="LGTS"
 fi
 
-FINAL_DEST_ICAO="$DEST_ICAO"
+# ==============================================================================
+# 5. DETECT LOCAL FLIGHT VS CROSS-COUNTRY ROUTE
+# ==============================================================================
+# If briefing was extracted but no destination ICAO is resolved, it's a valid local flight
+if [ -z "$DEST_ICAO" ]; then
+    FINAL_DEST_ICAO="$DEP_ICAO"
+    WAYPOINT_BLOCK="      <Waypoint>
+        <Ident>${DEP_ICAO}</Ident>
+        <Type>AIRPORT</Type>
+      </Waypoint>"
+else
+    FINAL_DEST_ICAO="$DEST_ICAO"
+    WAYPOINT_BLOCK="      <Waypoint>
+        <Ident>${DEP_ICAO}</Ident>
+        <Type>AIRPORT</Type>
+      </Waypoint>
+      <Waypoint>
+        <Ident>${FINAL_DEST_ICAO}</Ident>
+        <Type>AIRPORT</Type>
+      </Waypoint>"
+fi
 
 # ==============================================================================
-# 5. COMPILE STRUCTURAL LITTLE NAVMAP SPECIFICATION ENGINE (XML Layout)
+# 6. COMPILE STRUCTURAL LITTLE NAVMAP SPECIFICATION ENGINE (XML Layout)
 # ==============================================================================
 
 # Escape XML illegal tokens to secure structural parsing consistency across profiles
-XML_REMARKS=$(echo "$briefing" | sed 's/&/\&amp;/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g')
+XML_REMARKS=$(echo "$briefing" | awk '{
+    gsub(/&/, "\\&amp;");
+    gsub(/</, "\\&lt;");
+    gsub(/>/, "\\&gt;");
+    print
+}')
 TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%S%:z')
 
 cat <<EOF > "$LNM_OUTPUT_FILE"
@@ -81,14 +112,7 @@ cat <<EOF > "$LNM_OUTPUT_FILE"
       <Name>Cessna 172P Skyhawk (1982)</Name>
     </AircraftPerformance>
     <Waypoints>
-      <Waypoint>
-        <Ident>${DEP_ICAO}</Ident>
-        <Type>AIRPORT</Type>
-      </Waypoint>
-      <Waypoint>
-        <Ident>${FINAL_DEST_ICAO}</Ident>
-        <Type>AIRPORT</Type>
-      </Waypoint>
+${WAYPOINT_BLOCK}
     </Waypoints>
   </Flightplan>
 </LittleNavmap>

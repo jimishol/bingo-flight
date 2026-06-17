@@ -137,6 +137,38 @@ VEHICLE_TIER=helicopter ./flight.sh -n lg
 
 ---
 
+### 4. Real-Time Flight Plan Generation Wrapper (Optional)
+The dispatch engine can automatically compile and inject a fresh, active `.lnmpln` flight plan file directly into your flight planner every time you request a flight briefing. 
+
+To enable this automated background pipeline without interrupting your standard terminal output streams, add the following shell function wrapper to your user profile (`~/.bashrc`, `~/.zshrc`, or `~/.bash_aliases`):
+
+```bash
+flight() {
+    case " $* " in
+        *" -f "*|*" -e "*)
+            # Standard utility flags bypass the generator pipeline
+            $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/flight.sh "$@"
+            ;;
+        *)
+            # Pure POSIX pipeline: flight streams to tee, tee splits to screen and the XML map creator
+            $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/flight.sh "$@" | tee /dev/tty | $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/lnmpln_creator.sh
+            ;;
+    esac
+}
+
+```
+
+> ⚙️ **Dual-Mode State Ingestion Rules (`lnmpln_creator.sh`):**
+> The `lnmpln_creator.sh` sub-engine handles data routing using a smart, dual-mode fallback strategy depending on whether your last Little Navmap session was closed with an unsaved scratchpad or an explicit, named flight plan.
+> *Regardless of the mode, the generator target file `$HOME/.cache/flight_dispatch/briefing.lnmpln` is entirely safe; if it is blank or does not exist yet, running `littlenavmap path/to/briefing.lnmpln` will still launch flawlessly as expected.*
+> * **Mode A: Unsaved Asterisk State (The State Hijack):** The creator monitors Little Navmap's session cache file at `LNM_RECENT_PLAN="$HOME/.config/ABarthel/little_navmap.lnmpln"`. This file exists **only if you closed Little Navmap while your flight plan was unsaved** (marked with an asterisk `*` in the LNM title bar). When you run a new dispatch, the creator script intercepts this file, grabs your previous destination airfield to use as your *new* departure point, and injects the fresh dispatch manifest details directly into the **Flight Plan Remarks** box.
+> * **Mode B: Saved Plan Fallback (Isolated Briefing Mode):** If you manually save your route in Little Navmap under an explicit name before quitting, Little Navmap cleanly erases its temporary state file upon exit. In this scenario, the bridge gracefully falls back to generating a clean, independent map tracking layout at `$HOME/.cache/flight_dispatch/briefing.lnmpln` without passing embedded text remarks.
+> 
+> 
+> *To maintain an uninterrupted, automated career loop where text briefings continuously populate your map remarks, simply exit Little Navmap without saving the file so it preserves the asterisk cache state for your next dispatch.*
+
+---
+
 ## 📖 Command Reference
 
 ### Dispatch & Route Selection

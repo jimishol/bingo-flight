@@ -11,7 +11,7 @@ sleep 1
 
 # 2. Open Little Navmap in the foreground (blocking execution thread)
 cd "$HOME/path/to/littlenavmap_folder" || exit 1
-./littlenavmap
+./littlenavmap "$HOME/.cache/flight_dispatch/briefing.lnmpln"
 
 # 3. Clean up telemetry hooks automatically upon map exit
 pkill -f gui_tk.py
