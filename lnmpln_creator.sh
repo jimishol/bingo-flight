@@ -51,7 +51,10 @@ fi
 
 # Global baseline safety fallback if the active tracker is unreadable or empty
 if [ -z "$DEP_ICAO" ]; then
-    DEP_ICAO="LGTS"
+    case "$LNM_OUTPUT_FILE" in
+        "$DB_DIR"/*) rm -f -- "$LNM_OUTPUT_FILE" ;;
+        *) printf 'Refusing to remove %s — not inside %s\n' "$LNM_OUTPUT_FILE" "$DB_DIR" >&2 ;;
+    esac
 fi
 
 # ==============================================================================
