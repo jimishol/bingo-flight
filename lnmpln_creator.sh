@@ -6,6 +6,7 @@
 DB_DIR="$HOME/.cache/flight_dispatch"
 LNM_OUTPUT_FILE="$DB_DIR/briefing.lnmpln"
 LNM_RECENT_PLAN="$HOME/.config/ABarthel/little_navmap.lnmpln"
+LNM_LOGBOOK_DB="$HOME/.config/ABarthel/little_navmap_db/little_navmap_logbook.sqlite"
 
 mkdir -p "$DB_DIR"
 
@@ -15,61 +16,74 @@ RAW_STREAM=$(cat)
 # ==============================================================================
 # 2. LANGUAGE-AGNOSTIC BRIEFING EXTRACTION (Structural Boundary Isolation)
 # ==============================================================================
-# Drops everything from the start through the SECOND line starting with '=',
-# and drops everything from the FINAL line starting with '=' to the end of stream.
 briefing=$(echo "$RAW_STREAM" | awk '
-    /^=/ { eq_count++ }
-    
-    # Core Strategy: Only capture data when we are inside the briefing body
-    eq_count == 2 && !/^=/ { 
-        lines[++idx] = $0 
-    }
-    
-    END { 
-        for (i = 1; i <= idx; i++) print lines[i] 
-    }
+  /^=/ { eq_count++ }
+  eq_count == 2 && !/^=/ { lines[++idx] = $0 }
+  END { for (i = 1; i <= idx; i++) print lines[i] }
 ')
 
-# Safety catch: If stream does not contain a structured briefing matrix, wipe and abort
 if [ -z "$briefing" ]; then
-    : > "$LNM_OUTPUT_FILE"
-    exit 0
+  : > "$LNM_OUTPUT_FILE"
+  exit 0
 fi
 
-# 3. Parse the destination ICAO marker out of the raw text stream
 DEST_ICAO=$(echo "$RAW_STREAM" | grep -oP '\(ICAO: \K[A-Z0-9]+' | head -n 1)
 
 # ==============================================================================
-# 4. RESOLVE DEPARTURE POINT VIA RECENT LITTLE NAVMAP WORKSPACE FILE
+# 3. RESOLVE DEPARTURE POINT (LOGBOOK DB -> FALLBACK TO RECENT PLAN)
 # ==============================================================================
 DEP_ICAO=""
 
-if [ -f "$LNM_RECENT_PLAN" ]; then
-    # Capture the LAST waypoint identifier tag inside the active flight plan
-    DEP_ICAO=$(grep -oP '(?<=<Ident>)[A-Z0-9]+(?=</Ident>)' "$LNM_RECENT_PLAN" | tail -n 1)
+# Option A: Always query the SQLite logbook first for the true last landing site
+if [ -f "$LNM_LOGBOOK_DB" ]; then
+  DEP_ICAO=$(python3 -c "
+import sqlite3
+try:
+    conn = sqlite3.connect('$LNM_LOGBOOK_DB')
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT destination_ident 
+        FROM logbook 
+        WHERE destination_ident IS NOT NULL 
+        ORDER BY departure_time DESC 
+        LIMIT 1
+    ''')
+    row = cursor.fetchone()
+    if row:
+        ident = row[0].strip()
+        # Ensure it is a valid ICAO, rejecting degree-based coordinates
+        if ident.isalnum():
+            print(ident)
+    conn.close()
+except Exception:
+    pass
+" 2>/dev/null)
 fi
 
-# Global baseline safety fallback if the active tracker is unreadable or empty
+# Option B: Fallback to the current legacy behavior (most recent flight plan)
+if [ -z "$DEP_ICAO" ] && [ -f "$LNM_RECENT_PLAN" ]; then
+  DEP_ICAO=$(grep -oP '(?<=<Ident>)[A-Z0-9]+(?=</Ident>)' "$LNM_RECENT_PLAN" | tail -n 1)
+fi
+
 if [ -z "$DEP_ICAO" ]; then
-    case "$LNM_OUTPUT_FILE" in
-        "$DB_DIR"/*) rm -f -- "$LNM_OUTPUT_FILE" ;;
-        *) printf 'Refusing to remove %s — not inside %s\n' "$LNM_OUTPUT_FILE" "$DB_DIR" >&2 ;;
-    esac
+  case "$LNM_OUTPUT_FILE" in
+    "$DB_DIR"/*) rm -f -- "$LNM_OUTPUT_FILE" ;;
+    *) printf 'Refusing to remove %s — not inside %s\n' "$LNM_OUTPUT_FILE" "$DB_DIR" >&2 ;;
+  esac
 fi
 
 # ==============================================================================
-# 5. DETECT LOCAL FLIGHT VS CROSS-COUNTRY ROUTE
+# 4. DETECT LOCAL FLIGHT VS CROSS-COUNTRY ROUTE
 # ==============================================================================
-# If briefing was extracted but no destination ICAO is resolved, it's a valid local flight
 if [ -z "$DEST_ICAO" ]; then
-    FINAL_DEST_ICAO="$DEP_ICAO"
-    WAYPOINT_BLOCK="      <Waypoint>
+  FINAL_DEST_ICAO="$DEP_ICAO"
+  WAYPOINT_BLOCK="      <Waypoint>
         <Ident>${DEP_ICAO}</Ident>
         <Type>AIRPORT</Type>
       </Waypoint>"
 else
-    FINAL_DEST_ICAO="$DEST_ICAO"
-    WAYPOINT_BLOCK="      <Waypoint>
+  FINAL_DEST_ICAO="$DEST_ICAO"
+  WAYPOINT_BLOCK="      <Waypoint>
         <Ident>${DEP_ICAO}</Ident>
         <Type>AIRPORT</Type>
       </Waypoint>
@@ -80,15 +94,13 @@ else
 fi
 
 # ==============================================================================
-# 6. COMPILE STRUCTURAL LITTLE NAVMAP SPECIFICATION ENGINE (XML Layout)
+# 5. COMPILE STRUCTURAL LITTLE NAVMAP SPECIFICATION ENGINE (XML Layout)
 # ==============================================================================
-
-# Escape XML illegal tokens to secure structural parsing consistency across profiles
 XML_REMARKS=$(echo "$briefing" | awk '{
-    gsub(/&/, "\\&amp;");
-    gsub(/</, "\\&lt;");
-    gsub(/>/, "\\&gt;");
-    print
+  gsub(/&/, "\\&amp;");
+  gsub(/</, "\\&lt;");
+  gsub(/>/, "\\&gt;");
+  print
 }')
 TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%S%:z')
 

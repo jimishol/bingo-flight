@@ -155,19 +155,19 @@ flight() {
             ;;
     esac
 }
-
 ```
 
-> ⚙️ **Dual-Mode State Ingestion Rules (`lnmpln_creator.sh`):**
-> The `lnmpln_creator.sh` sub-engine handles data routing using a dual-mode strategy depending on Little Navmap's session state.
-> * If the script cannot resolve a departure (`DEP_ICAO`), it will **remove** any existing target file at `$HOME/.cache/flight_dispatch/briefing.lnmpln` to avoid leaving a stale or misleading flight plan on disk. The generator will recreate the file only when a valid briefing and destination are available.
-> * If a departure is resolved (unsaved asterisk state) the script will reuse the last Little Navmap waypoint as the departure and inject the briefing into the generated `.lnmpln`.
+> ⚙️ **Three-Tier State Ingestion Rules (`lnmpln_creator.sh`):**
+> The `lnmpln_creator.sh` sub-engine handles data routing using a hierarchical strategy depending on your last flight's actual conclusion and Little Navmap's session state.
 > 
-> *Mode A: Unsaved Asterisk State (The State Hijack):* The creator monitors Little Navmap's session cache file at `LNM_RECENT_PLAN="$HOME/.config/ABarthel/little_navmap.lnmpln"`. This file exists **only if you closed Little Navmap while your flight plan was unsaved** (marked with an asterisk `*` in the LNM title bar). When you run a new dispatch, the creator script intercepts this file, grabs your previous destination airfield to use as your *new* departure point, and injects the fresh dispatch manifest details directly into the **Flight Plan Remarks** box.
+> * **Mode A: True Last Landing (The Logbook Primary):** The script first queries Little Navmap's `LNM_LOGBOOK_DB="$HOME/.config/ABarthel/little_navmap_db/little_navmap_logbook.sqlite"` database to grab your actual last landed destination. This is highly advantageous because if you had to divert to an **alternate airport** instead of your planned destination, your next flight will correctly originate from where your aircraft is actually parked. 
+>   * *Sim-Specific Note:* If Little Navmap's auto-logbook creation struggles to detect your landings (which can sometimes happen with FlightGear), you can simply insert the landing entry manually in LNM. The script queries the database directly and will seamlessly pick up your manual entries.
 > 
-> *Mode B: Saved Plan Fallback (Isolated Briefing Mode):* If you manually save your route in Little Navmap under an explicit name before quitting, Little Navmap cleanly erases its temporary state file upon exit. In this scenario, the bridge generates a clean, independent map tracking layout at `$HOME/.cache/flight_dispatch/briefing.lnmpln` when a valid briefing is present; if no valid briefing/destination is available, the creator will leave the target file absent to avoid stale plans.
+> * **Mode B: Unsaved Asterisk State (The Cache Hijack Fallback):** If the logbook database is missing, or if you landed off-airport (which logs raw coordinates instead of an ICAO), the creator falls back to intercepting Little Navmap's session cache file at `LNM_RECENT_PLAN="$HOME/.config/ABarthel/little_navmap.lnmpln"`. This file exists **only if you closed Little Navmap while your flight plan was unsaved** (marked with an asterisk `*` in the LNM title bar). The creator intercepts this file, grabs your previous destination airfield to use as your *new* departure point, and injects the fresh dispatch manifest details directly into the **Flight Plan Remarks** box.
 > 
-> *Note:* It is safe for `briefing.lnmpln` to be absent; Little Navmap can be opened without it. The removal prevents stale plans from persisting when the creator cannot determine a valid departure. The script only removes the file inside the configured cache directory to avoid accidental deletion of unrelated files.
+> * **Mode C: Clean Reset (Isolated Briefing Mode):** If you manually save your route in Little Navmap under an explicit name before quitting, Little Navmap cleanly erases its temporary state file upon exit. In this scenario (and assuming no valid logbook airport is found), the bridge generates a clean, independent map tracking layout at `$HOME/.cache/flight_dispatch/briefing.lnmpln` when a valid briefing is present.
+>
+> *Safety Action:* If the script cannot resolve a departure (`DEP_ICAO`) through *any* of the above methods, it will **remove** any existing target file at `$HOME/.cache/flight_dispatch/briefing.lnmpln` to avoid leaving a stale or misleading flight plan on disk. The generator will recreate the file only when a valid briefing and destination are available. (It is completely safe for `briefing.lnmpln` to be absent; Little Navmap can be opened without it).
 
 ---
 
