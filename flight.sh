@@ -81,13 +81,15 @@ fi
 
 # Custom Filter Card Targets (Moved entirely inside secure application cache)
 CSV_TARGET_FILE="$DB_DIR/destinations.csv"
+EXCLUSION_FILE="$SCRIPT_DIR/excluded_airports.txt"
 
 mkdir -p "$DB_DIR"
 
 # ==============================================================================
 # THE SYNC ENGINE: DYNAMIC DICTIONARY INTERSECTION & INJECTION
 # ==============================================================================
-CURRENT_HASH=$(md5sum "$SCRIPT_PATH" 2>/dev/null | cut -d' ' -f1)
+# Hash includes both the script and the exclusion list. If either changes, the DB rebuilds.
+CURRENT_HASH=$(cat "$SCRIPT_PATH" "$EXCLUSION_FILE" 2>/dev/null | md5sum | cut -d' ' -f1)
 LAST_HASH=""
 [ -f "$HASH_FILE" ] && LAST_HASH=$(cat "$HASH_FILE")
 
@@ -128,6 +130,12 @@ csv_url = '$DB_URL'
 db_file = '$DB_FILE'
 lnm_db = '$LNM_DB'
 db_source = '$DB_SOURCE'
+exclusion_file = '$EXCLUSION_FILE'
+
+excluded_icaos = set()
+if os.path.exists(exclusion_file):
+    with open(exclusion_file, 'r') as f:
+        excluded_icaos = set([line.strip().upper() for line in f if line.strip() and not line.startswith('#')])
 
 valid_icaos = set()
 lnm_fallback_data = {}
@@ -140,6 +148,7 @@ if db_source == 'LNM' and os.path.exists(lnm_db):
         cursor.execute('''SELECT ident, name, city, country FROM airport WHERE ident IS NOT NULL''')
         for row in cursor.fetchall():
             ident = row[0].upper()
+            if ident in excluded_icaos: continue
             valid_icaos.add(ident)
             lnm_fallback_data[ident] = {
                 'icao': ident,
@@ -165,6 +174,7 @@ try:
     
     for row in reader:
         ident = row.get('ident', '').upper()
+        if ident in excluded_icaos: continue
         apt_type = row.get('type', 'small_airport')
         
         if apt_type == 'closed' or len(ident) < 3 or len(ident) > 4:
@@ -717,8 +727,14 @@ except Exception: print('|||')
     [ -n "$apt_name" ] && is_confirmed_airport=1
 fi
 
-# Fallback 1: If not found locally, search the online OurAirports CSV dataset
-if [ -z "$apt_name" ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
+# Check if the requested ICAO is intentionally excluded before falling back to the internet
+IS_EXCLUDED=0
+if grep -iqE "^[[:space:]]*${icao}[[:space:]]*$" "$EXCLUSION_FILE" 2>/dev/null; then
+    IS_EXCLUDED=1
+fi
+
+# Fallback 1: If not found locally AND not excluded, search the online OurAirports CSV dataset
+if [ -z "$apt_name" ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ] && [ "$IS_EXCLUDED" -eq 0 ]; then
     echo "Notice: ICAO '$icao' not found locally. Searching global OurAirports dataset online..."
     parsed_data=$(python3 -c "
 import sys, csv, json, urllib.request, os
@@ -740,7 +756,12 @@ try:
                 atype = row.get('type', 'small_airport')
                 print(f\"{name}|{city}|{country}|{atype}\")
                 
-                if os.path.exists(db_file):
+		excluded = False
+                if os.path.exists('$EXCLUSION_FILE'):
+                    with open('$EXCLUSION_FILE', 'r') as ef:
+                        if icao in [l.strip().upper() for l in ef]: excluded = True
+                
+                if not excluded and os.path.exists(db_file):
                     try:
                         with open(db_file, 'r') as f: data = json.load(f)
                         data[icao] = {'icao': icao, 'name': name, 'city': city, 'country': country, 'type': atype}
@@ -897,9 +918,15 @@ else: print(f'{(done / total) * 100:.1f}%')
 	    alert_text="💡 (Execute 'flight -j --reset' to clear journey)"
 	fi
     else
-        if [ "$is_confirmed_airport" -eq 0 ]; then
+	if [ "$is_confirmed_airport" -eq 0 ]; then
             mode_text="[UNVERIFIED ICAO] Off the grid. Not tracked in regional career metrics."
-            alert_text="⚠️ Destination uncharted in master database!"
+            
+            # Check if it was intentionally excluded (ignoring spaces and \r carriage returns)
+            if grep -iqE "^[[:space:]]*${icao}[[:space:]]*$" "$EXCLUSION_FILE" 2>/dev/null; then
+                alert_text="🚫 Destination intentionally ignored (found in excluded list)."
+            else
+                alert_text="⚠️ Destination uncharted in master database!"
+            fi
         else
             px_metrics=$(calculate_prefix_metrics "$prefix")
             IFS='|' read -r vp_count tp_count cp_pct rp_count cities_left <<< "$px_metrics"

@@ -297,6 +297,26 @@ The easiest way to generate a flawless target deck matching this structural spec
 ./flight.sh -c path/to/my_deck.csv
 
 ```
+---
+
+### 🚫 Exclude Missing or Unwanted Airports
+If your specific simulator (such as FlightGear) is missing certain airfields, or if you simply want to permanently ignore specific locations, you can use `excluded_airports.txt` file in the root directory next to `flight.sh`.
+
+List the ICAO codes you want to ban, one per line (you can use `#` for comments):
+
+```text
+# Excluded because they do not exist in my simulator
+LG12
+LG01
+
+# Permanently ignored
+ZXYZ
+```
+
+**How it works:**
+* **Instant Auto-Sync:** The moment you create or update this file, the dispatch engine hashes the change and instantly rebuilds your local dictionary.
+* **Metric Correction:** Excluded airports are immediately wiped from your regional progress percentages (`flight -f`), random dispatch pools (`flight -n`), and custom target card decks. 
+* **Smart Detection:** If you manually request an excluded airport (e.g., `flight LG12`), the system smartly skips the internet search and explicitly flags it in the briefing as an intentionally ignored destination.
 
 ---
 
