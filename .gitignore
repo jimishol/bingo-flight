@@ -4,3 +4,4 @@ test_files/
 **/blueprint.txt
 flight.conf
 flight_tiers.conf
+excluded_airports.txt

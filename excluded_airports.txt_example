@@ -1,0 +1,6 @@
+# Excluded because they do not exist in my simulator
+LG12
+LG01
+
+# Permanently ignored
+ZXYZ
