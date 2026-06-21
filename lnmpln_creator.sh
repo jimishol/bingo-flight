@@ -1,20 +1,31 @@
 #!/bin/bash
 
 # ==============================================================================
+# USER CONFIGURATION: DEPARTURE POINT INGESTION STRATEGY
+# ==============================================================================
+# Choose one of the following routing hierarchies:
+#   "a" -> 1-2-A-3 : LNM Logbook -> LNM Cache -> FlightGear Live Log -> Null Fallback
+#   "b" -> A-1-2-3 : FlightGear Live Log -> LNM Logbook -> LNM Cache -> Null Fallback
+#   "c" -> 3       : Absolute Reset (Always start with a blank departure point)
+DEPARTURE_STRATEGY="c"
+
+# ==============================================================================
 # DIRECTORY AND FILE CONFIGURATION
 # ==============================================================================
 DB_DIR="$HOME/.cache/flight_dispatch"
 LNM_OUTPUT_FILE="$DB_DIR/briefing.lnmpln"
+FGFP_OUTPUT_FILE="$DB_DIR/briefing.fgfp"
+
 LNM_RECENT_PLAN="$HOME/.config/ABarthel/little_navmap.lnmpln"
 LNM_LOGBOOK_DB="$HOME/.config/ABarthel/little_navmap_db/little_navmap_logbook.sqlite"
+FG_LOG_FILE="$HOME/.fgfs/fgfs.log"
 
 mkdir -p "$DB_DIR"
 
-# 1. Read the raw text stream from the standard input process pipeline (tee)
 RAW_STREAM=$(cat)
 
 # ==============================================================================
-# 2. LANGUAGE-AGNOSTIC BRIEFING EXTRACTION (Structural Boundary Isolation)
+# 2. LANGUAGE-AGNOSTIC BRIEFING EXTRACTION & DESTINATION
 # ==============================================================================
 briefing=$(echo "$RAW_STREAM" | awk '
   /^=/ { eq_count++ }
@@ -24,77 +35,84 @@ briefing=$(echo "$RAW_STREAM" | awk '
 
 if [ -z "$briefing" ]; then
   : > "$LNM_OUTPUT_FILE"
+  : > "$FGFP_OUTPUT_FILE"
   exit 0
 fi
 
 DEST_ICAO=$(echo "$RAW_STREAM" | grep -oP '\(ICAO: \K[A-Z0-9]+' | head -n 1)
 
 # ==============================================================================
-# 3. RESOLVE DEPARTURE POINT (LOGBOOK DB -> FALLBACK TO RECENT PLAN)
+# 3. MODULAR RESOLUTION FUNCTIONS
 # ==============================================================================
-DEP_ICAO=""
 
-# Option A: Always query the SQLite logbook first for the true last landing site
-if [ -f "$LNM_LOGBOOK_DB" ]; then
-  DEP_ICAO=$(python3 -c "
+get_lnm_logbook() {
+  if [ -f "$LNM_LOGBOOK_DB" ]; then
+    python3 -c "
 import sqlite3
 try:
     conn = sqlite3.connect('$LNM_LOGBOOK_DB')
     cursor = conn.cursor()
-    cursor.execute('''
-        SELECT destination_ident 
-        FROM logbook 
-        WHERE destination_ident IS NOT NULL 
-        ORDER BY departure_time DESC 
-        LIMIT 1
-    ''')
+    cursor.execute('SELECT destination_ident FROM logbook WHERE destination_ident IS NOT NULL ORDER BY departure_time DESC LIMIT 1')
     row = cursor.fetchone()
-    if row:
-        ident = row[0].strip()
-        # Ensure it is a valid ICAO, rejecting degree-based coordinates
-        if ident.isalnum():
-            print(ident)
+    if row and row[0].strip().isalnum():
+        print(row[0].strip())
     conn.close()
 except Exception:
     pass
-" 2>/dev/null)
-fi
+" 2>/dev/null
+  fi
+}
 
-# Option B: Fallback to the current legacy behavior (most recent flight plan)
-if [ -z "$DEP_ICAO" ] && [ -f "$LNM_RECENT_PLAN" ]; then
-  DEP_ICAO=$(grep -oP '(?<=<Ident>)[A-Z0-9]+(?=</Ident>)' "$LNM_RECENT_PLAN" | tail -n 1)
-fi
+get_lnm_cache() {
+  if [ -f "$LNM_RECENT_PLAN" ]; then
+    grep -oP '(?<=<Ident>)[A-Z0-9]+(?=</Ident>)' "$LNM_RECENT_PLAN" | tail -n 1
+  fi
+}
 
-if [ -z "$DEP_ICAO" ]; then
-  case "$LNM_OUTPUT_FILE" in
-    "$DB_DIR"/*) rm -f -- "$LNM_OUTPUT_FILE" ;;
-    *) printf 'Refusing to remove %s — not inside %s\n' "$LNM_OUTPUT_FILE" "$DB_DIR" >&2 ;;
-  esac
-fi
+get_fg_live_log() {
+  if [ -f "$FG_LOG_FILE" ]; then
+    # Extracts the last matching ICAO identifier from the FG Environment Manager string
+    grep -oP 'FGEnvironmentMgr::updateClosestAirport: selected:\s*\K[A-Z0-9]+' "$FG_LOG_FILE" | tail -n 1
+  fi
+}
 
 # ==============================================================================
-# 4. DETECT LOCAL FLIGHT VS CROSS-COUNTRY ROUTE
+# 4. RESOLVE DEPARTURE POINT BY STRATEGY EVALUATION
+# ==============================================================================
+DEP_ICAO=""
+
+case "$DEPARTURE_STRATEGY" in
+  "a")
+    # Hierarchy: 1 -> 2 -> A -> 3
+    [ -z "$DEP_ICAO" ] && DEP_ICAO=$(get_lnm_logbook)
+    [ -z "$DEP_ICAO" ] && DEP_ICAO=$(get_lnm_cache)
+    [ -z "$DEP_ICAO" ] && DEP_ICAO=$(get_fg_live_log)
+    ;;
+  "b")
+    # Hierarchy: A -> 1 -> 2 -> 3
+    [ -z "$DEP_ICAO" ] && DEP_ICAO=$(get_fg_live_log)
+    [ -z "$DEP_ICAO" ] && DEP_ICAO=$(get_lnm_logbook)
+    [ -z "$DEP_ICAO" ] && DEP_ICAO=$(get_lnm_cache)
+    ;;
+  "c"|*)
+    # Hierarchy: 3 (Force absolute null reset)
+    DEP_ICAO=""
+    ;;
+esac
+
+[ -z "$DEP_ICAO" ] && DEP_ICAO=""
+
+# ==============================================================================
+# 5. ROUTE GEOMETRY COMPILATION
 # ==============================================================================
 if [ -z "$DEST_ICAO" ]; then
   FINAL_DEST_ICAO="$DEP_ICAO"
-  WAYPOINT_BLOCK="      <Waypoint>
-        <Ident>${DEP_ICAO}</Ident>
-        <Type>AIRPORT</Type>
-      </Waypoint>"
 else
   FINAL_DEST_ICAO="$DEST_ICAO"
-  WAYPOINT_BLOCK="      <Waypoint>
-        <Ident>${DEP_ICAO}</Ident>
-        <Type>AIRPORT</Type>
-      </Waypoint>
-      <Waypoint>
-        <Ident>${FINAL_DEST_ICAO}</Ident>
-        <Type>AIRPORT</Type>
-      </Waypoint>"
 fi
 
 # ==============================================================================
-# 5. COMPILE STRUCTURAL LITTLE NAVMAP SPECIFICATION ENGINE (XML Layout)
+# 6. EXPORT TEMPLATE COMPILATION ENGINE
 # ==============================================================================
 XML_REMARKS=$(echo "$briefing" | awk '{
   gsub(/&/, "\\&amp;");
@@ -104,6 +122,14 @@ XML_REMARKS=$(echo "$briefing" | awk '{
 }')
 TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%S%:z')
 
+# Setup LNM Waypoints
+if [ -z "$DEST_ICAO" ]; then
+  LNM_WAYPOINT_BLOCK="      <Waypoint>\n        <Ident>${DEP_ICAO}</Ident>\n        <Type>AIRPORT</Type>\n      </Waypoint>"
+else
+  LNM_WAYPOINT_BLOCK="      <Waypoint>\n        <Ident>${DEP_ICAO}</Ident>\n        <Type>AIRPORT</Type>\n      </Waypoint>\n      <Waypoint>\n        <Ident>${FINAL_DEST_ICAO}</Ident>\n        <Type>AIRPORT</Type>\n      </Waypoint>"
+fi
+
+# Write Little Navmap format
 cat <<EOF > "$LNM_OUTPUT_FILE"
 <?xml version="1.0" encoding="UTF-8"?>
 <LittleNavmap xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://www.littlenavmap.org/schema/lnmpln.xsd">
@@ -117,7 +143,6 @@ cat <<EOF > "$LNM_OUTPUT_FILE"
       <FileVersion>1.2</FileVersion>
       <ProgramName>Little Navmap</ProgramName>
       <ProgramVersion>3.0.18</ProgramVersion>
-      <Documentation>https://www.littlenavmap.org/lnmpln.html</Documentation>
     </Header>
     <SimData Cycle="1801">NAVIGRAPH</SimData>
     <NavData Cycle="1801">NAVIGRAPH</NavData>
@@ -127,8 +152,39 @@ cat <<EOF > "$LNM_OUTPUT_FILE"
       <Name>Cessna 172P Skyhawk (1982)</Name>
     </AircraftPerformance>
     <Waypoints>
-${WAYPOINT_BLOCK}
+$(echo -e "$LNM_WAYPOINT_BLOCK")
     </Waypoints>
   </Flightplan>
 </LittleNavmap>
+EOF
+
+# Write FlightGear Native format
+cat <<EOF > "$FGFP_OUTPUT_FILE"
+<?xml version="1.0"?>
+<PropertyList>
+  <version type="int">2</version>
+  <is-route type="bool">true</is-route>
+  <flight-rules type="string">V</flight-rules>
+  <flight-type type="string">X</flight-type>
+  <remarks type="string">${XML_REMARKS}</remarks>
+  <aircraft-type type="string">C172</aircraft-type>
+  <departure>
+    <airport type="string">${DEP_ICAO}</airport>
+  </departure>
+  <destination>
+    <airport type="string">${FINAL_DEST_ICAO}</airport>
+  </destination>
+  <route>
+    <wp>
+      <type type="string">navaid</type>
+      <departure type="bool">true</departure>
+      <ident type="string">${DEP_ICAO}</ident>
+    </wp>
+    <wp n="1">
+      <type type="string">navaid</type>
+      <approach type="bool">true</approach>
+      <ident type="string">${FINAL_DEST_ICAO}</ident>
+    </wp>
+  </route>
+</PropertyList>
 EOF
