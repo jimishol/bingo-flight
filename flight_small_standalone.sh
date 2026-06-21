@@ -8,6 +8,7 @@ HOME_ICAO="LGHI"
 CONFIRMATION=false  # Set to true for a pre-flight mood gate, false to auto-commit
 CITIES_ALERT_THRESHOLD=5
 PILOT_WEIGHT=210
+WEIGHT_UNIT="lbs"  # Can be changed to "kg", "lbs" or any other abstract unit label
 
 # 🌟 HIGH-ADVENTURE CABIN MANIFEST CONFIGURATION
 JOURNEY_PASSENGERS_ONBOARD=3  # Options: 0 to 3 passengers max for small_airplane
@@ -934,22 +935,22 @@ fi
 # ACT 3: WEIGHT DETAILS & PRE-FLIGHT OUTRO
 # ==============================================================================
 echo "---------------------------------------------------------"
-printf "• Pilot Weight      : %3i lbs\n" "$PILOT_WEIGHT"
+UNIT="${WEIGHT_UNIT:-lbs}"
+
+printf "• Pilot Weight      : %3i %s\n" "$PILOT_WEIGHT" "$UNIT"
 if [ "$passengers" -ne 0 ]; then
     i=1
     while [ "$i" -le "$passengers" ]; do
         if [ "$JOURNEY_MODE" -eq 1 ]; then
-            # Pull the locked, static weight from your configuration array
             p_weight="${JOURNEY_PAX_WEIGHTS[$((i-1))]}"
         else
-            # Roll a dynamic variable weight for random flights
             p_weight=$(( 120 + RANDOM % 90 ))
         fi
-        printf "• Passenger %i       : %3i lbs\n" "$i" "$p_weight"
+        printf "• Passenger %i       : %3i %s\n" "$i" "$p_weight" "$UNIT"
         i=$(( i + 1 ))
     done
 fi
-printf "• Cargo/Baggage     : %3i lbs (%s load)\n" "$baggage_weight" "$bag_class"
+printf "• Cargo/Baggage     : %3i %s (%s load)\n" "$baggage_weight" "$UNIT" "$bag_class"
 echo "========================================================="
 echo "Calculate your Weight & Balance carefully before advancing the throttle!"
 echo "Have a great flight!"

@@ -72,7 +72,7 @@ while IFS='=' read -r key value || [ -n "$key" ]; do
 
         # 8. Έλεγχος εγκυρότητας μεταβλητής (Σε 1 γραμμή για αποφυγή line-continuation bugs)
         case "$key" in
-            max_baggage|threshold_medium|threshold_heavy|crew|pax_min|pax_range|seats_per_zone|pax1_label|pax2_label|pax3_label|journey_zones|journey_cargo)
+            max_baggage|threshold_medium|threshold_heavy|crew|pax_min|pax_range|seats_per_zone|pax1_label|pax2_label|pax3_label|journey_zones|journey_cargo|WEIGHT_UNIT)
                 printf -v "$key" "%s" "$value"
                 ;;
         esac
@@ -83,5 +83,5 @@ done < "$TIERS_CONF"
 read -r -a journey_cargo <<< "${journey_cargo:-}"
 
 # Εξαγωγή των μεταβλητών στο session του flight.sh
-export max_baggage threshold_medium threshold_heavy crew
+export max_baggage threshold_medium threshold_heavy crew WEIGHT_UNIT
 export pax_min pax_range seats_per_zone pax1_label pax2_label pax3_label journey_zones journey_cargo

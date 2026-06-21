@@ -978,34 +978,37 @@ fi
 # ==============================================================================
 echo "---------------------------------------------------------"
 
+# Fallback to 'lbs' if the user hasn't defined WEIGHT_UNIT in their config yet
+UNIT="${WEIGHT_UNIT:-lbs}"
+
 if [ "$VEHICLE_TIER" = "small_airplane" ] || [ "$VEHICLE_TIER" = "helicopter" ]; then
     crew_label="$lbl_crew_pilot"
 else
     crew_label="$lbl_crew_team"
 fi
 
-printf "• %-21s : %6i lbs\n" "$crew_label" "$crew"
+printf "• %-21s : %6i %s\n" "$crew_label" "$crew" "$UNIT"
 
 if [ "$passengers" -ne 0 ]; then
     i=1
     while [ "$i" -le "$passengers" ]; do
         if [ "$JOURNEY_MODE" -eq 1 ]; then
             # Pull the locked, static weight from your configuration array
-	    p_weight="${journey_cargo[$((i-1))]}"
+            p_weight="${journey_cargo[$((i-1))]}"
         else
             # Roll a dynamic variable weight for random flights
             p_weight=$(( (pax_min + RANDOM % pax_range) * seats_per_zone ))
         fi
 
-	label_var="pax${i}_label"
-	label="${!label_var}"
-	printf "• %-20s  : %6i lbs\n" "$label" "$p_weight"
+        label_var="pax${i}_label"
+        label="${!label_var}"
+        printf "• %-20s  : %6i %s\n" "$label" "$p_weight" "$UNIT"
 
         i=$(( i + 1 ))
     done
 fi
 
-printf "• %-20s  : %6i lbs (%s %s)\n" "$lbl_cargo" "$baggage_weight" "$bag_class" "load"
+printf "• %-20s  : %6i %s (%s %s)\n" "$lbl_cargo" "$baggage_weight" "$UNIT" "$bag_class" "load"
 echo "========================================================="
 echo "$lbl_outro_balance"
 echo "$lbl_outro_fly"

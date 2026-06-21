@@ -10,6 +10,7 @@
 # SMALL AIRPLANE RULES (e.g., Cessna 172, Piper PA-28, Beechcraft Baron)
 # ------------------------------------------------------------------------------
 [small_airplane]
+WEIGHT_UNIT=lbs  # Can be changed to kg, lbs or any other string to match your simulator
 # Weight capacity boundaries for random baggage assignment profiles
 # Maximum total abstract weight cargo space can physically hold
 max_baggage=120
@@ -47,6 +48,7 @@ journey_cargo=137 177 126
 # HELICOPTER RULES (e.g., Bell 206, Robinson R44, Eurocopter EC135)
 # ------------------------------------------------------------------------------
 [helicopter]
+WEIGHT_UNIT=lbs  # Can be changed to kg, lbs or any other string to match your simulator
 # Highly restrictive structural storage space capacity
 max_baggage=40
 # Minimal tolerance before weight shifts center of gravity to medium
@@ -68,6 +70,7 @@ journey_cargo=137 177 126
 # MEDIUM AIRPLANE RULES (e.g., ATR 72, Bombardier CRJ, Boeing 737, Airbus A320)
 # ------------------------------------------------------------------------------
 [medium_airplane]
+WEIGHT_UNIT=lbs  # Can be changed to kg, lbs or any other string to match your simulator
 # Commercial transport cargo capacity
 max_baggage=10000
 # Lower boundary for medium airline luggage load assignments
@@ -98,6 +101,7 @@ journey_cargo=1940 2910 3870
 # LARGE AIRPLANE RULES (e.g., Boeing 777, Boeing 747, Airbus A350, Airbus A380)
 # ------------------------------------------------------------------------------
 [large_airplane]
+WEIGHT_UNIT=lbs  # Can be changed to kg, lbs or any other string to match your simulator
 max_baggage=30000
 threshold_medium=9000
 threshold_heavy=18000
