@@ -7,7 +7,7 @@
 #   "a" -> 1-2-A-3 : LNM Logbook -> LNM Cache -> FlightGear Live Log -> Null Fallback
 #   "b" -> A-1-2-3 : FlightGear Live Log -> LNM Logbook -> LNM Cache -> Null Fallback
 #   "c" -> 3       : Absolute Reset (Always start with a blank departure point)
-DEPARTURE_STRATEGY="c"
+DEPARTURE_STRATEGY="b"
 
 # ==============================================================================
 # DIRECTORY AND FILE CONFIGURATION
@@ -143,9 +143,6 @@ cat <<EOF > "$LNM_OUTPUT_FILE"
 <LittleNavmap xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://www.littlenavmap.org/schema/lnmpln.xsd">
   <Flightplan>
     <Header>
-      <FlightplanType>VFR</FlightplanType>
-      <CruisingAlt>4500</CruisingAlt>
-      <CruisingAltF>4500.00000000</CruisingAltF>
       <Comment>${XML_REMARKS}</Comment>
       <CreationDate>${TIMESTAMP}</CreationDate>
       <FileVersion>1.2</FileVersion>
@@ -154,11 +151,6 @@ cat <<EOF > "$LNM_OUTPUT_FILE"
     </Header>
     <SimData Cycle="1801">NAVIGRAPH</SimData>
     <NavData Cycle="1801">NAVIGRAPH</NavData>
-    <AircraftPerformance>
-      <FilePath>My initial Cessna 2POB.lnmperf</FilePath>
-      <Type>c172p</Type>
-      <Name>Cessna 172P Skyhawk (1982)</Name>
-    </AircraftPerformance>
     <Waypoints>
 $(echo -e "$LNM_WAYPOINT_BLOCK")
     </Waypoints>
@@ -175,7 +167,6 @@ cat <<EOF > "$FGFP_OUTPUT_FILE"
   <flight-rules type="string">V</flight-rules>
   <flight-type type="string">X</flight-type>
   <remarks type="string">${XML_REMARKS}</remarks>
-  <aircraft-type type="string">C172</aircraft-type>
   <departure>
     <airport type="string">${DEP_ICAO}</airport>
   </departure>
