@@ -853,12 +853,12 @@ fi
 
 # Trigger the mood confirmation gate if enabled
 if [ "$CONFIRMATION" = true ] && [ "$IS_LOCAL_FLIGHT" -eq 0 ]; then
-    echo "---------------------------------------------------------"
+    echo "---------------------------------------------------------" >&2
     read -r -p "$lbl_confirm_prompt" choice
     case "$choice" in 
         [Yy]*) 
-            echo ""
-            echo "✔ $lbl_confirm_success" 
+            echo "" >&2
+            echo "✔ $lbl_confirm_success" >&2
             ;;
         *) 
             echo ""

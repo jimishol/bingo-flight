@@ -27,6 +27,14 @@ RAW_STREAM=$(cat)
 # ==============================================================================
 # 2. LANGUAGE-AGNOSTIC BRIEFING EXTRACTION & DESTINATION
 # ==============================================================================
+# If the user selected "No", flight.sh prints the "❌" symbol.
+# If detected, clear any existing briefing files and exit immediately.
+if echo "$RAW_STREAM" | grep -q "❌"; then
+  : > "$LNM_OUTPUT_FILE"
+  : > "$FGFP_OUTPUT_FILE"
+  exit 0
+fi
+
 briefing=$(echo "$RAW_STREAM" | awk '
   /^=/ { eq_count++ }
   eq_count == 2 && !/^=/ { lines[++idx] = $0 }
