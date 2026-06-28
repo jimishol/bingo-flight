@@ -137,11 +137,9 @@ VEHICLE_TIER=helicopter ./flight.sh -n lg
 
 ---
 
-### 4. Real-Time Flight Plan Generation Wrapper (Optional)
+### 4. Real-Time Flight Plan Generator (Optional)
 
-The dispatch engine can automatically compile and export fresh `.lnmpln` (Little Navmap) and `.fgfp` (FlightGear Native) flight plans simultaneously every time you request a flight briefing. This allows you to load your plan and remarks directly into the **FlightGear Launcher's flight planner** or Little Navmap without any manual file moving.
-
-To enable this automated background pipeline, add the following shell function wrapper to your user profile (`~/.bashrc`, `~/.zshrc`, or `~/.bash_aliases`):
+Add this wrapper function to your shell profile (`~/.bashrc`, `~/.zshrc`, or `~/.bash_aliases`) to automatically compile and export synchronized flight plans to `$HOME/.cache/flight_dispatch/briefing.[fgfp|lnmpln]` every time you fetch a briefing. This feeds your active routing and remarks directly into FlightGear and Little Navmap without manual file handling.
 
 ```bash
 flight() {
@@ -161,27 +159,22 @@ flight() {
 
 ---
 
-> ⚙️ **Dual-Format Generation & Ingestion Strategies (`lnmpln_creator.sh`)**
-> The sub-engine outputs two identical flight plans with your briefing text injected directly into the **Remarks/Comments** block:
-> * **FlightGear Native Plan:** `$HOME/.cache/flight_dispatch/briefing.fgfp`
-> * **Little Navmap Plan:** `$HOME/.cache/flight_dispatch/briefing.lnmpln`
-> 
-> 
-> You can control how the script dynamically resolves your next departure airfield (`DEP_ICAO`) by adjusting the `DEPARTURE_STRATEGY` flag inside the script:
+### Departure Resolution Strategies
 
-| Strategy | Chain Hierarchy | Best Used For... |
+You can configure how `lnmpln_creator.sh` dynamically locates your next departure airfield (`DEP_ICAO`) by updating the `DEPARTURE_STRATEGY` variable inside the script:
+
+| Strategy | Resolution Chain | Best Used For... |
 | --- | --- | --- |
-| **Strategy `a**` | **`LNM Logbook ➔ LNM Cache ➔ FG Live Log ➔ Null`** | Users who primarily manage their logs and airframe positions inside Little Navmap. |
-| **Strategy `b**` *(Default)* | **`FG Live Log ➔ LNM Logbook ➔ LNM Cache ➔ Null`** | Pure FlightGear or mixed-mode users. It pulls real-time airframe location directly from your active `fgfs.log`. |
-| **Strategy `c**` | **`Null Reset`** | A clean slate. It disables automated tracking and always leaves the departure airport blank. |
+| **`a`** | `LNM Logbook ➔ LNM Cache ➔ FG Live Log ➔ Null` | Pilots tracking airframe positions primarily inside Little Navmap. |
+| **`b`** *(Default)* | `FG Live Log ➔ LNM Logbook ➔ LNM Cache ➔ Null` | Mixed/pure FlightGear users; pulls live data directly from active sim logs. |
+| **`c`** | `Null Reset (Always Blank)` | A clean slate; completely disables automated history tracking. |
 
-#### Ingestion Sources Explained:
+#### Ingestion Sources Breakdown:
 
-* **FG Live Log (`fgfs.log`):** Intercepts FlightGear's live engine state (`updateClosestAirport: selected:`). This guarantees that your next departure originates exactly where you last parked or shut down the sim.
-* **LNM Logbook (`little_navmap_logbook.sqlite`):** Queries Little Navmap's database for your true last landing destination. This captures manual entries or automated logs, ensuring diversions to alternate airports are tracked perfectly.
-* **LNM Unsaved Cache (`little_navmap.lnmpln`):** Intercepts the working session cache file if you closed Little Navmap with an unsaved plan active. **Crucial Note:** This temporary session file *only* exists on disk if an unsaved plan (marked with an asterisk `*` in the LNM title bar) is left behind. When you explicitly save a plan, Little Navmap automatically cleans up and deletes this file.
-* **Null Fallback:** If a departure cannot be resolved or strategy `c` is selected, the flight plans are cleanly generated with empty departure tags, ensuring the files remain valid and safe to open.
-
+* **FG Live Log (`fgfs.log`):** Scrapes the `updateClosestAirport:` engine state to spawn you exactly where you last shut down or parked.
+* **LNM Logbook (`little_navmap_logbook.sqlite`):** Queries the SQL database for your last recorded landing destination (excellent for tracking unlogged diversions).
+* **LNM Cache (`little_navmap.lnmpln`):** Intercepts your active session if Little Navmap was closed with an unsaved plan (marked with an asterisk `*`). *Note: This temporary cache is deleted automatically by LNM when you explicitly save a plan.*
+* **Null Fallback & FlightGear Guard:** If tracking returns nothing (or Strategy `c` is selected), Little Navmap safely generates empty waypoint tags. However, **FlightGear automatically falls back to your configured `HOME_ICAO**` to protect the simulator's routing engine from failing or defaulting to KSFO.
 ---
 
 ## 📖 Command Reference

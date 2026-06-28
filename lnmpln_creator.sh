@@ -12,6 +12,15 @@ DEPARTURE_STRATEGY="b"
 # ==============================================================================
 # DIRECTORY AND FILE CONFIGURATION
 # ==============================================================================
+# Source flight.conf to import HOME_ICAO
+CONF_FILE="$(dirname "$0")/flight.conf"
+if [ -f "$CONF_FILE" ]; then
+    source "$CONF_FILE"
+fi
+
+# ==============================================================================
+# DIRECTORY AND FILE CONFIGURATION
+# ==============================================================================
 DB_DIR="$HOME/.cache/flight_dispatch"
 LNM_OUTPUT_FILE="$DB_DIR/briefing.lnmpln"
 FGFP_OUTPUT_FILE="$DB_DIR/briefing.fgfp"
@@ -119,6 +128,10 @@ else
   FINAL_DEST_ICAO="$DEST_ICAO"
 fi
 
+# FlightGear protective guard: Forces fallback to HOME_ICAO if strategy returns empty,
+# preventing the simulator routing engine from collapsing or defaulting to KSFO.
+HOME_DEP_ICAO="${DEP_ICAO:-$HOME_ICAO}"
+
 # ==============================================================================
 # 6. EXPORT TEMPLATE COMPILATION ENGINE
 # ==============================================================================
@@ -131,10 +144,19 @@ XML_REMARKS=$(echo "$briefing" | awk '{
 TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%S%:z')
 
 # Setup LNM Waypoints
+# ------------------------------------------------------------------------------
+# BEHAVIOR TOGGLE: By default, LNM allows empty strings if detection fails. 
+# If you prefer LNM to mirror FlightGear's behavior and fall back to HOME_ICAO,
+# swap out ${DEP_ICAO} with ${HOME_DEP_ICAO} in the block variables below.
+# ------------------------------------------------------------------------------
 if [ -z "$DEST_ICAO" ]; then
   LNM_WAYPOINT_BLOCK="      <Waypoint>\n        <Ident>${DEP_ICAO}</Ident>\n        <Type>AIRPORT</Type>\n      </Waypoint>"
+  # Mirror FlightGear alternative:
+  # LNM_WAYPOINT_BLOCK="      <Waypoint>\n        <Ident>${HOME_DEP_ICAO}</Ident>\n        <Type>AIRPORT</Type>\n      </Waypoint>"
 else
   LNM_WAYPOINT_BLOCK="      <Waypoint>\n        <Ident>${DEP_ICAO}</Ident>\n        <Type>AIRPORT</Type>\n      </Waypoint>\n      <Waypoint>\n        <Ident>${FINAL_DEST_ICAO}</Ident>\n        <Type>AIRPORT</Type>\n      </Waypoint>"
+  # Mirror FlightGear alternative:
+  # LNM_WAYPOINT_BLOCK="      <Waypoint>\n        <Ident>${HOME_DEP_ICAO}</Ident>\n        <Type>AIRPORT</Type>\n      </Waypoint>\n      <Waypoint>\n        <Ident>${FINAL_DEST_ICAO}</Ident>\n        <Type>AIRPORT</Type>\n      </Waypoint>"
 fi
 
 # Write Little Navmap format
@@ -149,8 +171,6 @@ cat <<EOF > "$LNM_OUTPUT_FILE"
       <ProgramName>Little Navmap</ProgramName>
       <ProgramVersion>3.0.18</ProgramVersion>
     </Header>
-    <SimData Cycle="1801">NAVIGRAPH</SimData>
-    <NavData Cycle="1801">NAVIGRAPH</NavData>
     <Waypoints>
 $(echo -e "$LNM_WAYPOINT_BLOCK")
     </Waypoints>
@@ -158,7 +178,6 @@ $(echo -e "$LNM_WAYPOINT_BLOCK")
 </LittleNavmap>
 EOF
 
-# Write FlightGear Native format
 cat <<EOF > "$FGFP_OUTPUT_FILE"
 <?xml version="1.0"?>
 <PropertyList>
@@ -168,7 +187,7 @@ cat <<EOF > "$FGFP_OUTPUT_FILE"
   <flight-type type="string">X</flight-type>
   <remarks type="string">${XML_REMARKS}</remarks>
   <departure>
-    <airport type="string">${DEP_ICAO}</airport>
+    <airport type="string">${HOME_DEP_ICAO}</airport>
   </departure>
   <destination>
     <airport type="string">${FINAL_DEST_ICAO}</airport>
@@ -177,7 +196,7 @@ cat <<EOF > "$FGFP_OUTPUT_FILE"
     <wp>
       <type type="string">navaid</type>
       <departure type="bool">true</departure>
-      <ident type="string">${DEP_ICAO}</ident>
+      <ident type="string">${HOME_DEP_ICAO}</ident>
     </wp>
     <wp n="1">
       <type type="string">navaid</type>
