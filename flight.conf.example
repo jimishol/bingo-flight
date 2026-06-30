@@ -22,7 +22,10 @@ LOCALIZATION=""
 DB_SOURCE="LNM" 
 
 DB_URL="https://davidmegginson.github.io/ourairports-data/airports.csv"
-LNM_DB="$HOME/my_github/bingo-flight/test_files/little_navmap_navigraph.sqlite"
+# For navigraph used by littlenavmap
+# LNM_DB="$HOME/.config/ABarthel/little_navmap_db/little_navmap_navigraph.sqlite"
+# Or for simulator's airports the below
+LNM_DB="$HOME/.config/ABarthel/little_navmap_db/little_navmap_xp11.sqlite"
 
 
 # ==============================================================================

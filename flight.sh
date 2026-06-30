@@ -88,8 +88,8 @@ mkdir -p "$DB_DIR"
 # ==============================================================================
 # THE SYNC ENGINE: DYNAMIC DICTIONARY INTERSECTION & INJECTION
 # ==============================================================================
-# Hash includes both the script and the exclusion list. If either changes, the DB rebuilds.
-CURRENT_HASH=$(cat "$SCRIPT_PATH" "$EXCLUSION_FILE" 2>/dev/null | md5sum | cut -d' ' -f1)
+# Hash includes the script, exclusion list, and user configuration. If any change, the DB rebuilds.
+CURRENT_HASH=$(cat "$SCRIPT_PATH" "$EXCLUSION_FILE" "$SCRIPT_DIR/flight.conf" 2>/dev/null | md5sum | cut -d' ' -f1)
 LAST_HASH=""
 [ -f "$HASH_FILE" ] && LAST_HASH=$(cat "$HASH_FILE")
 
