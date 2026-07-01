@@ -8,15 +8,19 @@ An integrated companion pipeline linking live FlightGear simulation telemetry di
 
 Download and prepare the following packages into your designated applications workspace:
 
-* **LittleNavMap (Core Engine)**: Download the latest official Linux archive from the release repository:  
-  [https://github.com/albar965/littlenavmap](https://github.com/albar965/littlenavmap)
-* **FlightGear LittleNavMap Add-on**: Tracks native protocol links. Clone the connector extension directly from the developer source:  
-  [https://github.com/slawekmikula/flightgear-addon-littlenavmap](https://github.com/slawekmikula/flightgear-addon-littlenavmap)
-* **FGconnect (Live Telemetry Server)**: Ingests raw multi-threaded loop feeds. Clone the controller directly from the repository source:  
-  [https://github.com/Em-Ant/fgconnect](https://github.com/Em-Ant/fgconnect)
+* **LittleNavMap (Core Engine)**: Download the latest official Linux archive from the release repository:
+[https://github.com/albar965/littlenavmap](https://github.com/albar965/littlenavmap)
+* **FlightGear LittleNavMap Add-on**: Tracks native protocol links. Clone the connector extension directly from the developer source:
+[https://github.com/slawekmikula/flightgear-addon-littlenavmap](https://github.com/slawekmikula/flightgear-addon-littlenavmap)
+* **FGconnect (Live Telemetry Server)**: Ingests raw multi-threaded loop feeds. Clone the controller directly from the repository source:
+[https://github.com/Em-Ant/fgconnect](https://github.com/Em-Ant/fgconnect)
+
+In order for LNM to stop considering flightgear's plane always on the ground, if that is your case too and till the issue is dealed, you can replace the helper.py file by that from my status-fix branch from my fork [https://github.com/jimishol/fgconnect/blob/status-fix/lib/helper.py](https://github.com/jimishol/fgconnect/blob/status-fix/lib/helper.py)
 
 ### System Dependencies
+
 Ensure your Python execution environment contains the required XML structure parser:
+
 ```bash
 pip3 install xmltodict
 
@@ -111,3 +115,122 @@ Terminal=false
 Categories=Game;Simulation;
 
 ```
+
+---
+
+## 🎭 6. Database Synchronization (Tricking LittleNavMap Scenery Loader)
+
+Because LittleNavMap requires an X-Plane file ecosystem to unlock its native "Load Scenery Library" module, you can build a dummy directory architecture to link FlightGear's airfield layout and modern AIRAC parameters simultaneously.
+
+### Step A: Initialize the Fake X-Plane Environment
+
+Create a directory named `Fake_XPlane/` at a convenient location on your drive.
+
+Next, configure the X-Plane path registry file so LittleNavMap knows where to look. Create a hidden folder named `.x-plane` inside your home directory and place an orchestration file named `x-plane_install_11.txt` inside it containing the path to your fake folder:
+
+* **File Path:** `$HOME/.x-plane/x-plane_install_11.txt`
+* **File Content:** `/path_to/Fake_XPlane/`
+
+### Step B: Construct the Target Directory Tree
+
+Build the precise internal folder framework inside your `Fake_XPlane/` directory:
+
+```text
+Fake_XPlane 🐧 tree -d
+.
+├── Custom Scenery
+│   └── Global Airports
+└── Resources
+    ├── default data
+    └── default scenery
+        └── default apt dat
+            └── Earth nav data
+
+```
+
+Inside the `Fake_XPlane/Custom Scenery/` folder, establish your scenery definition file:
+
+```text
+Fake_XPlane/Custom Scenery 🐧 tree
+.
+├── Global Airports
+└── scenery_packs.ini
+
+```
+
+Create `scenery_packs.ini` with the following configuration contents:
+
+```text
+I
+1000 Version
+SCENERY
+
+SCENERY_PACK Custom Scenery/Global Airports/
+
+```
+
+### Step C: Install AIRAC Navaids into LittleNavMap
+
+Copy your modern X-Plane 11 formatted AIRAC database files directly into the `default data/` tree folder:
+
+```text
+/Fake_XPlane/Resources/default data 🐧 tree -L 1  
+.
+├── CIFP
+├── cycle_info.txt
+├── cycle.json
+├── earth_awy.dat
+├── earth_fix.dat
+├── earth_hold.dat
+├── earth_mora.dat
+├── earth_msa.dat
+├── earth_nav.dat
+└── user_fix_georef.dat
+
+```
+
+### Step D: Install FlightGear's Airport Layouts into LittleNavMap
+
+To synchronize airfield structures perfectly, move the core FlightGear airport data file into your fake directory tree:
+
+1. Copy `/usr/share/flightgear/Airports/apt.dat.gz` into `Fake_XPlane/Resources/default scenery/default apt dat/Earth nav data/`
+2. Open a terminal in that folder. You will see:
+```text
+apt.dat.gz
+
+```
+
+3. Extract the archive. Run this command to retain the original archive file as a visual reminder:
+```bash
+gunzip -k apt.dat.gz
+
+```
+
+*(Alternatively, run `gunzip apt.dat.gz` if you do not wish to keep the compressed file).*
+
+---
+
+## 📡 7. Instruct FlightGear to use AIRAC Frequencies
+
+To map the exact same radio communication nodes and navigation vectors inside the simulator engine, inject the matching AIRAC parameters into FlightGear's loading stack.
+
+Navigate inside your custom user download directory (`--download-dir=/path_to/Flightgear`) and initialize an override path:
+
+```text
+Flightgear/NavData_Override 🐧 tree
+.
+└── NavData
+    └── nav
+
+```
+
+1. Extract or copy the `earth_nav.dat` text file from your active AIRAC database.
+2. Drop it directly into your newly created `nav/` folder.
+3. Rename the file explicitly to lowercase: **`nav.dat`**
+
+### Active the Override Path in-sim
+
+1. Launch the standard **`fgfs` launcher**.
+2. Go directly to the **Add-ons** preference tab.
+3. Locate the **Additional scenery folders** configurations panel.
+4. Click **Add** and link the absolute directory path pointing to your folder: `Flightgear/NavData_Override`
