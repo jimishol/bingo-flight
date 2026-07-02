@@ -66,7 +66,36 @@ UDP port:        7755
 
 ## 🚀 3. Network Connection Matrix (FGconnect Server)
 
-Launch your telemetry utility via terminal or script workspace:
+You can launch the telemetry utility using either the interactive graphical interface or a streamlined headless terminal switch.
+
+### Option A: Standalone Mode (Headless)
+For automation or scripted operation, you can run `fgconnect` without the GUI by using the standalone `-s` flag. If no other arguments are passed, it defaults to your local loop ports automatically:
+
+```bash
+python3 fgconnect.py -s
+
+```
+
+#### Advanced Argument Customization
+
+If you need to override the default interfaces or tracking hooks, pass the explicit configuration flags:
+
+```bash
+python3 fgconnect.py -s --fgip 127.0.0.1 --fglnmpt 7755 --lnmip 127.0.0.1 --lnmpt 51968
+
+```
+
+**Default Network Map:**
+
+* **FlightGear UDP (Telemetry Ingest):** `127.0.0.1:7755`
+* **FlightGear HTTP (Web Server link):** `127.0.0.1:5400`
+* **LittleNavMap (Output Broadcast):** `127.0.0.1:51968`
+
+---
+
+### Option B: Interactive GUI Window
+
+If you prefer a visual window layout to track connections manually, launch the default interface helper:
 
 ```bash
 cd path/to/fgconnect
@@ -95,7 +124,7 @@ The system will automatically link your physical simulation coordinates, display
 
 ## 🛠️ 5. Linux Automation Setup (Optional)
 
-To streamline your simulation pre-flight pipeline, you can group the telemetry bridge and mapping applications into a single execution utility.
+To streamline your simulation pre-flight pipeline, you can group the headless telemetry bridge and mapping applications into a single execution utility. By using the standalone background mode, you completely remove the need to manage background application windows or write custom tiling window manager rules (e.g., Hyprland pinning).
 
 ### Automation Script (`fgnav.sh`)
 
@@ -105,21 +134,19 @@ Create an uncoupled shell utility to automate launcher processes safely, adaptin
 #!/bin/bash
 # fgnav.sh - Companion Suite Orchestration Script
 
-# 1. Spawn FGconnect server in the background
+# 1. Spawn FGconnect server in the background (Standalone headless mode)
 cd "$HOME/games/git/fgconnect" || exit 1
-python3 gui_tk.py &
+# Using -s starts the telemetry hooks automatically without a GUI
+python3 fgconnect.py -s &
 sleep 1
-
-# Optional: Window manager rules (e.g., Hyprland workspace pinning)
-# hyprctl dispatch movetoworkspacesilent special:magic
 
 # 2. Open Little Navmap in the foreground (blocking execution thread)
 cd "$HOME/games/flightgear-navigation_tools/LittleNavmap-linux-ubuntu-24.04-3.0.18" || exit 1
 ./littlenavmap "$HOME/.cache/flight_dispatch/briefing.lnmpln"
 
 # 3. Clean up telemetry hooks automatically upon map exit
-pkill -f gui_tk.py
-
+# Kill the headless background script instead of a GUI window instance
+pkill -f "fgconnect.py -s"
 ```
 
 ### System Launcher Entry (`fgnav.desktop`)
@@ -135,7 +162,6 @@ Exec=sh -c "$HOME/.local/share/applications/fgnav.sh"
 Icon=airplane
 Terminal=false
 Categories=Game;Simulation;
-
 ```
 
 ---
