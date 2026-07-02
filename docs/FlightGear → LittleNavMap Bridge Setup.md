@@ -6,25 +6,47 @@ An integrated companion pipeline linking live FlightGear simulation telemetry di
 
 ## 📋 1. Prerequisites & Tool Acquisition
 
-Download and prepare the following packages into your designated applications workspace:
+Download and prepare the following packages into your designated applications workspace. 
 
 * **LittleNavMap (Core Engine)**: Download the latest official Linux archive from the release repository:
-[https://github.com/albar965/littlenavmap](https://github.com/albar965/littlenavmap)
-* **FlightGear LittleNavMap Add-on**: Tracks native protocol links. Clone the connector extension directly from the developer source:
-[https://github.com/slawekmikula/flightgear-addon-littlenavmap](https://github.com/slawekmikula/flightgear-addon-littlenavmap)
-* **FGconnect (Live Telemetry Server)**: Ingests raw multi-threaded loop feeds. Clone the controller directly from the repository source:
-[https://github.com/Em-Ant/fgconnect](https://github.com/Em-Ant/fgconnect)
+  https://github.com/albar965/littlenavmap
 
-In order for LNM to stop considering flightgear's plane always on the ground, if that is your case too and till the issue is dealed, you can replace the helper.py file by that from my status-fix branch from my fork [https://github.com/jimishol/fgconnect/blob/status-fix/lib/helper.py](https://github.com/jimishol/fgconnect/blob/status-fix/lib/helper.py)
+* **FlightGear LittleNavMap Add-on**: Tracks native protocol links. Clone the official connector extension:
+  ```bash
+  git clone https://github.com/slawekmikula/flightgear-addon-littlenavmap.git
 
-### System Dependencies
+* **FGconnect** (Live Telemetry Server): Ingests raw multi-threaded loop feeds.
+    Clone the official controller:
+  ```bash  
+  git clone https://github.com/Em-Ant/fgconnect.git
+  ```  
 
-Ensure your Python execution environment contains the required XML structure parser:
+[!IMPORTANT]
+Pending Upstream Fixes (Optional)
+There are currently pending Pull Requests to the original repositories that fix
+a bug where aircraft always appear "on the ground" in LNM, as well as an
+improvement for accurately reporting ICAO aircraft models.
 
+Until those PRs are merged by the original authors, you can optionally use my
+temporary branches which contain these fixes. If you prefer the fixed versions,
+clone these instead of the official links above:
+
+* Add-on fork (contains the ICAO model fallback fix):
 ```bash
-pip3 install xmltodict
-
+git clone -b plane-icao https://github.com/jimishol/flightgear-addon-littlenavmap.git
 ```
+
+* FGconnect fork (contains the ground status fix and ICAO companion fix):
+```bash
+git clone -b combined-fixes https://github.com/jimishol/fgconnect.git
+```
+
+System Dependencies
+
+Ensure your Python execution environment contains the required XML structure
+parser:
+
+pip3 install xmltodict
 
 ---
 
