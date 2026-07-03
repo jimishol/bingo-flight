@@ -11,12 +11,12 @@ Download and prepare the following packages into your designated applications wo
 * **LittleNavMap (Core Engine)**: Download the latest official Linux archive from the release repository:
   https://github.com/albar965/littlenavmap
 
-* **FlightGear LittleNavMap Add-on**: Tracks native protocol links. Clone the official connector extension:
+* **FlightGear LittleNavMap Add-on**: Tracks native protocol links. Clone the official connector extension https://github.com/slawekmikula/flightgear-addon-littlenavmap:
   ```bash
   git clone https://github.com/slawekmikula/flightgear-addon-littlenavmap.git
 
 * **FGconnect** (Live Telemetry Server): Ingests raw multi-threaded loop feeds.
-    Clone the official controller:
+    Clone the official controller https://github.com/Em-Ant/fgconnect:
   ```bash  
   git clone https://github.com/Em-Ant/fgconnect.git
   ```  
