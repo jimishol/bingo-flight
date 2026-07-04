@@ -20,26 +20,26 @@ Download and prepare the following packages into your designated applications wo
   ```bash  
   git clone https://github.com/Em-Ant/fgconnect.git
   ```  
+> [!IMPORTANT]
+> **Pending Upstream Fixes**
+> There are currently pending Pull Requests submitted to the original repositories to address tracking bugs and performance limitations. Until those upstream changes are merged, it is **highly recommended** to clone the `combined-fixes` branch from my forks. This unified branch includes all three enhancements working seamlessly together:
+> 1. **Ground Status Fix:** Resolves an issue where aircraft are incorrectly locked "on the ground" in LNM.
+> 2. **ICAO Model Alignment:** Enhances accurate reporting of ICAO aircraft types.
+> 3. **Universal Fuel Tracking:** Fixes the LNM Performance tab by migrating to FDM-independent telemetry (supporting JSBSim, YASim, etc., with multi-engine/multi-tank support).
+>
+> To use the fully patched environment, replace the standard cloning commands with these:
+>
+> **Add-on Protocol Fork:**
+> ```bash
+> git clone -b combined-fixes [https://github.com/jimishol/flightgear-addon-littlenavmap.git](https://github.com/jimishol/flightgear-addon-littlenavmap.git)
+> ```
+>
+> **FGconnect Connector Fork:**
+> ```bash
+> git clone -b combined-fixes [https://github.com/jimishol/fgconnect.git](https://github.com/jimishol/fgconnect.git)
+> ```
 
-[!IMPORTANT]
-Pending Upstream Fixes (Optional)
-There are currently pending Pull Requests to the original repositories that fix
-a bug where aircraft always appear "on the ground" in LNM, as well as an
-improvement for accurately reporting ICAO aircraft models.
-
-Until those PRs are merged by the original authors, you can optionally use my
-temporary branches which contain these fixes. If you prefer the fixed versions,
-clone these instead of the official links above:
-
-* Add-on fork (contains the ICAO model fallback fix):
-```bash
-git clone -b plane-icao https://github.com/jimishol/flightgear-addon-littlenavmap.git
-```
-
-* FGconnect fork (contains the ground status fix and ICAO companion fix):
-```bash
-git clone -b combined-fixes https://github.com/jimishol/fgconnect.git
-```
+---
 
 System Dependencies
 
