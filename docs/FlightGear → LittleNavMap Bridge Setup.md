@@ -14,6 +14,7 @@ Download and prepare the following packages into your designated applications wo
 * **FlightGear LittleNavMap Add-on**: Tracks native protocol links. Clone the official connector extension https://github.com/slawekmikula/flightgear-addon-littlenavmap:
   ```bash
   git clone https://github.com/slawekmikula/flightgear-addon-littlenavmap.git
+  ```
 
 * **FGconnect** (Live Telemetry Server): Ingests raw multi-threaded loop feeds.
     Clone the official controller https://github.com/Em-Ant/fgconnect:
@@ -29,24 +30,30 @@ Download and prepare the following packages into your designated applications wo
 >
 > To use the fully patched environment, replace the standard cloning commands with these:
 >
+> https://github.com/jimishol/flightgear-addon-littlenavmap/tree/combined-fixes
+>
 > **Add-on Protocol Fork:**
 > ```bash
-> git clone -b combined-fixes [https://github.com/jimishol/flightgear-addon-littlenavmap.git](https://github.com/jimishol/flightgear-addon-littlenavmap.git)
+> git clone -b combined-fixes https://github.com/jimishol/flightgear-addon-littlenavmap.git
 > ```
+>
+> https://github.com/jimishol/fgconnect/tree/combined-fixes
 >
 > **FGconnect Connector Fork:**
 > ```bash
-> git clone -b combined-fixes [https://github.com/jimishol/fgconnect.git](https://github.com/jimishol/fgconnect.git)
+> git clone -b combined-fixes https://github.com/jimishol/fgconnect.git
 > ```
 
 ---
 
-System Dependencies
+### System Dependencies
 
 Ensure your Python execution environment contains the required XML structure
 parser:
 
+```bash
 pip3 install xmltodict
+```
 
 ---
 
