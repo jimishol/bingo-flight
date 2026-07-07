@@ -69,6 +69,11 @@ UDP port:        7755
 
 ```
 
+> [!TIP]
+> **Enhance Long-Haul Cruise Safety**
+> Since you are already managing FlightGear add-ons for this tracking layout, consider enabling **Copilot Pillow** (located locally in this repository under `flightgear_pillow_addon/`).
+> While this LittleNavMap bridge monitors your live path tracking, Copilot Pillow acts as a high-altitude safety watchdog—monitoring your Calibrated Airspeed (CAS) during long, real-time steady cruise legs and automatically pausing the simulator if changing weather frames threaten to stall your airframe while you are away from the desk.
+
 ---
 
 ## 🚀 3. Network Connection Matrix (FGconnect Server)

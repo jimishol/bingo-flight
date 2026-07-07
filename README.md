@@ -255,11 +255,14 @@ nano journey_log.txt
 
 ---
 
-### 🛩️ FlightGear & LittleNavMap Live Navigation Bridge
+### 🛩️ FlightGear Companion Tools & Integrations
 
-If you are flying inside FlightGear and want a live tracking setup that syncs real-time telemetry, map nodes, and interactive position briefings dynamically across tools, review my dedicated pipeline layout:
+If you fly within FlightGear and want to enhance or safeguard your flight environment, review these dedicated configurations:
 
-👉 **[FlightGear ↔ LittleNavMap Navigation Bridge Setup Guide](FlightGear_LittleNavMap_Bridge_Setup.md)**
+* **Live Tracking Bridge**: Sync real-time telemetry, map nodes, and interactive position briefings dynamically between your flight simulator and tracking software.
+👉 **[FlightGear ↔ LittleNavMap Navigation Bridge Setup Guide](https://github.com/jimishol/bingo-flight/blob/main/FlightGear_LittleNavMap_Bridge_Setup.md)**
+* **Copilot Pillow Add-on**: A lightweight, high-altitude safety watchdog built in Nasal for steady long-haul cruise phases. It monitors Calibrated Airspeed ($V_{cal}$) and automatically triggers FlightGear's native pause to protect your airframe from a catastrophic stall spin if atmospheric changes shift while you are away from the desk.
+👉 **[Copilot Pillow Add-on Documentation](https://github.com/jimishol/bingo-flight/blob/main/flightgear_pillow_addon/README.md)**
 
 ---
 
