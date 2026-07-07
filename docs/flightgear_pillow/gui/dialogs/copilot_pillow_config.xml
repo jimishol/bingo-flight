@@ -128,12 +128,12 @@
             <legend>Save</legend>
             <pref-width>90</pref-width>
             <pref-height>30</pref-height>
-            <binding>
-                <command>dialog-close</command>
-            </binding>
-            <binding>
-                <command>dialog-apply</command>
-            </binding>
+	    <binding>  
+	        <command>dialog-apply</command>  
+	    </binding>  
+	    <binding>  
+	        <command>dialog-close</command>  
+	    </binding>
         </button>
 
         <button>
