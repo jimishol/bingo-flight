@@ -89,6 +89,18 @@
 
     <group>
         <layout>hbox</layout>
+        <text>
+            <label>Plane Appr Spd Ref:</label>
+        </text>
+        <text>
+            <live>true</live>
+            <property>/aircraft/performance/approach/airspeed-knots</property>
+            <label>%s kt</label>
+        </text>
+    </group>
+
+    <group>
+        <layout>hbox</layout>
 
         <text>
             <label>Airspeed min:</label>
