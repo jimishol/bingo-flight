@@ -259,7 +259,7 @@ nano journey_log.txt
 
 If you are flying inside FlightGear and want a live tracking setup that syncs real-time telemetry, map nodes, and interactive position briefings dynamically across tools, review my dedicated pipeline layout:
 
-👉 **[FlightGear ↔ LittleNavMap Navigation Bridge Setup Guide](docs/FlightGear%20%E2%86%92%20LittleNavMap%20Bridge%20Setup.md)**
+👉 **[FlightGear ↔ LittleNavMap Navigation Bridge Setup Guide](FlightGear_LittleNavMap_Bridge_Setup.md)**
 
 ---
 
