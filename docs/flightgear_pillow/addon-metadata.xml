@@ -1,13 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PropertyList>
-  <meta>
-    <file-type type="string">FlightGear add-on metadata</file-type>
-    <format-version type="int">1</format-version>
-  </meta>
-  <addon>
-    <identifier type="string">org.flightgear.addons.copilot_pillow</identifier>
-    <name type="string">Copilot Pillow</name>
-    <version type="string">1.0.0</version>
-    <description type="string">Watchdog system checking for safe flight parameters during long-haul cruise.</description>
-  </addon>
+    <meta>
+        <file-type type="string">FlightGear add-on metadata</file-type>
+        <format-version type="int">1</format-version>
+    </meta>
+    
+    <addon>
+        <identifier type="string">com.cholidis.flightgear.CopilotPillow</identifier>
+        <name type="string">Copilot Pillow</name>
+        <version type="string">0.0.1</version>
+
+        <authors>
+            <author>
+                <name type="string">Cholidis</name>
+                <email type="string"></email>
+                <url type="string"></url>
+            </author>
+        </authors>
+
+        <short-description type="string">Copilot Pillow safety watchdog monitoring addon</short-description>
+        <long-description type="string">This add-on actively tracks altitude-agl and airspeed metrics, cleanly triggering a sim-pause state if parameters fall below safe profiles.</long-description>
+
+        <license>
+            <designation type="string">GNU GPL version 2 or later</designation>
+            <file type="string">LICENSE</file>
+        </license>
+
+        <min-FG-version type="string">2019.2.0</min-FG-version>
+        <max-FG-version type="string">none</max-FG-version>
+
+        <tags>
+            <tag type="string">safety</tag>
+            <tag type="string">watchdog</tag>
+            <tag type="string">copilot</tag>
+        </tags>
+    </addon>
 </PropertyList>

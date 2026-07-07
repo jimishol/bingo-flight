@@ -45,7 +45,7 @@
     <checkbox>
         <halign>left</halign>
         <label>Enable Copilot Pillow</label>
-        <property>/addons/by-id/org.flightgear.addons.copilot_pillow/enabled</property>
+        <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/enabled</property>
         <binding>
             <command>dialog-apply</command>
         </binding>
@@ -61,7 +61,7 @@
         <input>
             <name>refresh-rate</name>
             <height>25</height>
-            <property>/addons/by-id/org.flightgear.addons.copilot_pillow/refresh-rate</property>
+            <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/refresh-rate</property>
             <binding>
                 <command>dialog-apply</command>
                 <object-name>refresh-rate</object-name>
@@ -79,7 +79,7 @@
         <input>
             <name>alt-offset</name>
             <height>25</height>
-            <property>/addons/by-id/org.flightgear.addons.copilot_pillow/alt_offset</property>
+            <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/alt_offset</property>
             <binding>
                 <command>dialog-apply</command>
                 <object-name>alt-offset</object-name>
@@ -97,7 +97,7 @@
         <input>
             <name>airspeed-min</name>
             <height>25</height>
-            <property>/addons/by-id/org.flightgear.addons.copilot_pillow/airspeed_offset</property>
+            <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/airspeed_offset</property>
             <binding>
                 <command>dialog-apply</command>
                 <object-name>airspeed-min</object-name>
