@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+
+<PropertyList>
+    <name>copilot_pillow_config</name>
+    <layout>vbox</layout>
+    <width>330</width>
+    <group>
+        <layout>hbox</layout>
+
+        <button>
+            <legend> </legend>
+            <pref-width>16</pref-width>
+            <pref-height>16</pref-height>
+            <binding>
+                <command>dialog-close</command>
+            </binding>
+        </button>
+
+        <empty>
+            <stretch>1</stretch>
+        </empty>
+
+        <text>
+            <label>Copilot Pillow Options</label>
+        </text>
+
+        <empty>
+            <stretch>1</stretch>
+        </empty>
+
+        <button>
+            <legend> </legend>
+            <key>Esc</key>
+            <pref-width>16</pref-width>
+            <pref-height>16</pref-height>
+            <binding>
+                <command>dialog-close</command>
+            </binding>
+        </button>
+
+    </group>
+
+    <hrule/>
+
+    <checkbox>
+        <halign>left</halign>
+        <label>Enable Copilot Pillow</label>
+        <property>/addons/by-id/org.flightgear.addons.copilot_pillow/enabled</property>
+        <binding>
+            <command>dialog-apply</command>
+        </binding>
+    </checkbox>
+
+    <group>
+        <layout>hbox</layout>
+
+        <text>
+            <label>Refresh rate:</label>
+        </text>
+
+        <input>
+            <name>refresh-rate</name>
+            <height>25</height>
+            <property>/addons/by-id/org.flightgear.addons.copilot_pillow/refresh-rate</property>
+            <binding>
+                <command>dialog-apply</command>
+                <object-name>refresh-rate</object-name>
+            </binding>
+        </input>
+    </group>
+
+    <group>
+        <layout>hbox</layout>
+
+        <text>
+            <label>AGL offset:</label>
+        </text>
+
+        <input>
+            <name>alt-offset</name>
+            <height>25</height>
+            <property>/addons/by-id/org.flightgear.addons.copilot_pillow/alt_offset</property>
+            <binding>
+                <command>dialog-apply</command>
+                <object-name>alt-offset</object-name>
+            </binding>
+        </input>
+    </group>
+
+    <group>
+        <layout>hbox</layout>
+
+        <text>
+            <label>Airspeed min:</label>
+        </text>
+
+        <input>
+            <name>airspeed-min</name>
+            <height>25</height>
+            <property>/addons/by-id/org.flightgear.addons.copilot_pillow/airspeed_offset</property>
+            <binding>
+                <command>dialog-apply</command>
+                <object-name>airspeed-min</object-name>
+            </binding>
+        </input>
+    </group>
+    
+    <hrule/>
+
+    <group>
+        <layout>hbox</layout>
+        <empty>
+            <stretch>1</stretch>
+        </empty>
+        <button>
+            <legend>Save</legend>
+            <pref-width>90</pref-width>
+            <pref-height>30</pref-height>
+            <binding>
+                <command>dialog-close</command>
+            </binding>
+            <binding>
+                <command>dialog-apply</command>
+            </binding>
+        </button>
+
+        <button>
+            <legend>Close</legend>
+            <pref-width>90</pref-width>
+            <pref-height>30</pref-height>
+            <binding>
+                <command>dialog-close</command>
+            </binding>
+        </button>
+        <empty>
+            <stretch>1</stretch>
+        </empty>
+    </group>
+</PropertyList>

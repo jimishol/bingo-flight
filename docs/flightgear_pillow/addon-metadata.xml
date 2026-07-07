@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PropertyList>
+  <meta>
+    <file-type type="string">FlightGear add-on metadata</file-type>
+    <format-version type="int">1</format-version>
+  </meta>
+  <addon>
+    <identifier type="string">org.flightgear.addons.copilot_pillow</identifier>
+    <name type="string">Copilot Pillow</name>
+    <version type="string">1.0.0</version>
+    <description type="string">Watchdog system checking for safe flight parameters during long-haul cruise.</description>
+  </addon>
+</PropertyList>
