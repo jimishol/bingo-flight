@@ -23,5 +23,73 @@ If you step away from the controls and the aircraft drops below your safe airspe
 1. Copy or link the `flightgear_pillow_addon` directory into your FlightGear Add-ons folder.
 2. Enable the add-on via the FlightGear launcher or your in-game Add-on management menu.
 
+## Remote Control & Verification (Via FlightGear HTTPD)
+
+While Copilot Pillow provides an excellent automated safety net, an autopilot cannot fly an aircraft indefinitely without pilot intervention. If you use external moving maps like LittleNavMap, you likely already have FlightGear's built-in web server running. You can leverage this web server to manually toggle and verify your simulation's pause state from a secondary laptop, tablet, or mobile device (such as Termux on Android) over your local network.
+
+### 1. Prerequisites
+Ensure FlightGear is launched with the built-in web server enabled:
+`--httpd=5400`
+
+### 2. POSIX Shell Helper Function
+Add the following shell function to your remote device's profile configuration file (e.g., `~/.bashrc`, `~/.zshrc`, or your `sh` environment). This code executes commands directly on your FlightGear host via SSH, ensuring that interactive password prompts work flawlessly and remote wildcards do not break the session.
+
+```sh
+fg_pause() {
+    # The HTTPD server port configured on your FlightGear machine
+    port=5400
+
+    # -------------------------------------------------------------
+    # CONNECTION OPTIONS: Uncomment ONLY ONE target host format below
+    # -------------------------------------------------------------
+    # OPTION A: Using a standard user/IP address configuration
+    target_host="user@192.168.1.100"
+    
+    # OPTION B: Using a pre-configured .ssh/config host alias
+    # target_host="desktop"
+    # -------------------------------------------------------------
+
+    echo "🔒 Connecting to $target_host (you may be prompted for your password)..."
+
+    # Execute curl directly on the remote machine via SSH, escaping URLs to prevent shell globbing errors
+    ssh "$target_host" "curl -s 'http://localhost:$port/run.cgi?value=pause' >/dev/null && curl -s 'http://localhost:$port/json/sim/freeze/master'" | grep '"value":true' >/dev/null 2>&1
+
+    # Evaluate the execution success of the remote commands
+    if [ $? -eq 0 ]; then
+        echo "⏸️  FlightGear is paused"
+    else
+        echo "✈️  FlightGear runs"
+    fi
+}
+
+```
+
+> 💡 **Tip for Power Users:** You can map your connection parameters cleanly into your local machine's `~/.ssh/config` file so you do not have to hardcode explicit IP addresses inside scripts. 
+> 
+> **For Password Authentication:**
+> ```text
+> Host desktop
+>     HostName 192.168.1.100
+>     User your_username
+> ```
+> 
+> **For SSH Key Authentication (Passwordless):**
+> If you have configured public key authentication, simply add your key path to the configuration block:
+> ```text
+> Host desktop
+>     HostName 192.168.1.100
+>     User your_username
+>     IdentityFile ~/.ssh/id_rsa
+> ```
+
+### 3. Usage
+
+Simply run the command directly from your terminal session whenever you need to check on or pause your long-haul flight while away from your primary desk:
+
+```bash
+fg_pause
+
+```
+
 ## License
 This add-on is a derivative work based on the `flightgear-addon-littlenavmap` framework and is licensed under the **GNU GPL version 2 or later** (see the local `LICENSE` file for details).
