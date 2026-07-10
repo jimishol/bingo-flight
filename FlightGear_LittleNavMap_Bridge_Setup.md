@@ -27,6 +27,7 @@ Download and prepare the following packages into your designated applications wo
 > 1. **Ground Status Fix:** Resolves an issue where aircraft are incorrectly locked "on the ground" in LNM.
 > 2. **ICAO Model Alignment:** Enhances accurate reporting of ICAO aircraft types.
 > 3. **Universal Fuel Tracking:** Fixes the LNM Performance tab by migrating to FDM-independent telemetry (supporting JSBSim, YASim, etc., with multi-engine/multi-tank support).
+> 4. **Multiplayer Traffic Support:** Enables Little Navmap to display nearby human‑controlled aircraft by expanding the connector’s property‑tree filtering to include the /ai/models/multiplayer branch. This fix also adds safe handling for missing flight‑plan fields, preventing crashes when multiplayer pilots have no departure/arrival identifiers.
 >
 > To use the fully patched environment, replace the standard cloning commands with these:
 >
