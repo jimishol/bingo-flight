@@ -51,17 +51,27 @@ fg_pause() {
 
     echo "🔒 Connecting to $target_host (you may be prompted for your password)..."
 
-    # Execute curl directly on the remote machine via SSH, escaping URLs to prevent shell globbing errors
-    ssh "$target_host" "curl -s 'http://localhost:$port/run.cgi?value=pause' >/dev/null && curl -s 'http://localhost:$port/json/sim/freeze/master'" | grep '"value":true' >/dev/null 2>&1
+    # We pull the current status first to check if the server is even reachable
+    response=$(ssh "$target_host" "curl -s --max-time 3 'http://localhost:$port/json/sim/freeze/master'" 2>/dev/null)
 
-    # Evaluate the execution success of the remote commands
-    if [ $? -eq 0 ]; then
+    if [ -z "$response" ]; then
+        echo "❌ Error: Cannot connect to FlightGear. Is the HTTP server running on port $port?"
+        return 1
+    fi
+
+    # Trigger the toggle poke
+    ssh "$target_host" "curl -s 'http://localhost:$port/run.cgi?value=pause'" >/dev/null 2>&1
+
+    # Final check to see what the toggle changed the state to
+    final_state=$(ssh "$target_host" "curl -s 'http://localhost:$port/json/sim/freeze/master'" 2>/dev/null)
+
+    # Evaluate the output of the remote command string
+    if echo "$final_state" | grep '"value":true' >/dev/null 2>&1; then
         echo "⏸️  FlightGear is paused"
     else
         echo "✈️  FlightGear runs"
     fi
 }
-
 ```
 
 > 💡 **Tip for Power Users:** You can map your connection parameters cleanly into your local machine's `~/.ssh/config` file so you do not have to hardcode explicit IP addresses inside scripts. 
