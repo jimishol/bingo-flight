@@ -28,6 +28,7 @@ Download and prepare the following packages into your designated applications wo
 > 2. **ICAO Model Alignment:** Enhances accurate reporting of ICAO aircraft types.
 > 3. **Universal Fuel Tracking:** Fixes the LNM Performance tab by migrating to FDM-independent telemetry (supporting JSBSim, YASim, etc., with multi-engine/multi-tank support).
 > 4. **Multiplayer Traffic Support:** Enables Little Navmap to display nearby human‑controlled aircraft by expanding the connector’s property‑tree filtering to include the /ai/models/multiplayer branch. This fix also adds safe handling for missing flight‑plan fields, preventing crashes when multiplayer pilots have no departure/arrival identifiers.
+> 5. **AI Carrier Support & Ghost Filtering:** Resolves an architecture bug where stale carrier assets remain frozen on the map by forcing explicit empty cache updates. It filters out orphaned `-1` and `0` telemetry IDs to protect against rapid-toggle simulator glitches and dynamically maps the binary protocol so LNM renders true maritime ship icons.
 >
 > To use the fully patched environment, replace the standard cloning commands with these:
 >
