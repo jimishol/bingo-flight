@@ -3,7 +3,7 @@
 <PropertyList>
     <name>copilot_pillow_config</name>
     <layout>vbox</layout>
-    <width>330</width>
+    <width>360</width>
     <group>
         <layout>hbox</layout>
 
@@ -44,7 +44,7 @@
 
     <checkbox>
         <halign>left</halign>
-        <label>Enable Copilot Pillow</label>
+        <label>Enable Copilot Pillow Watchdog</label>
         <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/enabled</property>
         <binding>
             <command>dialog-apply</command>
@@ -53,14 +53,16 @@
 
     <group>
         <layout>hbox</layout>
-
         <text>
-            <label>Refresh rate:</label>
+            <label>Refresh rate (seconds):</label>
+            <pref-width>200</pref-width>
+            <halign>left</halign>
         </text>
-
+        <empty><pref-width>25</pref-width></empty>
         <input>
             <name>refresh-rate</name>
             <height>25</height>
+            <width>80</width>
             <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/refresh-rate</property>
             <binding>
                 <command>dialog-apply</command>
@@ -69,52 +71,95 @@
         </input>
     </group>
 
+    <hrule/>
+
     <group>
-        <layout>hbox</layout>
-
+        <layout>vbox</layout>
+        
         <text>
-            <label>AGL offset:</label>
+            <halign>left</halign>
+            <label>Trigger simulator pause state when:</label>
         </text>
+        
+        <empty><pref-height>5</pref-height></empty>
 
-        <input>
-            <name>alt-offset</name>
-            <height>25</height>
-            <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/alt_offset</property>
-            <binding>
-                <command>dialog-apply</command>
-                <object-name>alt-offset</object-name>
-            </binding>
-        </input>
+        <group>
+            <layout>hbox</layout>
+            <text>
+                <label>Altitude AGL (ft)</label>
+                <pref-width>200</pref-width>
+                <halign>left</halign>
+            </text>
+            <text>
+                <label>&gt;</label>
+                <pref-width>25</pref-width>
+                <halign>center</halign>
+            </text>
+            <input>
+                <name>alt-offset</name>
+                <height>25</height>
+                <width>80</width>
+                <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/alt_offset</property>
+                <binding>
+                    <command>dialog-apply</command>
+                    <object-name>alt-offset</object-name>
+                </binding>
+            </input>
+        </group>
+
+        <group>
+            <layout>hbox</layout>
+            <empty><pref-width>210</pref-width></empty>
+            <text>
+                <label>AND</label>
+                <pref-width>30</pref-width>
+                <halign>center</halign>
+            </text>
+            <empty><stretch>1</stretch></empty>
+        </group>
+
+        <group>
+            <layout>hbox</layout>
+            <text>
+                <label>Airspeed (kt) / Rotor RPM</label>
+                <pref-width>200</pref-width>
+                <halign>left</halign>
+            </text>
+            <text>
+                <label>&lt;</label>
+                <pref-width>25</pref-width>
+                <halign>center</halign>
+            </text>
+            <input>
+                <name>airspeed-min</name>
+                <height>25</height>
+                <width>80</width>
+                <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/airspeed_offset</property>
+                <binding>
+                    <command>dialog-apply</command>
+                    <object-name>airspeed-min</object-name>
+                </binding>
+            </input>
+        </group>
+        
     </group>
+    
+    <hrule/>
 
     <group>
         <layout>hbox</layout>
         <text>
             <label>Plane Appr Spd Ref:</label>
+            <pref-width>200</pref-width>
+            <halign>left</halign>
         </text>
+        <empty><pref-width>25</pref-width></empty>
         <text>
             <live>true</live>
             <property>/aircraft/performance/approach/airspeed-knots</property>
             <label>%s kt</label>
+            <halign>left</halign>
         </text>
-    </group>
-
-    <group>
-        <layout>hbox</layout>
-
-        <text>
-            <label>Airspeed min:</label>
-        </text>
-
-        <input>
-            <name>airspeed-min</name>
-            <height>25</height>
-            <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/airspeed_offset</property>
-            <binding>
-                <command>dialog-apply</command>
-                <object-name>airspeed-min</object-name>
-            </binding>
-        </input>
     </group>
     
     <hrule/>
@@ -128,12 +173,12 @@
             <legend>Save</legend>
             <pref-width>90</pref-width>
             <pref-height>30</pref-height>
-	    <binding>  
-	        <command>dialog-apply</command>  
-	    </binding>  
-	    <binding>  
-	        <command>dialog-close</command>  
-	    </binding>
+            <binding>  
+                <command>dialog-apply</command>  
+            </binding>  
+            <binding>  
+                <command>dialog-close</command>  
+            </binding>
         </button>
 
         <button>
