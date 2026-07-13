@@ -8,31 +8,34 @@
     <addon>
         <identifier type="string">com.cholidis.flightgear.CopilotPillow</identifier>
         <name type="string">Copilot Pillow</name>
-        <version type="string">0.0.1</version>
+        <version type="string">1.0.0</version>
 
         <authors>
             <author>
-                <name type="string">Cholidis</name>
+                <name type="string">Dimitrios Cholidis</name>
                 <email type="string"></email>
-                <url type="string"></url>
+                <url type="string">https://github.com/jimishol/bingo-flight/tree/main/flightgear_pillow_addon</url>
             </author>
         </authors>
 
-        <short-description type="string">Copilot Pillow safety watchdog monitoring addon</short-description>
-        <long-description type="string">This add-on actively tracks altitude-agl and airspeed metrics, cleanly triggering a sim-pause state if parameters fall below safe profiles.</long-description>
+        <short-description type="string">Automated high-altitude cruise safety watchdog.</short-description>
+        <long-description type="string">Copilot Pillow acts as an automated virtual copilot during steady, long-haul high-altitude cruise phases. It actively monitors your live AGL altitude alongside calibrated airspeed (for airplanes) or main rotor RPM (for helicopters). If you step away from the controls and the aircraft drops below your safe limits while remaining at cruise altitude, the add-on instantly triggers a pause state, preventing a catastrophic stall or crash.</long-description>
 
         <license>
-            <designation type="string">GNU GPL version 2 or later</designation>
+            <designation type="string">GNU GPL version 3</designation>
             <file type="string">LICENSE</file>
         </license>
 
-        <min-FG-version type="string">2019.2.0</min-FG-version>
+        <min-FG-version type="string">2020.3.0</min-FG-version>
         <max-FG-version type="string">none</max-FG-version>
 
         <tags>
             <tag type="string">safety</tag>
             <tag type="string">watchdog</tag>
             <tag type="string">copilot</tag>
+            <tag type="string">autopilot</tag>
+            <tag type="string">utility</tag>
+            <tag type="string">helicopter</tag>
         </tags>
     </addon>
 </PropertyList>
