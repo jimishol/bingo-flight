@@ -21,27 +21,24 @@ Download and prepare the following packages into your designated applications wo
   ```bash  
   git clone https://github.com/Em-Ant/fgconnect.git
   ```  
+
 > [!IMPORTANT]
-> **Pending Upstream Fixes**
-> There are currently pending Pull Requests submitted to the original repositories to address tracking bugs and performance limitations. Until those upstream changes are merged, it is **highly recommended** to clone the `combined-fixes` branch from my forks. This unified branch includes all three enhancements working seamlessly together:
-> 1. **Ground Status Fix:** Resolves an issue where aircraft are incorrectly locked "on the ground" in LNM.
-> 2. **ICAO Model Alignment:** Enhances accurate reporting of ICAO aircraft types.
-> 3. **Universal Fuel Tracking:** Fixes the LNM Performance tab by migrating to FDM-independent telemetry (supporting JSBSim, YASim, etc., with multi-engine/multi-tank support).
-> 4. **Multiplayer Traffic Support:** Enables Little Navmap to display nearby human‑controlled aircraft by expanding the connector’s property‑tree filtering to include the /ai/models/multiplayer branch. This fix also adds safe handling for missing flight‑plan fields, preventing crashes when multiplayer pilots have no departure/arrival identifiers.
-> 5. **AI Carrier Support & Ghost Filtering:** Resolves an architecture bug where stale carrier assets remain frozen on the map by forcing explicit empty cache updates. It filters out orphaned `-1` and `0` telemetry IDs to protect against rapid-toggle simulator glitches and dynamically maps the binary protocol so LNM renders true maritime ship icons.
+> **FGconnect Upstream Status**
 >
-> To use the fully patched environment, replace the standard cloning commands with these:
->
-> https://github.com/jimishol/flightgear-addon-littlenavmap/tree/combined-fixes
->
-> **Add-on Protocol Fork:**
-> ```bash
-> git clone -b combined-fixes https://github.com/jimishol/flightgear-addon-littlenavmap.git
-> ```
+> The FlightGear LittleNavMap add‑on is fully updated upstream, but **FGconnect upstream `main` is still missing several required fixes**.  
+> Until these are merged, users **must use the patched `combined-fixes` branch** to avoid incorrect aircraft positioning (e.g., appearing in the wrong airport).
 >
 > https://github.com/jimishol/fgconnect/tree/combined-fixes
 >
-> **FGconnect Connector Fork:**
+> The patched FGconnect includes:
+> - corrected ground/air status  
+> - updated model path  
+> - safe flightplan extraction  
+> - multiplayer & carrier detection  
+> - ghost ID filtering  
+> - universal fuel telemetry  
+>
+> **Clone the patched FGconnect:**
 > ```bash
 > git clone -b combined-fixes https://github.com/jimishol/fgconnect.git
 > ```
