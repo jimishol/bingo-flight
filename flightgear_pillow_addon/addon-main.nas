@@ -28,6 +28,11 @@ var main = func( addon ) {
     airspeedNode.setAttribute("userarchive", "y");
     if (airspeedNode.getValue() == nil) airspeedNode.setValue("60");
 
+    # Single dual-purpose node for Max Airspeed / RPM
+    var maxAirspeedNode = props.globals.getNode(mySettingsRootPath ~ "/max_airspeed_offset", 1);
+    maxAirspeedNode.setAttribute("userarchive", "y");
+    if (maxAirspeedNode.getValue() == nil) maxAirspeedNode.setValue("125");
+
     #
     # ✔ Single, clean helicopter detection
     #
@@ -62,35 +67,58 @@ var main = func( addon ) {
             ias = num(getprop("velocities/airspeed-kt"));
         }
     
+        # Fetch directly from GUI nodes, no guessing or hardcoded fallbacks
         var target_alt = num(altOffsetNode.getValue());
         var target_spd = num(airspeedNode.getValue());
+        var target_max = num(maxAirspeedNode.getValue()); 
+        var interval = num(refreshRateNode.getValue());
     
-        var interval = num(refreshRateNode.getValue()) or 1;
-    
-        # Validate only what is needed
-        if (alt_agl == nil or target_alt == nil or target_spd == nil) {
+        # NEW STRICT VALIDATION: If the GUI input is missing or broken, disable the addon entirely!
+        if (target_alt == nil or target_spd == nil or target_max == nil or interval == nil) {
+            print("Copilot Pillow: Invalid or empty GUI inputs detected! Disabling addon safety block.");
+            enabledNode.setValue("0");
+            is_loop_running = 0;
+            watchdog_timer.stop();
+            return;
+        }
+
+        # Wait safely for altitude to populate from FDM
+        if (alt_agl == nil) {
             watchdog_timer.restart(interval);
             return;
         }
     
-        if (alt_agl > target_alt) {
+        var trigger = 0;
     
-            var trigger = 0;
-    
-            if (heli) {
-                if (rpm != nil and rpm < target_spd) trigger = 1;
-            } else {
-                if (ias != nil and ias < target_spd) trigger = 1;
+        # EXACT user logic applied: 
+        # if alt < altOffset OR (V > min AND V < max) then not pause else pause
+        if (heli) {
+            if (rpm != nil) {
+                if (alt_agl < target_alt or (rpm > target_spd and rpm < target_max)) {
+                    trigger = 0;
+                } else {
+                    trigger = 1;
+                }
             }
-    
-            if (trigger) {
-                print("Copilot Pillow: CRITERIA MATCHED! TRIGGERING PAUSE STATE.");
-                fgcommand("pause");
-                enabledNode.setValue("0");
-                is_loop_running = 0;
-                watchdog_timer.stop();
-                return;
+        } else {
+            if (ias != nil) {
+                if (alt_agl < target_alt or (ias > target_spd and ias < target_max)) {
+                    trigger = 0;
+                } else {
+                    trigger = 1;
+                }
             }
+        }
+    
+        if (trigger) {
+            print("Copilot Pillow: CRITERIA MATCHED! TRIGGERING PAUSE STATE.");
+            fgcommand("pause");
+            
+            # RESTORED EXACT ORIGINAL TOGGLE MECHANISM
+            enabledNode.setValue("0");
+            is_loop_running = 0;
+            watchdog_timer.stop();
+            return;
         }
     
         watchdog_timer.restart(interval);
@@ -105,6 +133,7 @@ var main = func( addon ) {
         if (enabledNode.getValue() == "1") {
             if (is_loop_running == 0) {
                 is_loop_running = 1;
+                # Kept original 'or 1' exclusively here for timer boot safety
                 var interval = num(refreshRateNode.getValue()) or 1;
                 watchdog_timer.restart(interval);
             }
@@ -114,7 +143,7 @@ var main = func( addon ) {
         }
     };
 
-    # 3. NATIVE SIGNAL LISTENERS
+    # 3. NATIVE SIGNAL LISTENERS (Untouched)
     var init_listener = _setlistener(mySettingsRootPath ~ "/enabled", func() {
         check_loop_state();
     });

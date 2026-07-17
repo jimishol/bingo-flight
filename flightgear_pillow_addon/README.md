@@ -8,14 +8,14 @@ Copilot Pillow was born out of a desire for a realistic safety net during long, 
 
 Since pausing the simulator manually or using time compression takes away from the experience of a continuous, real-time flight, Copilot Pillow provides a clever workaround. It acts as your automated virtual copilot during steady, long-haul high-altitude cruise phases.
 
-If you step away from the controls and the aircraft drops below your safety limit while remaining at your high cruise altitude, the add-on instantly triggers FlightGear's native **Pause** state. This safely freezes the simulation mid-air, preventing a catastrophic stall or loss of control, giving you complete peace of mind during hours of continuous, uncompressed flight.
+If you step away from the controls and the aircraft drops below **or exceeds** your safety limits while remaining at your high cruise altitude, the add-on instantly triggers FlightGear's native **Pause** state. This safely freezes the simulation mid-air, preventing a catastrophic stall, structural overspeed, or loss of control, giving you complete peace of mind during hours of continuous, uncompressed flight.
 
 ## How it Works
 
 * **Altitude Target Threshold (AGL offset)**: This target exists solely to restrict protection when you are at low altitudes (such as takeoff, climb, or approach) where you are actively handling the controls and do not want the watchdog interfering.
-* **Speed / Rotor RPM Target Threshold**:
-* **For Airplanes**: This monitors indicated airspeed (kt). Set this with a safe margin above your actual stall speed to give the watchdog time to react and pause the simulator *before* a true aerodynamic stall develops.
-* **For Helicopters**: The add-on automatically detects if you are flying a helicopter and switches to monitoring physical main rotor RPM. Set this below normal operating RPM but above the critical rotor stall RPM limit (e.g., watching for the engine dying or rotor decay).
+* **Minimum & Maximum Speed / RPM Thresholds**:
+* **For Airplanes**: This monitors indicated airspeed (kt). Set the minimum with a safe margin above your actual stall speed, and the maximum below your structural Vne (Never Exceed Speed). This gives the watchdog time to react and pause the simulator *before* a true aerodynamic stall or overspeed damage develops.
+* **For Helicopters**: The add-on automatically detects if you are flying a helicopter and switches to monitoring physical main rotor RPM. Set the minimum above the critical rotor stall RPM limit and the maximum below the structural over-rev limit.
 
 
 * **Auto-Disable Safeguard**: When a protection pause is triggered, the add-on automatically disables itself. When you return to your desk, you can simply press **"p"** to unpause and recover the aircraft. If you plan to step away a second time, you must manually toggle Copilot Pillow back on.
@@ -23,7 +23,7 @@ If you step away from the controls and the aircraft drops below your safety limi
 ## Features
 
 * **Multi-Category Watchdog Engine**: Smart, automated mode switching between Fixed-Wing (Airspeed) and Rotary-Wing (Rotor RPM) aircraft.
-* **High-Altitude Stall Prevention**: Actively monitors Live AGL (Above Ground Level) altitude alongside Calibrated Airspeed (CAS via `/velocities/airspeed-kt`) or Main Rotor Speed (RPM via `/rotors/main/rpm`).
+* **High-Altitude Stall & Overspeed Prevention**: Actively monitors Live AGL (Above Ground Level) altitude alongside Calibrated Airspeed (CAS via `/velocities/airspeed-kt`) or Main Rotor Speed (RPM via `/rotors/main/rpm`).
 * **Resource Efficient**: Built using modern, object-oriented `maketimer` loops to prevent simulator micro-stutters.
 * **Persistent Profiles**: Automatically remembers your custom safety targets across your flight sessions.
 

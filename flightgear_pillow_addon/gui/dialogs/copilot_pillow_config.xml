@@ -46,6 +46,7 @@
         <halign>left</halign>
         <label>Enable Copilot Pillow Watchdog</label>
         <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/enabled</property>
+        <live>true</live>
         <binding>
             <command>dialog-apply</command>
         </binding>
@@ -141,25 +142,42 @@
                 </binding>
             </input>
         </group>
-        
-    </group>
-    
-    <hrule/>
 
-    <group>
-        <layout>hbox</layout>
-        <text>
-            <label>Plane Appr Spd Ref:</label>
-            <pref-width>200</pref-width>
-            <halign>left</halign>
-        </text>
-        <empty><pref-width>25</pref-width></empty>
-        <text>
-            <live>true</live>
-            <property>/aircraft/performance/approach/airspeed-knots</property>
-            <label>%s kt</label>
-            <halign>left</halign>
-        </text>
+        <group>
+            <layout>hbox</layout>
+            <empty><pref-width>210</pref-width></empty>
+            <text>
+                <label>OR</label>
+                <pref-width>30</pref-width>
+                <halign>center</halign>
+            </text>
+            <empty><stretch>1</stretch></empty>
+        </group>
+
+        <group>
+            <layout>hbox</layout>
+            <text>
+                <label>Airspeed (kt) / Rotor RPM</label>
+                <pref-width>200</pref-width>
+                <halign>left</halign>
+            </text>
+            <text>
+                <label>&gt;</label>
+                <pref-width>25</pref-width>
+                <halign>center</halign>
+            </text>
+            <input>
+                <name>max-airspeed</name>
+                <height>25</height>
+                <width>80</width>
+                <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/max_airspeed_offset</property>
+                <binding>
+                    <command>dialog-apply</command>
+                    <object-name>max-airspeed</object-name>
+                </binding>
+            </input>
+        </group>
+        
     </group>
     
     <hrule/>
