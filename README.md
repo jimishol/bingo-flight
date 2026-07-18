@@ -143,8 +143,8 @@ Add this wrapper function to your shell profile (`~/.bashrc`, `~/.zshrc`, or `~/
 
 ```bash
 flight() {
-    case " $* " in
-        *" -f "*|*" --files "*|*" -e "*|*" -h "*|*" --help "*|*" --reset *)
+    case "$*" in
+        *" -f "*|*" --files "*|*" -e "*|*" -h "*|*" --help "*|*" --reset "*)
             $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/flight.sh "$@"
             ;;
         *)
