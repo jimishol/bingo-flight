@@ -144,17 +144,15 @@ Add this wrapper function to your shell profile (`~/.bashrc`, `~/.zshrc`, or `~/
 ```bash
 flight() {
     case " $* " in
-        *" -f "*|*" -e "*)
-            # Standard utility flags bypass the generator pipeline
+        *" -f "*|*" --files "*|*" -e "*|*" -h "*|*" --help "*|*" --reset *)
             $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/flight.sh "$@"
             ;;
         *)
-            # POSIX pipeline: streams briefing to screen and splits data to the plan creator
+            # Pure POSIX pipeline: flight streams to tee, tee splits to screen and creator
             $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/flight.sh "$@" | tee /dev/tty | $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/lnmpln_creator.sh
             ;;
     esac
 }
-
 ```
 
 ---
@@ -179,6 +177,8 @@ You can configure how `lnmpln_creator.sh` dynamically locates your next departur
 
 ## 📖 Command Reference
 
+> 💡 **Tip:** You can view the quick-reference guide directly in your terminal at any time by running `flight -h` or `flight --help`.
+
 ### Dispatch & Route Selection
 
 | Directive | Action |
@@ -186,20 +186,21 @@ You can configure how `lnmpln_creator.sh` dynamically locates your next departur
 | `flight` | Spawn a local dispatch briefing; may show **no destination** when producing base/pattern work at `HOME_ICAO`. |
 | `flight <ICAO>` | Generates a fixed route dispatch to a targeted airfield. |
 | `flight <PREFIX>` | Selects a random destination matching a 2-letter country prefix code (e.g., `LG`). |
-| `flight -n <PREFIX>` | Dispatches a random **UNVISITED** airport code matching the country code to avoid tracking repetitions. |
+| `flight -n`, `--next <PREFIX>` | Dispatches a random **UNVISITED** airport code matching the country code to avoid tracking repetitions. |
 
 ### Advanced Career & System Controls
 
-| Flag | Action |
+| Flag / Command | Action |
 | --- | --- |
-| `-j <path>` | Ingests an external flight path file—supporting both FlightGear (`.fgfp`) and Little Navmap (`.lnmpln`) extensions—to initiate an active multi-stage **Journey**. |
-| `-j` | Advances routing metrics to compile the next sequential leg of an imported journey. |
-| `-c <path.csv>` | Loads a dedicated custom **Target Deck** spreadsheet. Once `destinations.csv` is active, **all routing selection bounds (random and non-repeat `-n` choices) are strictly isolated to this file**. A territory prefix cannot reach 100% completion unless all its airfields are included in this deck—**unless any missing fields were already visited and logged in your career history before the deck filter was applied**. |
 | `VEHICLE_TIER=<TIER> flight [args]` | Dynamically hot-swaps the active aircraft profile layout on the fly for a single dispatch without altering `flight.conf` records. |
-| `-f` | Displays regional percentage metrics and drops you into an interactive terminal sub-shell directly inside your cache tracking workspace (`~/.cache/flight_dispatch`), allowing you to view and manually update raw text records using your system's text tools. Type `exit` to return. |
-| `-e <PREFIX>` | Automatically opens a targeted geographic log record under your defined shell `$EDITOR`. |
-| `--reset` | **WARNING**: Clears history cache blocks, resetting lifetime logbooks and completion states. |
-| `-c --reset` | Deactivates the active Target Deck filter by completely removing `destinations.csv` from the engine environment, restoring unrestricted worldwide random routing options. |
+| `flight -j <path>` | Ingests an external flight path file—supporting both FlightGear (`.fgfp`) and Little Navmap (`.lnmpln`) extensions—to initiate an active multi-stage **Journey**. |
+| `flight -j` | Advances routing metrics to compile the next sequential leg of an imported journey. |
+| `flight -j --reset` | Restarts the currently loaded active journey back to the first leg. |
+| `flight -c <path.csv>` | Loads a dedicated custom **Target Deck** spreadsheet. Once active, **all routing selection bounds (random and non-repeat `-n` choices) are strictly isolated to this file**. |
+| `flight -c --reset` | Deactivates the active Target Deck filter by completely removing `destinations.csv` from the engine environment, restoring unrestricted worldwide random routing options. |
+| `flight -f`, `--files` | Displays regional percentage metrics and opens an interactive sub-shell directly inside your cache tracking workspace (`~/.cache/flight_dispatch`). Type `exit` to return. |
+| `flight -e <PREFIX>` | Automatically opens a targeted geographic log record under your defined shell `$EDITOR`. |
+| `flight --reset` | **WARNING**: Clears history cache blocks, completely wiping lifetime logbooks and completion states. |
 
 ---
 
