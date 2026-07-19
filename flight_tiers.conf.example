@@ -38,7 +38,8 @@ pax2_label=Passenger 2
 pax3_label=Passenger 3
 
 # High-adventure expedition presets
-# Number of cargo zones used during multi-leg long-distance trips
+# Maximum passenger seats available; also defines number of cargo zones used during multi-leg long-distance trips
+# journey_zones should be 0, 1, 2 or 3.
 journey_zones=3
 # Space-separated fixed cargo manifest items generated for journey stages
 journey_cargo=137 177 126

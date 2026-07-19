@@ -791,11 +791,14 @@ fi
 # WEIGHT DETECT ENGINE & CONTEXT TEXT CORES
 # ==============================================================================
 
+
 # compute baggage weight using tier-specific max (config.sh provides max_baggage)
 if [ "$JOURNEY_MODE" -eq 1 ]; then
     passengers="$journey_zones"
 else
-    passengers=$(( RANDOM % 4 ))
+#    passengers=$(( RANDOM % 4 )) # I comment this because i think it is better to treat journey_zones as maximum available passenger seats.
+# Set passenger count based on journey_zones to allow for smaller planes/helis (1 up to 3 seats)
+    passengers=$(( RANDOM % (journey_zones + 1) ))
 fi
 
 baggage_weight=$(( RANDOM % max_baggage ))
