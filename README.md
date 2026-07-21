@@ -143,15 +143,20 @@ Add this wrapper function to your shell profile (`~/.bashrc`, `~/.zshrc`, or `~/
 
 ```bash
 flight() {
-    case "$*" in
-        *" -f "*|*" --files "*|*" -e "*|*" -h "*|*" --help "*|*" --reset "*)
-            $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/flight.sh "$@"
-            ;;
-        *)
-            # Pure POSIX pipeline: flight streams to tee, tee splits to screen and creator
-            $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/flight.sh "$@" | tee /dev/tty | $HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/lnmpln_creator.sh
-            ;;
-    esac
+    FLIGHT_HOME="$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight"
+
+    # If any of these flags appear anywhere, call flight.sh directly (no creator)
+    for _arg in "$@"; do
+        case "$_arg" in
+            -f|--files|-e|-c|-h|--help|--reset)
+                "$FLIGHT_HOME/flight.sh" "$@"
+                return
+                ;;
+        esac
+    done
+
+    # Default: stream flight.sh to screen and creator
+    "$FLIGHT_HOME/flight.sh" "$@" | tee /dev/tty | "$FLIGHT_HOME/lnmpln_creator.sh"
 }
 ```
 
