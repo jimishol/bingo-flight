@@ -293,3 +293,37 @@ Flightgear/NavData_Override 🐧 tree
 2. Go directly to the **Add-ons** preference tab.
 3. Locate the **Additional scenery folders** configurations panel.
 4. Click **Add** and link the absolute directory path pointing to your folder: `Flightgear/NavData_Override`
+
+## 8. Updating FlightGear’s METAR Capability List
+
+FlightGear uses a file named:
+
+```
+/usr/share/flightgear/Airports/metar.dat.gz
+```
+
+to decide which airports have METAR available.  
+This file is very old and includes many airports that **no longer report METAR**, which causes FlightGear to request non‑existent METAR files and prevents proper fallback to nearby stations.
+
+To fix this, the project includes a generator script:
+
+```
+docs/METAR_live_data/generate_metar_dat.py
+```
+
+This script downloads all 24 NOAA METAR cycle files and builds a **current, accurate** list of airports that actually report METAR today.
+
+### Install the updated list
+
+```
+python3 generate_metar_dat.py
+sudo cp metar.dat.gz /usr/share/flightgear/Airports/metar.dat.gz
+```
+
+FlightGear will automatically load the new file at startup.
+
+### After FlightGear updates
+
+Every FG update overwrites `metar.dat.gz`, so repeat the replacement after updating FlightGear.
+
+This ensures live weather always falls back correctly and avoids “stuck” conditions caused by airports marked as METAR‑capable when they are not.
