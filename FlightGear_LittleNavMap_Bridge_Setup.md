@@ -296,34 +296,69 @@ Flightgear/NavData_Override 🐧 tree
 
 ## 8. Updating FlightGear’s METAR Capability List
 
-FlightGear uses a file named:
+FlightGear uses a file:
 
 ```
 /usr/share/flightgear/Airports/metar.dat.gz
 ```
 
 to decide which airports have METAR available.  
-This file is very old and includes many airports that **no longer report METAR**, which causes FlightGear to request non‑existent METAR files and prevents proper fallback to nearby stations.
+This file is old and contains airports that **no longer report METAR**, or whose **last METAR is days or months stale**, causing FlightGear to request non‑existent METAR files and blocking fallback to nearby stations.
 
-To fix this, the project includes a generator script:
+The generator script:
 
 ```
 docs/METAR_live_data/generate_metar_dat.py
 ```
 
-This script downloads all 24 NOAA METAR cycle files and builds a **current, accurate** list of airports that actually report METAR today.
+downloads all 24 NOAA METAR cycle files and builds a **current list** of airports that truly report METAR today.  
+The path to FlightGear’s METAR file is **configurable at the top of the script**:
 
-### Install the updated list
+```
+FG_METAR_PATH = "/usr/share/flightgear/Airports/metar.dat.gz"
+```
+
+### How the script evaluates stations
+
+The script counts how many cycles each ICAO appears in and applies:
+
+```
+FILTER_COUNT = 12
+```
+
+This “12‑cycle sweet spot” produces a **stable, low‑noise list** and filters out airports with intermittent or stale METAR.  
+The list changes minute‑to‑minute, but **most changes are irrelevant to the user’s flying region**, so updates are rarely needed.
+
+### Logging
+
+A log file (`metar_update.log`) can be created.  
+Logging is enabled by default, but **recommended only for the first run** to keep a persistent diff.  
+After that, console output is enough to decide whether to update.
+
+### Typical usage
+
+Most runs show changes only in airports far from where the user usually flies.  
+Users typically decline updating FlightGear’s file unless the changes are meaningful.
+
+### FlightGear database rebuild
+
+If you choose to replace `metar.dat.gz`, FlightGear **will rebuild its navigation databases** on next startup.  
+Since users usually decline updates, rebuilds happen **only when truly needed**.
+
+### Running the update
 
 ```
 python3 generate_metar_dat.py
-sudo cp metar.dat.gz /usr/share/flightgear/Airports/metar.dat.gz
 ```
 
-FlightGear will automatically load the new file at startup.
+If changes exist, the script asks:
+
+```
+Do you want to replace FlightGear's metar.dat.gz? [y/N]
+```
+
+Answer **y** only when the diff is relevant to your flying area.
 
 ### After FlightGear updates
 
-Every FG update overwrites `metar.dat.gz`, so repeat the replacement after updating FlightGear.
-
-This ensures live weather always falls back correctly and avoids “stuck” conditions caused by airports marked as METAR‑capable when they are not.
+FlightGear overwrites `metar.dat.gz` during updates, so rerun the script afterwards to restore the corrected METAR capability list.

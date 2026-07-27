@@ -2,7 +2,7 @@
 import requests
 import gzip
 import re
-import datetime
+import os
 
 BASE = "https://tgftp.nws.noaa.gov/data/observations/metar/cycles/"
 ICAO_RE = re.compile(r"^[A-Z]{4}", re.MULTILINE)
@@ -10,30 +10,142 @@ ICAO_RE = re.compile(r"^[A-Z]{4}", re.MULTILINE)
 # CONFIG: minimum number of cycles an airport must appear in (1–24)
 FILTER_COUNT = 12   # 1 = current behavior, higher = more stable lists
 
+# CONFIG: FlightGear METAR capability file
+FG_METAR_PATH = "/usr/share/flightgear/Airports/metar.dat.gz"
+
+# CONFIG: Logging
+LOG_ENABLED = True
+LOG_FILE = "metar_update.log"
+
+# NOTE:
+# On openSUSE the correct group is usually "users".
+# If your system uses a different primary group, you must adjust it manually.
+# The script only checks read/write access, not the group name.
+
+
+def log(msg):
+    """Print to console and optionally append to log file."""
+    print(msg)
+    if LOG_ENABLED:
+        try:
+            with open(LOG_FILE, "a") as lf:
+                lf.write(msg + "\n")
+        except Exception as e:
+            print(f"WARNING: Failed to write log file: {e}")
+
+
 def fetch_cycle(hour):
     url = f"{BASE}{hour:02d}Z.TXT"
-    print(f"Fetching {url} ...")
+    log(f"Fetching {url} ...")
     try:
         return requests.get(url, timeout=10).text
     except Exception as e:
-        print(f"Failed to fetch {url}: {e}")
+        log(f"Failed to fetch {url}: {e}")
         return ""
+
 
 def extract_icaos(text):
     return ICAO_RE.findall(text)
 
+
+def load_fg_metar():
+    """Load ICAOs from FG's metar.dat.gz."""
+    if not os.path.exists(FG_METAR_PATH):
+        return None
+
+    old_icaos = set()
+    try:
+        with gzip.open(FG_METAR_PATH, "rb") as gz:
+            for line in gz:
+                line = line.decode("utf-8").strip()
+                if line and not line.startswith("#"):
+                    old_icaos.add(line)
+        return old_icaos
+    except Exception as e:
+        log(f"ERROR: Failed to read FG METAR file: {e}")
+        return None
+
+
 def main():
+
+    log(f"Checking FlightGear METAR file at:\n  {FG_METAR_PATH}\n")
+
+    # Check existence
+    if not os.path.exists(FG_METAR_PATH):
+        log("ERROR: FlightGear METAR file not found.")
+        log("Fix by installing FlightGear or correcting FG_METAR_PATH.")
+        log("Aborting.\n")
+        return
+
+    # Check read permission
+    if not os.access(FG_METAR_PATH, os.R_OK):
+        log("ERROR: Cannot read FlightGear METAR file.")
+        log("Fix with:")
+        log(f"  sudo chmod 644 {FG_METAR_PATH}")
+        log("Aborting.\n")
+        return
+
+    # Check write permission
+    if not os.access(FG_METAR_PATH, os.W_OK):
+        log("ERROR: Cannot write/replace FlightGear METAR file.")
+        log("Fix with:")
+        log(f"  sudo chown {os.getlogin()}:users {FG_METAR_PATH}")
+        log(f"  sudo chmod 644 {FG_METAR_PATH}")
+        log("")
+        log("NOTE: If your system does not use 'users' as your primary group,")
+        log("      you must replace 'users' with your correct group manually.")
+        log("Aborting.\n")
+        return
+
+    log("FlightGear METAR file found and accessible.\n")
+
+    # Load previous ICAO list from FG
+    old_icaos = load_fg_metar()
+    if old_icaos is None:
+        log("ERROR: Could not load previous FG METAR file.")
+        log("Aborting.\n")
+        return
+
     # Count ICAO occurrences across all 24 cycles
     counts = {}
 
     for hour in range(24):
         text = fetch_cycle(hour)
+
+        # HARD ABORT if any cycle fails
+        if not text.strip():
+            log("\nERROR: Failed to fetch one or more METAR cycle files.")
+            log("Internet connection failed or NOAA TGFTP unreachable.")
+            log("Aborting without updating FG METAR file.\n")
+            return
+
         icaos = extract_icaos(text)
         for icao in icaos:
             counts[icao] = counts.get(icao, 0) + 1
 
     # Apply FILTER_COUNT threshold
     filtered_icaos = sorted([icao for icao, n in counts.items() if n >= FILTER_COUNT])
+    new_icaos = set(filtered_icaos)
+
+    # Report differences
+    added = sorted(new_icaos - old_icaos)
+    removed = sorted(old_icaos - new_icaos)
+
+    log("\nMETAR capability changes since last FG version:")
+    log(f"  Added:   {len(added)}")
+    log(f"  Removed: {len(removed)}")
+
+    if added:
+        log("\nStations added:")
+        for icao in added:
+            log("  + " + icao)
+
+    if removed:
+        log("\nStations removed:")
+        for icao in removed:
+            log("  - " + icao)
+
+    log("")
 
     # Header WITHOUT date (stable diff)
     header = (
@@ -43,18 +155,31 @@ def main():
         "# https://tgftp.nws.noaa.gov/data/observations/metar/cycles/\n"
     )
 
-    # Write metar.dat
-    with open("metar.dat", "w") as f:
-        f.write(header)
-        for icao in filtered_icaos:
-            f.write(icao + "\n")
+    # If no changes, exit early
+    if len(added) == 0 and len(removed) == 0:
+        log("No changes detected. FlightGear METAR file is already up to date.\n")
+        return
 
-    # Compress to metar.dat.gz
-    with gzip.open("metar.dat.gz", "wb") as gz:
-        gz.write(open("metar.dat", "rb").read())
+    # Ask user before replacing FG file
+    answer = input("Do you want to replace FlightGear's metar.dat.gz? [y/N]: ").strip().lower()
+    if answer != "y":
+        log("User declined replacement. Exiting.\n")
+        return
 
-    print(f"Generated metar.dat.gz with {len(filtered_icaos)} airports "
-          f"(FILTER_COUNT = {FILTER_COUNT}).")
+    # Write new metar.dat.gz directly into FG_ROOT
+    try:
+        with gzip.open(FG_METAR_PATH, "wb") as gz:
+            gz.write(header.encode("utf-8"))
+            for icao in filtered_icaos:
+                gz.write((icao + "\n").encode("utf-8"))
+    except Exception as e:
+        log(f"ERROR: Failed to write FG METAR file: {e}")
+        log("Aborting.\n")
+        return
+
+    log(f"Updated FG metar.dat.gz with {len(filtered_icaos)} airports "
+        f"(FILTER_COUNT = {FILTER_COUNT}).\n")
+
 
 if __name__ == "__main__":
     main()

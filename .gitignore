@@ -5,5 +5,4 @@ test_files/
 flight.conf
 flight_tiers.conf
 excluded_airports.txt
-docs/METAR_live_data/metar.dat
-docs/METAR_live_data/metar.dat.gz
+docs/METAR_live_data/metar_update.log
