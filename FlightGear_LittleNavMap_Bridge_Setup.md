@@ -320,29 +320,37 @@ FG_METAR_PATH = "/usr/share/flightgear/Airports/metar.dat.gz"
 
 ### How the script evaluates stations
 
-The script counts how many cycles each ICAO appears in and applies:
+The script checks all 24 METAR cycle files and counts how many times each ICAO appears.  
+An airport is accepted **only if it appears in 12 or more cycles**:
 
 ```
 FILTER_COUNT = 12
 ```
 
 This “12‑cycle sweet spot” produces a **stable, low‑noise list** and filters out airports with intermittent or stale METAR.  
-The list changes minute‑to‑minute, but **most changes are irrelevant to the user’s flying region**, so updates are rarely needed.
+Although METAR availability changes minute‑to‑minute, **most changes occur at airports far outside the user’s usual flying region**, so updates are rarely needed.
 
 ### Logging
 
 A log file (`metar_update.log`) can be created.  
-Logging is enabled by default, but **recommended only for the first run** to keep a persistent diff.  
-After that, console output is enough to decide whether to update.
+Logging is **disabled by default**:
+
+```
+LOG_ENABLED = False
+```
+
+Users may enable logging **only for the first run** to obtain a persistent diff against FlightGear’s shipped list.  
+After that, console output is sufficient to decide whether replacing `metar.dat.gz` is worthwhile.
 
 ### Typical usage
 
-Most runs show changes only in airports far from where the user usually flies.  
+Most runs show additions or removals only for airports irrelevant to where the user normally flies.  
+A “0 added / 0 removed” result is **possible but not common**.  
 Users typically decline updating FlightGear’s file unless the changes are meaningful.
 
 ### FlightGear database rebuild
 
-If you choose to replace `metar.dat.gz`, FlightGear **will rebuild its navigation databases** on next startup.  
+If you choose to replace `metar.dat.gz`, FlightGear **will rebuild its navigation databases** on the next startup.  
 Since users usually decline updates, rebuilds happen **only when truly needed**.
 
 ### Running the update

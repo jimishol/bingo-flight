@@ -14,7 +14,7 @@ FILTER_COUNT = 12   # 1 = current behavior, higher = more stable lists
 FG_METAR_PATH = "/usr/share/flightgear/Airports/metar.dat.gz"
 
 # CONFIG: Logging
-LOG_ENABLED = True
+LOG_ENABLED = False
 LOG_FILE = "metar_update.log"
 
 # NOTE:
