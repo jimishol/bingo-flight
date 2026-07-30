@@ -10,6 +10,9 @@ ICAO_RE = re.compile(r"^[A-Z]{4}", re.MULTILINE)
 # CONFIG: minimum number of cycles an airport must appear in (1–24)
 FILTER_COUNT = 12   # 1 = current behavior, higher = more stable lists
 
+# CONFIG: number of ICAO codes to display per row in terminal output
+COLS_PER_LINE = 8
+
 # CONFIG: FlightGear METAR capability file
 FG_METAR_PATH = "/usr/share/flightgear/Airports/metar.dat.gz"
 
@@ -32,6 +35,16 @@ def log(msg):
                 lf.write(msg + "\n")
         except Exception as e:
             print(f"WARNING: Failed to write log file: {e}")
+
+
+def log_icao_grid(label, icaos, prefix="+ ", cols=COLS_PER_LINE):
+    """Format a list of ICAOs into rows with multiple items per line."""
+    if not icaos:
+        return
+    log(f"\n{label}:")
+    for i in range(0, len(icaos), cols):
+        chunk = icaos[i : i + cols]
+        log(f"  {prefix}" + "  ".join(chunk))
 
 
 def fetch_cycle(hour):
@@ -135,15 +148,9 @@ def main():
     log(f"  Added:   {len(added)}")
     log(f"  Removed: {len(removed)}")
 
-    if added:
-        log("\nStations added:")
-        for icao in added:
-            log("  + " + icao)
-
-    if removed:
-        log("\nStations removed:")
-        for icao in removed:
-            log("  - " + icao)
+    # Grouped grid output
+    log_icao_grid("Stations added", added, prefix="+ ")
+    log_icao_grid("Stations removed", removed, prefix="- ")
 
     log("")
 
