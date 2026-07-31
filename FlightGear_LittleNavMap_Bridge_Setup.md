@@ -294,6 +294,14 @@ Flightgear/NavData_Override 🐧 tree
 3. Locate the **Additional scenery folders** configurations panel.
 4. Click **Add** and link the absolute directory path pointing to your folder: `Flightgear/NavData_Override`
 
+> [!WARNING]
+> **Trade-off: Modern AIRAC Override vs. Working ILS Beams**
+> 
+> Overriding `nav.dat` syncs FlightGear's VOR and NDB radio frequencies with LittleNavMap's modern AIRAC database, but comes with a compromise:
+> 
+> * **If enabled (`NavData_Override` used):** Modern VORs and NDBs work globally, but FlightGear will silently discard ILS signals for airports where runway numbers changed in real life (e.g. `26R` becoming `27R`), leaving those ILS frequencies inactive in-cockpit.
+> * **If disabled (Default stock navaids):** Every ILS beam in FlightGear is guaranteed to work, but some VOR/NDB radio frequencies shown in LittleNavMap will not match FlightGear's internal database.
+
 ## 8. Updating FlightGear’s METAR Capability List
 
 FlightGear uses a file:
@@ -370,3 +378,26 @@ Answer **y** only when the diff is relevant to your flying area.
 ### After FlightGear updates
 
 FlightGear overwrites `metar.dat.gz` during updates, so rerun the script afterwards to restore the corrected METAR capability list.
+
+### Command-line options & Shell Aliases
+
+You can pass arguments to bypass interactive prompts:
+
+* **`PREFIX` (e.g. `lg`, `eg`):** Auto-updates **only** if changes match a 2-letter ICAO region. If unaffected, it skips writing so FlightGear won't waste time rebuilding its database.
+* **`-y`, `--yes`:** Auto-accepts all global updates.
+* **`-h`, `--help`:** Shows usage instructions.
+
+#### Automated launch alias vs. Direct launch
+
+You can chain the updater directly to your launcher command using a region prefix:
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc (using double quotes to expand $HOME)
+alias fgfs-lg="python3 $HOME/path/to/generate_metar_dat.py lg && fgfs --launcher"
+
+```
+
+**The Trade-off:**
+
+* **Via Alias (`fgfs-lg`):** Ensures your local METAR database is always up to date automatically, but adds a **~40-second network delay** before FlightGear starts every time.
+* **Direct Launch (`fgfs`):** Launches FlightGear instantly, but requires you to run `generate_metar_dat.py` manually whenever you want to refresh the METAR database.

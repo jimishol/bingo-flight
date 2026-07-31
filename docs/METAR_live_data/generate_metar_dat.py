@@ -3,6 +3,7 @@ import requests
 import gzip
 import re
 import os
+import sys
 
 BASE = "https://tgftp.nws.noaa.gov/data/observations/metar/cycles/"
 ICAO_RE = re.compile(r"^[A-Z]{4}", re.MULTILINE)
@@ -79,7 +80,50 @@ def load_fg_metar():
         return None
 
 
+def show_help():
+    """Print help instructions and usage examples."""
+    help_text = f"""
+FlightGear METAR Capabilities Updater
+
+Usage:
+  python3 {os.path.basename(sys.argv[0])} [OPTION | PREFIX]
+
+Arguments:
+  (No arguments)    Fetch cycles, show diff, and prompt [y/N] before updating.
+  <PREFIX>          2-letter ICAO prefix (e.g., LG, eg). Auto-accepts the 
+                    update ONLY if changes match the prefix. Otherwise skips update.
+  -y, --yes         Auto-accept and replace metar.dat.gz on any detected changes.
+  -h, --help        Display this help message and exit.
+
+Examples:
+  python3 {os.path.basename(sys.argv[0])}
+  python3 {os.path.basename(sys.argv[0])} LG && fgfs --launcher
+  python3 {os.path.basename(sys.argv[0])} -y && fgfs --launcher
+"""
+    print(help_text.strip() + "\n")
+    sys.exit(0)
+
+
+def parse_args():
+    """Check for help, -y, or strictly a 2-letter ICAO prefix filter (e.g. 'LG', 'EG')."""
+    prefix_filter = None
+    auto_yes = False
+
+    for arg in sys.argv[1:]:
+        if arg in ("-h", "--help"):
+            show_help()
+        elif arg in ("-y", "--yes"):
+            auto_yes = True
+        elif len(arg) == 2 and arg.isalpha():
+            prefix_filter = arg.upper()
+
+    return prefix_filter, auto_yes
+
+
 def main():
+
+    # Parse CLI flags (Help, 2-letter prefix filter, or auto-yes)
+    prefix_filter, auto_yes = parse_args()
 
     log(f"Checking FlightGear METAR file at:\n  {FG_METAR_PATH}\n")
 
@@ -167,11 +211,22 @@ def main():
         log("No changes detected. FlightGear METAR file is already up to date.\n")
         return
 
-    # Ask user before replacing FG file
-    answer = input("Do you want to replace FlightGear's metar.dat.gz? [y/N]: ").strip().lower()
-    if answer != "y":
-        log("User declined replacement. Exiting.\n")
-        return
+    # Determine whether to replace FG file
+    if auto_yes:
+        log("Auto-accepting replacement (-y flag).\n")
+    elif prefix_filter:
+        matching = [icao for icao in (added + removed) if icao.startswith(prefix_filter)]
+        if matching:
+            log(f"Auto-accepting update: Changes detected for prefix '{prefix_filter}' ({len(matching)} match(es)).\n")
+        else:
+            log(f"No changes matched prefix '{prefix_filter}'. Skipping replacement.\n")
+            return
+    else:
+        # Ask user before replacing FG file (Original Behavior)
+        answer = input("Do you want to replace FlightGear's metar.dat.gz? [y/N]: ").strip().lower()
+        if answer != "y":
+            log("User declined replacement. Exiting.\n")
+            return
 
     # Write new metar.dat.gz directly into FG_ROOT
     try:
