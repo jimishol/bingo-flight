@@ -265,10 +265,15 @@ nano journey_log.txt
 
 If you fly within FlightGear and want to enhance or safeguard your flight environment, review these dedicated configurations:
 
-* **Live Tracking Bridge**: Sync real-time telemetry, map nodes, and interactive position briefings dynamically between your flight simulator and tracking software.
-👉 **[FlightGear ↔ LittleNavMap Navigation Bridge Setup Guide](https://github.com/jimishol/bingo-flight/blob/main/FlightGear_LittleNavMap_Bridge_Setup.md)**
-* **Copilot Pillow Add-on**: A lightweight, high-altitude safety watchdog built in Nasal for steady long-haul cruise phases. It monitors Calibrated Airspeed ($V_{cal}$) and automatically triggers FlightGear's native pause to protect your airframe from a catastrophic stall spin if atmospheric changes shift while you are away from the desk.
-👉 **[Copilot Pillow Add-on Documentation](https://github.com/jimishol/bingo-flight/blob/main/flightgear_pillow_addon/README.md)**
+* **Live Tracking Bridge**: Sync real-time telemetry, map nodes, and interactive position briefings dynamically between your flight simulator and tracking software.  
+👉 **FlightGear ↔ LittleNavMap Navigation Bridge Setup Guide**
+
+* **Copilot Pillow Add-on**: A lightweight, high-altitude safety watchdog built in Nasal for steady long-haul cruise phases. It monitors Calibrated Airspeed ($V_{cal}$) and automatically triggers FlightGear's native pause to protect your airframe from a catastrophic stall spin if atmospheric changes shift while you are away from the desk.  
+👉 **Copilot Pillow Add-on Documentation**
+
+* **METAR Capability Refresh**: FlightGear’s bundled `metar.dat.gz` contains outdated station capability data, which can cause real‑weather updates to stall or freeze when airports with obsolete METAR service block fallback logic. The setup guide includes a regeneration step that rebuilds a fresh, correct capability list and restores stable live‑weather behavior.
+
+* **Navigation Database Override (nav.dat)**: FlightGear’s stock navigation database often lags behind current AIRAC cycles, leading to mismatched navaids, missing fixes, and inconsistencies with external planners. The setup guide explains how to override FG’s `nav.dat` with a modern cycle so that LittleNavMap, route planners, and in‑sim navigation all agree.
 
 ---
 
