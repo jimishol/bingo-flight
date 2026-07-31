@@ -289,7 +289,7 @@ Flightgear/NavData_Override 🐧 tree
 
 ### Step 2: Process and Deploy Modern AIRAC Data
 
-1. Place your raw AIRAC navigation file inside `docs/nav_merged_ILS/` and rename it to **`nav_AIRAC.dat`**.
+1. Place your raw AIRAC navigation file (usually earth_nav.dat) inside `docs/nav_merged_ILS/` and rename it to **`nav_AIRAC.dat`**.
 2. Run the deployment script:
 ```bash
 python3 docs/nav_merged_ILS/merge_and_clean_nav.py
