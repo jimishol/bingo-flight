@@ -271,9 +271,13 @@ gunzip -k apt.dat.gz
 
 ## 📡 7. Instruct FlightGear to use AIRAC Frequencies
 
-To map the exact same radio communication nodes and navigation vectors inside the simulator engine, inject the matching AIRAC parameters into FlightGear's loading stack.
+To map modern radio communication nodes and navigation vectors inside the simulator engine, inject modern AIRAC parameters directly into FlightGear's loading stack using our Python merger script.
 
-Navigate inside your custom user download directory (`--download-dir=/path_to/Flightgear`) and initialize an override path:
+The script automatically pulls the stock base databases (`apt.dat.gz` and `nav.dat.gz`) directly from your system installation (`/usr/share/flightgear`), cleans and sanitizes modern AIRAC entries (correcting runway designations and heading multipliers), and deploys a hybrid `nav.dat` file directly into your override folder.
+
+### Step 1: Set Up the Override Directory Structure
+
+Ensure your custom FlightGear user download path has the `NavData_Override` folder initialized:
 
 ```text
 Flightgear/NavData_Override 🐧 tree
@@ -283,24 +287,37 @@ Flightgear/NavData_Override 🐧 tree
 
 ```
 
-1. Extract or copy the `earth_nav.dat` text file from your active AIRAC database.
-2. Drop it directly into your newly created `nav/` folder.
-3. Rename the file explicitly to lowercase: **`nav.dat`**
+### Step 2: Process and Deploy Modern AIRAC Data
 
-### Active the Override Path in-sim
+1. Place your raw AIRAC navigation file inside `docs/nav_merged_ILS/` and rename it to **`nav_AIRAC.dat`**.
+2. Run the deployment script:
+```bash
+python3 docs/nav_merged_ILS/merge_and_clean_nav.py
+
+```
+
+
+3. The script will decompress system base data in memory, reconcile runway numbering mismatches (e.g., modern `26R` mapped back to scenery `27R`), drop orphaned country codes, and output the cleaned, hybrid `nav.dat` directly to:
+`/mnt/data/games/Flightgear/NavData_Override/NavData/nav/nav.dat`
+
+---
+
+### Activate the Override Path In-Sim
 
 1. Launch the standard **`fgfs` launcher**.
-2. Go directly to the **Add-ons** preference tab.
-3. Locate the **Additional scenery folders** configurations panel.
-4. Click **Add** and link the absolute directory path pointing to your folder: `Flightgear/NavData_Override`
+2. Navigate to the **Add-ons** preference tab.
+3. Locate the **Additional scenery folders** configuration panel.
+4. Click **Add** and select your absolute override directory path: `/mnt/data/games/Flightgear/NavData_Override`
 
-> [!WARNING]
-> **Trade-off: Modern AIRAC Override vs. Working ILS Beams**
-> 
-> Overriding `nav.dat` syncs FlightGear's VOR and NDB radio frequencies with LittleNavMap's modern AIRAC database, but comes with a compromise:
-> 
-> * **If enabled (`NavData_Override` used):** Modern VORs and NDBs work globally, but FlightGear will silently discard ILS signals for airports where runway numbers changed in real life (e.g. `26R` becoming `27R`), leaving those ILS frequencies inactive in-cockpit.
-> * **If disabled (Default stock navaids):** Every ILS beam in FlightGear is guaranteed to work, but some VOR/NDB radio frequencies shown in LittleNavMap will not match FlightGear's internal database.
+---
+
+> [!NOTE]
+> **Scenery Sync & Hybrid ILS Restoration**
+> Using raw, unedited AIRAC databases normally breaks ILS needles at legacy airports because modern AIRAC runway designators (e.g., `28C`) fail to match FlightGear's base scenery definitions (e.g., `28`).
+> The automated `merge_and_clean_nav.py` workflow solves this by:
+> * **Mapping modern runways** against base scenery (`apt.dat.gz`) so ILS localizers lock onto active runways seamlessly.
+> * **Preserving base ILS fallbacks** from `nav.dat.gz` for missing or legacy airport definitions.
+> * **Sanitizing heading multipliers** and country-code tokens that cause standard parser crashes in FlightGear.
 
 ## 8. Updating FlightGear’s METAR Capability List
 
