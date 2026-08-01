@@ -1,55 +1,42 @@
+#!/usr/bin/env python3
 import sys
+import os
 import re
 import gzip
-import os
 
 # ==============================================================================
-# CONFIGURATION ZONE
+# CONFIGURATION
 # ==============================================================================
 
-# 1. Source AIRAC file (expected in the root folder alongside this script)
-SOURCE_AIRAC_FILE = "nav_AIRAC.dat"  # Can also be "nav_modern.dat"
+SOURCE_AIRAC_FILE = "nav_AIRAC.dat"
+OUTPUT_DIR = "/mnt/data/games/Flightgear/NavData_Override/NavData/nav"
+OUTPUT_FILE = os.path.join(OUTPUT_DIR, "nav.dat")
 
-# 2. FlightGear System Root (containing Airports/apt.dat.gz and Navaids/nav.dat.gz)
 FG_ROOT = os.environ.get("FG_ROOT", "/usr/share/flightgear")
-
-# 3. Target Override Output Directory
-FG_NAV_OVERRIDE_DIR = os.environ.get(
-    "FG_NAV_OVERRIDE", 
-    "/mnt/data/games/Flightgear/NavData_Override/NavData/nav"
-)
-
-# ==============================================================================
-# DERIVED PATHS & CONSTANTS
-# ==============================================================================
-
 SYSTEM_APT_GZ = os.path.join(FG_ROOT, "Airports", "apt.dat.gz")
-SYSTEM_NAV_GZ = os.path.join(FG_ROOT, "Navaids", "nav.dat.gz")
-OUTPUT_FILE = os.path.join(FG_NAV_OVERRIDE_DIR, "nav.dat")
+FG_HOME = os.environ.get("FG_HOME", os.path.expanduser("~/.fgfs"))
 
-ILS_ROW_TYPES = {"4", "5", "6", "12", "13"}
+# Row codes for ILS (4), GS (6), and DME-ILS (12)
+ILS_ROW_CODES = {"4", "6", "12"}
 
 
-def open_system_gz(system_path):
-    """
-    Safely opens a system base compressed file (.gz).
-    """
-    if os.path.exists(system_path):
-        print(f"Reading base system database: {system_path}")
-        return gzip.open(system_path, 'rt', encoding='utf-8', errors='ignore')
+def open_system_gz(path):
+    if os.path.exists(path):
+        return gzip.open(path, 'rt', encoding='latin1', errors='ignore')
+    uncompressed = path.replace(".gz", "")
+    if os.path.exists(uncompressed):
+        return open(uncompressed, 'r', encoding='latin1', errors='ignore')
     return None
 
 
-def build_scenery_runway_database():
-    """
-    Parses apt.dat.gz from FG_ROOT to build a map of valid scenery runways.
-    """
+def build_stock_runway_map():
+    """Builds a map of { 'ICAO': ['10', '28', ...] } from stock apt.dat"""
     f = open_system_gz(SYSTEM_APT_GZ)
     if not f:
-        print(f"Warning: Could not locate system apt.dat.gz at '{SYSTEM_APT_GZ}'. Runway auto-correction disabled.")
-        return {}
+        print(f"Error: Could not open stock apt.dat at '{SYSTEM_APT_GZ}'!")
+        sys.exit(1)
 
-    valid_runways = {}
+    stock_runways = {}
     current_icao = None
 
     with f:
@@ -58,123 +45,147 @@ def build_scenery_runway_database():
             if not tokens:
                 continue
 
-            row_code = tokens[0]
-            # Airport headers (1 = land, 16 = seaplane, 17 = heliport)
-            if row_code in ('1', '16', '17') and len(tokens) >= 5:
+            code = tokens[0]
+            if code in ('1', '16', '17') and len(tokens) >= 5:
                 current_icao = tokens[4]
-                if current_icao not in valid_runways:
-                    valid_runways[current_icao] = set()
+                if current_icao not in stock_runways:
+                    stock_runways[current_icao] = set()
 
-            # Runway definition (Row 100)
-            elif row_code == '100' and current_icao and len(tokens) >= 18:
-                valid_runways[current_icao].add(tokens[8])
-                valid_runways[current_icao].add(tokens[17])
+            # FIX: In apt.dat row 100, reciprocal runway identifier is at index 17
+            elif code == '100' and current_icao and len(tokens) >= 18:
+                stock_runways[current_icao].add(tokens[8])
+                stock_runways[current_icao].add(tokens[17])
 
-    print(f"Successfully mapped runways for {len(valid_runways)} airports.")
-    return valid_runways
-
-
-def clean_modern_ils_line(tokens, valid_runways):
-    row_type = tokens[0]
-
-    # 1. Strip country code token if present (e.g., 'LG' between ICAO and Rwy)
-    if len(tokens) >= 10 and len(tokens[9]) == 2 and tokens[9].isalpha() and not tokens[9].isdigit():
-        del tokens[9]
-    elif len(tokens) >= 10 and len(tokens[8]) == 2 and tokens[8].isalpha() and not tokens[8].isdigit():
-        del tokens[8]
-
-    # 2. Clean heading multiplier (e.g., 100722.910 -> 722.910)
-    if row_type == "4" and len(tokens) > 6:
-        try:
-            hdg_val = float(tokens[6])
-            if hdg_val >= 100000.0:
-                tokens[6] = f"{hdg_val % 100000.0:.3f}"
-        except ValueError:
-            pass
-
-    # 3. Smart Runway Auto-Correction using apt database
-    if len(tokens) >= 10:
-        icao = tokens[8]
-        rwy = tokens[9]
-
-        if icao in valid_runways:
-            if rwy not in valid_runways[icao]:
-                stripped_rwy = re.sub(r'[LRCrc]$', '', rwy)
-                if stripped_rwy in valid_runways[icao]:
-                    tokens[9] = stripped_rwy
-
-    return " ".join(tokens) + "\n"
+    print(f"Loaded stock runway definitions for {len(stock_runways)} airports.")
+    return stock_runways
 
 
-def process_nav_files():
-    # 1. Load Scenery Runways directly from FG_ROOT/Airports/apt.dat.gz
-    valid_runways = build_scenery_runway_database()
+def get_rwy_num(rwy_str):
+    """Extracts integer heading from runway string ('28C' -> 28, '09L' -> 9)."""
+    m = re.match(r'^0*(\d{1,2})[LRCrc]?$', rwy_str)
+    return int(m.group(1)) if m else None
 
-    output_lines = []
-    base_ils_keys = set()
 
-    # 2. Extract Base FlightGear ILS Data directly from FG_ROOT/Navaids/nav.dat.gz
-    f_base = open_system_gz(SYSTEM_NAV_GZ)
-    if f_base:
-        with f_base:
-            for line in f_base:
-                tokens = line.strip().split()
-                if not tokens or not tokens[0].isdigit():
-                    continue
-                if tokens[0] in ILS_ROW_TYPES:
-                    output_lines.append(line)
-                    if len(tokens) >= 10:
-                        base_ils_keys.add((tokens[0], tokens[7], tokens[8]))
-    else:
-        print(f"Warning: Could not locate base nav.dat.gz at '{SYSTEM_NAV_GZ}'. Proceeding without base ILS fallback.")
+def find_best_stock_runway(airac_rwy, stock_set):
+    """
+    Finds the best runway in stock_set for airac_rwy:
+    1. Exact match ('28' == '28')
+    2. Suffix strip match ('28C' -> '28')
+    3. Nearest heading match within +/- 2 numbers ('27' -> '28', '27R' -> '28L')
+    """
+    if airac_rwy in stock_set:
+        return airac_rwy
 
-    # 3. Process local AIRAC file
-    if not os.path.exists(SOURCE_AIRAC_FILE):
-        print(f"Error: Source AIRAC file '{SOURCE_AIRAC_FILE}' not found in current folder.")
-        print(f"Please place your new nav data here and rename it to '{SOURCE_AIRAC_FILE}'.")
+    # 1. Strip suffix (e.g., '28C' -> '28', '28L' -> '28')
+    stripped = re.sub(r'[LRCrc]$', '', airac_rwy)
+    if stripped in stock_set:
+        return stripped
+        
+    # Handle single digit zeroes (e.g. '9' vs '09') safely
+    if stripped.zfill(2) in stock_set:
+        return stripped.zfill(2)
+
+    airac_num = get_rwy_num(airac_rwy)
+    if airac_num is None:
+        return None
+
+    # 2. Search for closest numerical match in stock_set
+    best_candidate = None
+    min_diff = 999
+
+    for stock_rwy in stock_set:
+        stock_num = get_rwy_num(stock_rwy)
+        if stock_num is not None:
+            # Handle magnetic variation crossover (e.g. 36 vs 01)
+            diff = abs(airac_num - stock_num)
+            if diff > 18:
+                diff = 36 - diff
+
+            # Only match if headings are within 2 numbers (~20 degrees)
+            if diff <= 2 and diff < min_diff:
+                min_diff = diff
+                best_candidate = stock_rwy
+
+    return best_candidate
+
+
+def replace_token_in_line(line, target_idx, new_value):
+    """
+    FIX: Replaces the nth non-whitespace token in a string 
+    while preserving all original formatting and whitespaces.
+    """
+    parts = re.split(r'(\s+)', line)
+    token_count = 0
+    for i, part in enumerate(parts):
+        if not part.isspace() and part != '':
+            if token_count == target_idx:
+                parts[i] = new_value
+                break
+            token_count += 1
+    return "".join(parts)
+
+
+def patch_airac_ils():
+    stock_runways = build_stock_runway_map()
+
+    abs_source = os.path.abspath(SOURCE_AIRAC_FILE)
+    abs_output = os.path.abspath(OUTPUT_FILE)
+
+    if not os.path.exists(abs_source):
+        print(f"Error: Source AIRAC file '{abs_source}' not found!")
         sys.exit(1)
 
-    print(f"Processing AIRAC file '{SOURCE_AIRAC_FILE}'...")
-    with open(SOURCE_AIRAC_FILE, 'r', encoding='utf-8', errors='ignore') as f:
-        for idx, line in enumerate(f):
+    print(f"\nReading AIRAC: {abs_source}")
+    print(f"Writing output to: {abs_output}\n")
+
+    patched_lines = []
+    modified_count = 0
+
+    with open(abs_source, 'r', encoding='latin1', errors='ignore') as f:
+        for line in f:
             tokens = line.strip().split()
-            if not tokens:
+            if not tokens or tokens[0] not in ILS_ROW_CODES:
+                patched_lines.append(line)
                 continue
 
-            # Preserve header metadata lines
-            if idx < 3 and not tokens[0].isdigit():
-                output_lines.insert(idx, line)
-                continue
+            # Look for airport ICAO token in the row
+            icao = None
+            icao_idx = -1
+            for idx, token in enumerate(tokens):
+                if token in stock_runways:
+                    icao = token
+                    icao_idx = idx
+                    break
 
-            row_type = tokens[0]
-            if row_type not in ILS_ROW_TYPES:
-                output_lines.append(line)
-            else:
-                cleaned_line = clean_modern_ils_line(tokens.copy(), valid_runways)
-                cleaned_tokens = cleaned_line.strip().split()
-                if len(cleaned_tokens) >= 10:
-                    key = (cleaned_tokens[0], cleaned_tokens[7], cleaned_tokens[8])
-                    if key not in base_ils_keys:
-                        output_lines.append(cleaned_line)
+            if icao and icao_idx != -1:
+                stock_set = stock_runways[icao]
 
-    # 4. Ensure target override directory exists
-    try:
-        os.makedirs(FG_NAV_OVERRIDE_DIR, exist_ok=True)
-    except Exception as e:
-        print(f"Error: Could not create directory '{FG_NAV_OVERRIDE_DIR}': {e}")
-        sys.exit(1)
+                # Inspect tokens following ICAO to find the runway identifier
+                for target_idx in range(icao_idx + 1, len(tokens)):
+                    candidate_rwy = tokens[target_idx]
+                    
+                    # Check if token looks like a runway identifier (e.g. 28C, 09L, 27)
+                    if re.match(r'^\d{1,2}[LRCrc]?$', candidate_rwy):
+                        best_match = find_best_stock_runway(candidate_rwy, stock_set)
 
-    # 5. Output directly to the override directory
-    print(f"Writing sanitized hybrid database to '{OUTPUT_FILE}'...")
-    try:
-        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            f.writelines(output_lines)
-    except Exception as e:
-        print(f"Error writing to output file: {e}")
-        sys.exit(1)
+                        if best_match and best_match != candidate_rwy:
+                            print(f"  Fixing {icao}: '{candidate_rwy}' -> '{best_match}'")
+                            # Swap out the token gracefully without crushing whitespace
+                            line = replace_token_in_line(line, target_idx, best_match)
+                            modified_count += 1
+                        break  # Found and processed the runway token
 
-    print("Success! Processed nav.dat deployed directly to FlightGear override location.")
+            patched_lines.append(line)
 
+    # Save to final override path
+    os.makedirs(os.path.dirname(abs_output), exist_ok=True)
+    with open(abs_output, 'w', encoding='latin1') as out:
+        out.writelines(patched_lines)
+
+    print("\n--- Summary ---")
+    print(f"Successfully modified {modified_count} runway records.")
+    print(f"Saved directly to: {abs_output}")
+    
 
 if __name__ == "__main__":
-    process_nav_files()
+    patch_airac_ils()

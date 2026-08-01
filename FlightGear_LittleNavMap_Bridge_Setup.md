@@ -312,12 +312,12 @@ python3 docs/nav_merged_ILS/merge_and_clean_nav.py
 ---
 
 > [!NOTE]
-> **Scenery Sync & Hybrid ILS Restoration**
+> **Scenery Sync & ILS Restoration**
 > Using raw, unedited AIRAC databases normally breaks ILS needles at legacy airports because modern AIRAC runway designators (e.g., `28C`) fail to match FlightGear's base scenery definitions (e.g., `28`).
-> The automated `merge_and_clean_nav.py` workflow solves this by:
-> * **Mapping modern runways** against base scenery (`apt.dat.gz`) so ILS localizers lock onto active runways seamlessly.
-> * **Preserving base ILS fallbacks** from `nav.dat.gz` for missing or legacy airport definitions.
-> * **Sanitizing heading multipliers** and country-code tokens that cause standard parser crashes in FlightGear.
+> The automated Python workflow solves this by:
+> * **Scanning modern AIRAC runways** against base scenery (`apt.dat.gz`) to find mismatching runway identifiers.
+> * **Smart-matching and renaming** identifiers (stripping letters or shifting headings for magnetic drift) so ILS localizers and Glide Slopes lock onto active runways seamlessly.
+> * **Preserving raw format alignments** so FlightGear's strict parser can read the override file cleanly without crashing.
 
 ## 8. Updating FlightGear’s METAR Capability List
 
