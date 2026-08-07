@@ -474,7 +474,7 @@ if [ "${1:-}" = "-f" ] || [ "${1:-}" = "--files" ]; then
     echo "========================================================="
     echo "Cache Directory: $DB_DIR"
     echo "---------------------------------------------------------"
-    printf "%-22s | %-13s | %s\n" "TRACKING FILE" "PROGRESS" "LAST KNOWN POSITION"
+    printf "\t%-22s | \t%-13s\n" "TRACKING FILE" "PROGRESS"
     echo "---------------------------------------------------------"
     
     (
@@ -485,26 +485,22 @@ if [ "${1:-}" = "-f" ] || [ "${1:-}" = "--files" ]; then
             if [[ "$f" =~ ^visited_(..)\.txt$ ]]; then
                 px="${BASH_REMATCH[1]}"
                 metrics=$(calculate_prefix_metrics "$px")
-		IFS='|' read -r v_c t_c _ <<< "$metrics"
-                last_pos=$(tail -n 1 "$f")
-                [ -z "$last_pos" ] && last_pos="Empty Logbook"
+                IFS='|' read -r v_c t_c _ <<< "$metrics"
                 
                 # Create a perfectly spaced progress layout: "XX  /  YY"
-		prog_str=$(printf "%2s  /%s" "$v_c" "$t_c")
-                printf "%-22s | %-13s | Last: %s\n" "$f" "$prog_str" "$last_pos"
+                prog_str=$(printf "%2s  /%s" "$v_c" "$t_c")
+                printf "\t%-22s | \t%-13s\n" "$f" "$prog_str"
                 
             elif [ "$f" = "journey_log.txt" ]; then
                 total=$(grep -cE '^[A-Z0-9#]' "$f")
                 done=$(grep -c '^#' "$f")
-                last_leg=$(grep '^#' "$f" | tail -n 1 | tr -d '# ')
-                [ -z "$last_leg" ] && last_leg="Not Started"
                 
                 prog_str=$(printf "%2s  /%s" "$done" "$total")
-                printf "%-22s | %-13s | Last: %s\n" "$f" "$prog_str" "$last_leg"
+                printf "\t%-22s | \t%-13s\n" "$f" "$prog_str"
                 
             elif [ "$f" = "destinations.csv" ]; then
                 goals=$(($(grep -c '^' "$f") - 1))
-                printf "%-22s | %-13i | Custom Target Filter Deck Overlay\n" "$f" "$goals"
+                printf "\t%-22s | \t%-13i\n" "$f" "$goals"
             fi
         done
     )
