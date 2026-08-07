@@ -232,6 +232,7 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
     echo "  flight -e <PX>           - Open a specific country logbook in your editor."
     echo "  flight --reset           - Wipe out all country/territory logbook files."
     echo "  flight -h | --help       - Display this operational guide."
+    echo "  flight --last            - Show last cached departure/destination summary."
     echo "---------------------------------------------------------"
     echo "💡 SYNTAX NOTE: Options (like -n, -j, -c) must precede any targets."
     echo "   Correct: 'flight -n LG'  |  Incorrect: 'flight LG -n'"
