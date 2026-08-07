@@ -146,22 +146,18 @@ flight() {
     FLIGHT_HOME="$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight"
     CACHE="$HOME/.cache/flight_dispatch/briefing.lnmpln"
 
+    # Extract DEP/DEST ICAOs silently if cache exists
+    if [ -f "$CACHE" ]; then
+        DEP=$(grep -m1 "<Ident>" "$CACHE" | sed -e 's/.*<Ident>\(.*\)<\/Ident>.*/\1/')
+        DEST=$(grep "<Ident>" "$CACHE" | sed -n '2s/.*<Ident>\(.*\)<\/Ident>.*/\1/p')
+        echo "Last flight:"
+        echo "  Departure   : $DEP"
+        echo "  Destination : $DEST"
+        echo ""
+    fi
+
     for _arg in "$@"; do
         case "$_arg" in
-            --last)
-                if [ ! -f "$CACHE" ]; then
-                    echo "No cached briefing found."
-                    return
-                fi
-
-                DEP=$(grep -m1 "<Ident>" "$CACHE" | sed -e 's/.*<Ident>\(.*\)<\/Ident>.*/\1/')
-                DEST=$(grep "<Ident>" "$CACHE" | sed -n '2s/.*<Ident>\(.*\)<\/Ident>.*/\1/p')
-
-                echo "Last flight:"
-                echo "  Departure   : $DEP"
-                echo "  Destination : $DEST"
-                return
-                ;;
             -f|--files|-e|-c|-h|--help|--reset)
                 "$FLIGHT_HOME/flight.sh" "$@"
                 return
@@ -205,7 +201,6 @@ You can configure how `lnmpln_creator.sh` dynamically locates your next departur
 | `flight <ICAO>` | Generates a fixed route dispatch to a targeted airfield. |
 | `flight <PREFIX>` | Selects a random destination matching a 2-letter country prefix code (e.g., `LG`). |
 | `flight -n`, `--next <PREFIX>` | Dispatches a random **UNVISITED** airport code matching the country code to avoid tracking repetitions. |
-| `flight -l`, `--last` | Prints the last generated flight plan summary (Departure → Destination) directly from ~/.cache/flight_dispatch/briefing.lnmpln. Useful for quickly recalling your most recent routing without opening Little Navmap or re-running a dispatch. |
 
 ### Advanced Career & System Controls
 

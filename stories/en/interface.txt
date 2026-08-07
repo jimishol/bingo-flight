@@ -15,7 +15,7 @@ lbl_crew_team=Crew Weight
 lbl_cargo=Cargo
 
 # Act 1 Interactive Confirmation Gate Strings
-lbl_confirm_prompt=Are you in the mood to fly there today? Should I file the flight destination? (y/N): 
+lbl_confirm_prompt=Proceed with filing this destination based on current weather/briefing? (y/N): 
 lbl_confirm_success=Flight destination filed successfully! Updating pilot records...
 lbl_confirm_cancel=Dispatch canceled. Clearing active routing tables.
 

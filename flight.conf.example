@@ -9,7 +9,7 @@ HOME_ICAO="LGHI"
 CITIES_ALERT_THRESHOLD=5
 
 # Gatekeepers: Set to 'true' for a pre-flight confirmation prompt, 'false' to auto-commit
-CONFIRMATION=false  
+CONFIRMATION=true  
 
 # Set a two-letter prefix here to enforce it (e.g., "el" or "en").
 # Leave it blank "" to automatically detect it from your system's $LANG layout.
