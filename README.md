@@ -150,7 +150,7 @@ flight() {
     if [ -f "$CACHE" ]; then
         DEP=$(grep -m1 "<Ident>" "$CACHE" | sed -e 's/.*<Ident>\(.*\)<\/Ident>.*/\1/')
         DEST=$(grep "<Ident>" "$CACHE" | sed -n '2s/.*<Ident>\(.*\)<\/Ident>.*/\1/p')
-        echo "Last flight:"
+        echo "Last briefing:"
         echo "  Departure   : $DEP"
         echo "  Destination : $DEST"
         echo ""
