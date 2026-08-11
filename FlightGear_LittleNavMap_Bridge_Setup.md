@@ -273,7 +273,7 @@ gunzip -k apt.dat.gz
 
 To map modern radio communication nodes and navigation vectors inside the simulator engine, inject modern AIRAC parameters directly into FlightGear's loading stack using our Python merger script.
 
-The script automatically pulls the stock base databases (`apt.dat.gz` and `nav.dat.gz`) directly from your system installation (`/usr/share/flightgear`), cleans and sanitizes modern AIRAC entries (correcting runway designations and heading multipliers), and deploys a hybrid `nav.dat` file directly into your override folder.
+The script automatically pulls stock runway layout data directly from your system installation (apt.dat.gz), cleans and sanitizes modern AIRAC entries from a user-provided nav_AIRAC.dat (correcting runway designations to match stock layouts), and deploys a hybrid nav.dat file directly into your override folder.
 
 ### Step 1: Set Up the Override Directory Structure
 
