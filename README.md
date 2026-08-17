@@ -148,8 +148,13 @@ flight() {
 
     # Extract DEP/DEST ICAOs silently if cache exists
     if [ -f "$CACHE" ]; then
-        DEP=$(grep -m1 "<Ident>" "$CACHE" | sed -e 's/.*<Ident>\(.*\)<\/Ident>.*/\1/')
-        DEST=$(grep "<Ident>" "$CACHE" | sed -n '2s/.*<Ident>\(.*\)<\/Ident>.*/\1/p')
+        # Extract all <Ident> tags found ONLY inside the <Waypoints> block
+        WAYPOINTS=$(sed -n '/<Waypoints>/,/\<\/Waypoints\>/p' "$CACHE" | grep "<Ident>" | sed 's/.*<Ident>\(.*\)<\/Ident>.*/\1/')
+
+        # First waypoint is Departure, last waypoint is Destination
+        DEP=$(echo "$WAYPOINTS" | head -n 1)
+        DEST=$(echo "$WAYPOINTS" | tail -n 1)
+
         echo "Last briefing:"
         echo "  Departure   : $DEP"
         echo "  Destination : $DEST"
