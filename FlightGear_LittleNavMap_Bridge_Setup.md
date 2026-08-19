@@ -410,7 +410,7 @@ You can chain the updater directly to your launcher command using a region prefi
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc (using double quotes to expand $HOME)
-alias fgfs-lg="python3 $HOME/path/to/generate_metar_dat.py lg && fgfs --launcher"
+alias fgfs-lg='python3 "$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/docs/METAR_live_data/generate_metar_dat.py" lg && exec fgfs --launcher'
 
 ```
 
