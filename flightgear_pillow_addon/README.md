@@ -69,36 +69,44 @@ fg_pause() {
     # CONNECTION OPTIONS: Uncomment ONLY ONE target host format below
     # -------------------------------------------------------------
     # OPTION A: Using a standard user/IP address configuration
-    target_host="user@192.168.1.100"
+    # target_host="user@192.168.1.100"
     
     # OPTION B: Using a pre-configured .ssh/config host alias
-    # target_host="desktop"
+    target_host="desktop"
     # -------------------------------------------------------------
 
-    echo "🔒 Connecting to $target_host (you may be prompted for your password)..."
+    echo "🔒 Connecting to $target_host..."
 
-    # We pull the current status first to check if the server is even reachable
-    response=$(ssh "$target_host" "curl -s --max-time 3 'http://localhost:$port/json/sim/freeze/master'" 2>/dev/null)
+    # Read current state
+    current_state=$(ssh "$target_host" "curl -s --connect-timeout 3 --max-time 10 'http://localhost:$port/json/sim/freeze/master'" 2>/dev/null)
 
-    if [ -z "$response" ]; then
+    if [ -z "$current_state" ]; then
         echo "❌ Error: Cannot connect to FlightGear. Is the HTTP server running on port $port?"
         return 1
     fi
 
-    # Trigger the toggle poke
+    # Check if already paused
+    if echo "$current_state" | grep '"value":true' >/dev/null 2>&1; then
+	printf "⚠️  Simulation is already paused. Do you insist on toggling the state? [y/N] "
+	read reply
+        case "$reply" in
+            [yY]|[yY][eE][sS]) ;;
+            *) echo "🚫 Aborted."; return 0 ;;
+        esac
+    fi
+
+    # Perform toggle
     ssh "$target_host" "curl -s 'http://localhost:$port/run.cgi?value=pause'" >/dev/null 2>&1
 
-    # Final check to see what the toggle changed the state to
+    # Final state
     final_state=$(ssh "$target_host" "curl -s 'http://localhost:$port/json/sim/freeze/master'" 2>/dev/null)
 
-    # Evaluate the output of the remote command string
     if echo "$final_state" | grep '"value":true' >/dev/null 2>&1; then
         echo "⏸️  FlightGear is paused"
     else
         echo "✈️  FlightGear runs"
     fi
 }
-
 ```
 
 > 💡 **Tip for Power Users:** You can map your connection parameters cleanly into your local machine's `~/.ssh/config` file so you do not have to hardcode explicit IP addresses inside scripts.
