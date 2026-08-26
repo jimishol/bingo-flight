@@ -410,11 +410,45 @@ You can chain the updater directly to your launcher command using a region prefi
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc (using double quotes to expand $HOME)
-alias fgfs-lg='python3 "$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/docs/METAR_live_data/generate_metar_dat.py" lg && exec fgfs --launcher'
+fgfs-metar() {
+    # -------------------------------------------------------------------------
+    # CONFIGURATION
+    # -------------------------------------------------------------------------
+    # Set argument for generate_metar_dat.py ("lg", "eg", "-y", or "" for prompt)
+    local METAR_ARG="lg"
+    
+    # Path to Little Navmap briefing cache
+    CACHE="$HOME/.cache/flight_dispatch/briefing.lnmpln"
+    # -------------------------------------------------------------------------
 
+    DEP=""
+
+    if [ -f "$CACHE" ]; then
+        WAYPOINTS=$(sed -n '/<Waypoints>/,/\<\/Waypoints\>/p' "$CACHE" | grep "<Ident>" | sed 's/.*<Ident>\(.*\)<\/Ident>.*/\1/')
+        DEP=$(echo "$WAYPOINTS" | head -n 1)
+    fi
+
+    if [ -n "$METAR_ARG" ]; then
+        python3 "$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/docs/METAR_live_data/generate_metar_dat.py" "$METAR_ARG"
+    else
+        python3 "$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/docs/METAR_live_data/generate_metar_dat.py"
+    fi
+
+    if [ -n "$DEP" ]; then
+        exec fgfs --airport="$DEP" --flight-plan="$HOME/.cache/flight_dispatch/briefing.fgfp" --launcher
+    else
+        exec fgfs --launcher
+    fi
+}
 ```
 
 **The Trade-off:**
 
-* **Via Alias (`fgfs-lg`):** Ensures your local METAR database is always up to date automatically, but adds a **~40-second network delay** before FlightGear starts every time.
-* **Direct Launch (`fgfs`):** Launches FlightGear instantly, but requires you to run `generate_metar_dat.py` manually whenever you want to refresh the METAR database.
+* **Via Dispatch (`fgfs-metar`):**
+* Automatically sets your departure airport directly from your Little Navmap briefing (`.lnmpln`), completely bypassing the launcher's built-in flight planner and manual airport selection.
+* Ensures your local METAR database is refreshed before flight, but adds a **~40-second network delay** during startup while fetching METAR cycles.
+
+
+* **Direct Launch (`fgfs` / standard launcher):**
+* Launches FlightGear instantly with zero startup delay.
+* Requires manually setting your departure airport and route inside the launcher's flight planner, and requires running `generate_metar_dat.py` manually to update live weather data.
