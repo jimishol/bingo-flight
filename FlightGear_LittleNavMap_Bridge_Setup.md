@@ -445,7 +445,7 @@ fgfs-metar() {
 **The Trade-off:**
 
 * **Via Dispatch (`fgfs-metar`):**
-* Automatically sets your departure airport directly from your Little Navmap briefing (`.lnmpln`), completely bypassing the launcher's built-in flight planner and manual airport selection.
+* Automatically sets your departure airport directly from your Little Navmap briefing (.lnmpln) and loads the route from briefing.fgfp (whether auto-generated or exported from your edited .lnmpln), completely bypassing the launcher's built-in flight planner and manual airport selection.
 * Ensures your local METAR database is refreshed before flight, but adds a **~40-second network delay** during startup while fetching METAR cycles.
 
 
