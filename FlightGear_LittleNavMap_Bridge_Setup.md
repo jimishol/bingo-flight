@@ -22,27 +22,6 @@ Download and prepare the following packages into your designated applications wo
   git clone https://github.com/Em-Ant/fgconnect.git
   ```  
 
-> [!IMPORTANT]
-> **FGconnect Upstream Status**
->
-> The FlightGear LittleNavMap add‑on is fully updated upstream, but **FGconnect upstream `main` is still missing several required fixes**.  
-> Until these are merged, users **must use the patched `combined-fixes` branch** to avoid incorrect aircraft positioning (e.g., appearing in the wrong airport).
->
-> https://github.com/jimishol/fgconnect/tree/combined-fixes
->
-> The patched FGconnect includes:
-> - corrected ground/air status  
-> - updated model path  
-> - safe flightplan extraction  
-> - multiplayer & carrier detection  
-> - ghost ID filtering  
-> - universal fuel telemetry  
->
-> **Clone the patched FGconnect:**
-> ```bash
-> git clone -b combined-fixes https://github.com/jimishol/fgconnect.git
-> ```
-
 ---
 
 ### System Dependencies
