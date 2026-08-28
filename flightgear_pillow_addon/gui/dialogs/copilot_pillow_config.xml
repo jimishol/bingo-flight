@@ -1,5 +1,4 @@
 <?xml version="1.0"?>
-
 <PropertyList>
     <name>copilot_pillow_config</name>
     <layout>vbox</layout>
@@ -16,17 +15,13 @@
             </binding>
         </button>
 
-        <empty>
-            <stretch>1</stretch>
-        </empty>
+        <empty><stretch>1</stretch></empty>
 
         <text>
             <label>Copilot Pillow Options</label>
         </text>
 
-        <empty>
-            <stretch>1</stretch>
-        </empty>
+        <empty><stretch>1</stretch></empty>
 
         <button>
             <legend> </legend>
@@ -37,7 +32,6 @@
                 <command>dialog-close</command>
             </binding>
         </button>
-
     </group>
 
     <hrule/>
@@ -52,6 +46,27 @@
         </binding>
     </checkbox>
 
+    <hrule/>
+
+    <group>
+        <layout>hbox</layout>
+        <text>
+            <label>Helicopter Mode (Use RPM):</label>
+            <pref-width>175</pref-width>
+            <halign>left</halign>
+        </text>
+        <empty><pref-width>25</pref-width></empty>
+        <checkbox>
+            <label></label> <!-- Empty label leaves just the box -->
+            <halign>left</halign>
+            <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/is_helicopter</property>
+            <live>true</live>
+            <binding>
+                <command>dialog-apply</command>
+            </binding>
+        </checkbox>
+    </group>
+
     <group>
         <layout>hbox</layout>
         <text>
@@ -65,6 +80,7 @@
             <height>25</height>
             <width>80</width>
             <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/refresh-rate</property>
+            <live>true</live>
             <binding>
                 <command>dialog-apply</command>
                 <object-name>refresh-rate</object-name>
@@ -101,6 +117,7 @@
                 <height>25</height>
                 <width>80</width>
                 <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/alt_offset</property>
+                <live>true</live> <!-- Correct placement -->
                 <binding>
                     <command>dialog-apply</command>
                     <object-name>alt-offset</object-name>
@@ -136,6 +153,7 @@
                 <height>25</height>
                 <width>80</width>
                 <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/airspeed_offset</property>
+                <live>true</live> <!-- Correct placement -->
                 <binding>
                     <command>dialog-apply</command>
                     <object-name>airspeed-min</object-name>
@@ -171,6 +189,7 @@
                 <height>25</height>
                 <width>80</width>
                 <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/max_airspeed_offset</property>
+                <live>true</live> <!-- Correct placement -->
                 <binding>
                     <command>dialog-apply</command>
                     <object-name>max-airspeed</object-name>
@@ -185,19 +204,8 @@
     <group>
         <layout>hbox</layout>
         <empty>
-            <stretch>1</stretch>
+            <stretch>1</stretch> <!-- Pushes the button to the center -->
         </empty>
-        <button>
-            <legend>Save</legend>
-            <pref-width>90</pref-width>
-            <pref-height>30</pref-height>
-            <binding>  
-                <command>dialog-apply</command>  
-            </binding>  
-            <binding>  
-                <command>dialog-close</command>  
-            </binding>
-        </button>
 
         <button>
             <legend>Close</legend>
@@ -207,8 +215,9 @@
                 <command>dialog-close</command>
             </binding>
         </button>
+
         <empty>
-            <stretch>1</stretch>
+            <stretch>1</stretch> <!-- Pushes the button to the center -->
         </empty>
     </group>
 </PropertyList>

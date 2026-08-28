@@ -16,6 +16,11 @@ var main = func( addon ) {
     enabledNode.setAttribute("userarchive", "y");
     if (enabledNode.getValue() == nil) enabledNode.setValue("0");
 
+    # NEW: Helicopter Checkbox Node
+    var heliNode = props.globals.getNode(mySettingsRootPath ~ "/is_helicopter", 1);
+    heliNode.setAttribute("userarchive", "y");
+    if (heliNode.getValue() == nil) heliNode.setValue("0");
+
     var refreshRateNode = props.globals.getNode(mySettingsRootPath ~ "/refresh-rate", 1);
     refreshRateNode.setAttribute("userarchive", "y");
     if (refreshRateNode.getValue() == nil) refreshRateNode.setValue("1");
@@ -33,19 +38,6 @@ var main = func( addon ) {
     maxAirspeedNode.setAttribute("userarchive", "y");
     if (maxAirspeedNode.getValue() == nil) maxAirspeedNode.setValue("125");
 
-    #
-    # ✔ Single, clean helicopter detection
-    #
-    var is_helicopter = func() {
-        var tags = props.globals.getNode("/sim/tags", 0);
-        if (tags == nil) return 0;
-
-        foreach (var c; tags.getChildren("tag")) {
-            if (c.getValue() == "helicopter") return 1;
-        }
-        return 0;
-    };
-
     # 1. CORE WATCHDOG ENGINE CORE
     var check_watchdog = func() {
         if (enabledNode.getValue() != "1") {
@@ -56,7 +48,9 @@ var main = func( addon ) {
         }
     
         var alt_agl = num(getprop("position/altitude-agl-ft"));
-        var heli    = is_helicopter();
+        
+        # READ DIRECTLY FROM THE CHECKBOX NODE (Returns 1 for true, 0 for false)
+        var heli = heliNode.getBoolValue();
     
         var ias = nil;
         var rpm = nil;
@@ -66,7 +60,7 @@ var main = func( addon ) {
         } else {
             ias = num(getprop("velocities/airspeed-kt"));
         }
-    
+
         # Fetch directly from GUI nodes, no guessing or hardcoded fallbacks
         var target_alt = num(altOffsetNode.getValue());
         var target_spd = num(airspeedNode.getValue());

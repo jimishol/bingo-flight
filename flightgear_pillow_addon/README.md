@@ -15,7 +15,7 @@ If you step away from the controls and the aircraft drops below **or exceeds** y
 * **Altitude Target Threshold (AGL offset)**: This target exists solely to restrict protection when you are at low altitudes (such as takeoff, climb, or approach) where you are actively handling the controls and do not want the watchdog interfering.
 * **Minimum & Maximum Speed / RPM Thresholds**:
 * **For Airplanes**: This monitors indicated airspeed (kt). Set the minimum with a safe margin above your actual stall speed, and the maximum below your structural Vne (Never Exceed Speed). This gives the watchdog time to react and pause the simulator *before* a true aerodynamic stall or overspeed damage develops.
-* **For Helicopters**: The add-on automatically detects if you are flying a helicopter and switches to monitoring physical main rotor RPM. Set the minimum above the critical rotor stall RPM limit and the maximum below the structural over-rev limit.
+* **For Helicopters**: Enable **Helicopter Mode (Use RPM)** in the options menu to switch from monitoring airspeed to physical main rotor RPM. Set the minimum above the critical rotor stall RPM limit and the maximum below the structural over-rev limit.
 
 
 * **Auto-Disable Safeguard**: When a protection pause is triggered, the add-on automatically disables itself. When you return to your desk, you can simply press **"p"** to unpause and recover the aircraft. If you plan to step away a second time, you must manually toggle Copilot Pillow back on.
@@ -39,6 +39,7 @@ Inside the in-game FlightGear menu under **Copilot Pillow Options**, you can con
 | Option | Unit/Type | Description / Recommended Setting |
 | --- | --- | --- |
 | **Enable Copilot Pillow** | Boolean Toggle | Activates or deactivates the live watchdog monitoring loop. |
+| **Helicopter Mode (Use RPM)** | Boolean Checkbox | Switches the monitoring core from airspeed to main rotor RPM. |
 | **Refresh rate** | Seconds | How often the watchdog evaluates your safety criteria (Default: `1`). |
 | **AGL offset (ft)** | Feet AGL | The height above ground where protection arms. (e.g., `1500` or higher). |
 | **Airspeed min / (RPM min for Heli)** | Knots / Raw RPM | **Planes**: Target airspeed threshold (e.g., `60` kt for the C172P). <br>
