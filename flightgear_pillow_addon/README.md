@@ -115,22 +115,22 @@ fg_pause() {
 > ```text
 > Host desktop
 >      HostName 192.168.1.100
+>      Port ssh_port
 >      User your_username
 > 
 > ```
-> 
 > 
 > **For SSH Key Authentication (Passwordless):**
 > If you have configured public key authentication, simply add your key path to the configuration block:
 > ```text
 > Host desktop
 >      HostName 192.168.1.100
+>      Port ssh_port
 >      User your_username
 >      IdentityFile ~/.ssh/id_rsa
-> 
+>      IdentitiesOnly yes
+>      HostKeyAlias desktop
 > ```
-> 
-> 
 
 ### 3. Usage
 
