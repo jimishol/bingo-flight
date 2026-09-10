@@ -20,7 +20,7 @@ If you step away from the controls and the aircraft drops below **or exceeds** y
 
 ## Features
 
-* **Multi-Category Watchdog Engine**: Smart, automated mode switching between Fixed-Wing (Airspeed) and Rotary-Wing (Rotor RPM) aircraft.
+* **Multi-Category Watchdog Engine**: Configurable mode switching between Fixed-Wing (Airspeed) and Rotary-Wing (Rotor RPM) aircraft.
 * **High-Altitude Stall & Overspeed Prevention**: Actively monitors Live AGL (Above Ground Level) altitude alongside Calibrated Airspeed (CAS via `/velocities/airspeed-kt`) or Main Rotor Speed (RPM via `/rotors/main/rpm`).
 * **Resource Efficient**: Built using a fixed, low-overhead `maketimer` loop running at ~0.26s interval to eliminate micro-stutters and monitor high time-compression flights without CPU burden.
 * **Persistent Profiles**: Automatically remembers your custom safety targets across your flight sessions.
