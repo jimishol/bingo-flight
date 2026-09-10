@@ -67,27 +67,6 @@
         </checkbox>
     </group>
 
-    <group>
-        <layout>hbox</layout>
-        <text>
-            <label>Refresh rate (seconds):</label>
-            <pref-width>200</pref-width>
-            <halign>left</halign>
-        </text>
-        <empty><pref-width>25</pref-width></empty>
-        <input>
-            <name>refresh-rate</name>
-            <height>25</height>
-            <width>80</width>
-            <property>/addons/by-id/com.cholidis.flightgear.CopilotPillow/refresh-rate</property>
-            <live>true</live>
-            <binding>
-                <command>dialog-apply</command>
-                <object-name>refresh-rate</object-name>
-            </binding>
-        </input>
-    </group>
-
     <hrule/>
 
     <group>

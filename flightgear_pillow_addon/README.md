@@ -16,15 +16,13 @@ If you step away from the controls and the aircraft drops below **or exceeds** y
 * **Minimum & Maximum Speed / RPM Thresholds**:
 * **For Airplanes**: This monitors indicated airspeed (kt). Set the minimum with a safe margin above your actual stall speed, and the maximum below your structural Vne (Never Exceed Speed). This gives the watchdog time to react and pause the simulator *before* a true aerodynamic stall or overspeed damage develops.
 * **For Helicopters**: Enable **Helicopter Mode (Use RPM)** in the options menu to switch from monitoring airspeed to physical main rotor RPM. Set the minimum above the critical rotor stall RPM limit and the maximum below the structural over-rev limit.
-
-
-* **Auto-Disable Safeguard**: When a protection pause is triggered, the add-on automatically disables itself. When you return to your desk, you can simply press **"p"** to unpause and recover the aircraft. If you plan to step away a second time, you must manually toggle Copilot Pillow back on.
+* **Auto-Disable Safeguard**: When a protection pause is triggered, the add-on automatically resets time compression to 1x (`/sim/speed-up = 1`) before calling the native **Pause** command. This prevents Flight Dynamics Model (FDM) high-speed shocks or immediate crashes when you return to your desk and press **"p"** to unpause. The add-on then automatically disables itself; you must manually toggle Copilot Pillow back on before stepping away again.
 
 ## Features
 
 * **Multi-Category Watchdog Engine**: Smart, automated mode switching between Fixed-Wing (Airspeed) and Rotary-Wing (Rotor RPM) aircraft.
 * **High-Altitude Stall & Overspeed Prevention**: Actively monitors Live AGL (Above Ground Level) altitude alongside Calibrated Airspeed (CAS via `/velocities/airspeed-kt`) or Main Rotor Speed (RPM via `/rotors/main/rpm`).
-* **Resource Efficient**: Built using modern, object-oriented `maketimer` loops to prevent simulator micro-stutters.
+* **Resource Efficient**: Built using a fixed, low-overhead `maketimer` loop running at ~0.26s interval to eliminate micro-stutters and monitor high time-compression flights without CPU burden.
 * **Persistent Profiles**: Automatically remembers your custom safety targets across your flight sessions.
 
 ## Installation
@@ -40,11 +38,11 @@ Inside the in-game FlightGear menu under **Copilot Pillow Options**, you can con
 | --- | --- | --- |
 | **Enable Copilot Pillow** | Boolean Toggle | Activates or deactivates the live watchdog monitoring loop. |
 | **Helicopter Mode (Use RPM)** | Boolean Checkbox | Switches the monitoring core from airspeed to main rotor RPM. |
-| **Refresh rate** | Seconds | How often the watchdog evaluates your safety criteria (Default: `1`). |
 | **AGL offset (ft)** | Feet AGL | The height above ground where protection arms. (e.g., `1500` or higher). |
-| **Airspeed min / (RPM min for Heli)** | Knots / Raw RPM | **Planes**: Target airspeed threshold (e.g., `60` kt for the C172P). <br>
+| **Airspeed min / (RPM min for Heli)** | Knots / Raw RPM | **Planes**: Target minimum airspeed threshold (e.g., `60` kt for C172P). <br>**Helis**: Minimum physical main rotor RPM threshold. |
+| **Airspeed max / (RPM max for Heli)** | Knots / Raw RPM | **Planes**: Maximum allowed airspeed below structural $V_{ne}$ (e.g., `125` kt). <br>**Helis**: Maximum main rotor RPM threshold before over-rev. |
 
-<br>**Helis**: Actual physical rotor RPM threshold (e.g., `400` to `450` RPM for light helis like the R22). |
+💡 Tip: A solid baseline for cruise monitoring is setting your lower limit to 80% of cruise speed (or RPM) and your upper limit to 115%. Speed decays much faster during an unexpected pitch-up than it accelerates in a dive.
 
 ---
 

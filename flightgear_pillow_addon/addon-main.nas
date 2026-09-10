@@ -10,6 +10,7 @@ var main = func( addon ) {
     var mySettingsRootPath = "/addons/by-id/" ~ myAddonId;
     var is_loop_running = 0;
     var watchdog_timer = nil;
+    var interval = 16/60;
 
     # Track structural generation targets
     var enabledNode = props.globals.getNode(mySettingsRootPath ~ "/enabled", 1);
@@ -20,10 +21,6 @@ var main = func( addon ) {
     var heliNode = props.globals.getNode(mySettingsRootPath ~ "/is_helicopter", 1);
     heliNode.setAttribute("userarchive", "y");
     if (heliNode.getValue() == nil) heliNode.setValue("0");
-
-    var refreshRateNode = props.globals.getNode(mySettingsRootPath ~ "/refresh-rate", 1);
-    refreshRateNode.setAttribute("userarchive", "y");
-    if (refreshRateNode.getValue() == nil) refreshRateNode.setValue("1");
 
     var altOffsetNode = props.globals.getNode(mySettingsRootPath ~ "/alt_offset", 1);
     altOffsetNode.setAttribute("userarchive", "y");
@@ -65,10 +62,9 @@ var main = func( addon ) {
         var target_alt = num(altOffsetNode.getValue());
         var target_spd = num(airspeedNode.getValue());
         var target_max = num(maxAirspeedNode.getValue()); 
-        var interval = num(refreshRateNode.getValue());
     
         # NEW STRICT VALIDATION: If the GUI input is missing or broken, disable the addon entirely!
-        if (target_alt == nil or target_spd == nil or target_max == nil or interval == nil) {
+        if (target_alt == nil or target_spd == nil or target_max == nil) {
             print("Copilot Pillow: Invalid or empty GUI inputs detected! Disabling addon safety block.");
             enabledNode.setValue("0");
             is_loop_running = 0;
@@ -105,7 +101,8 @@ var main = func( addon ) {
         }
     
         if (trigger) {
-            print("Copilot Pillow: CRITERIA MATCHED! TRIGGERING PAUSE STATE.");
+	    print("Copilot Pillow: CRITERIA MATCHED! Resetting time compression to 1x and pausing.");
+	    setprop("/sim/speed-up", 1);
             fgcommand("pause");
             
             # RESTORED EXACT ORIGINAL TOGGLE MECHANISM
@@ -119,7 +116,7 @@ var main = func( addon ) {
     };
 
     # Instantiate the modern Object-Oriented timer as a single-shot engine
-    watchdog_timer = maketimer(1.0, check_watchdog);
+    watchdog_timer = maketimer(interval, check_watchdog);
     watchdog_timer.singleShot = 1;
 
     # 2. DYNAMIC LOOP CONTROL CHECK
@@ -127,8 +124,6 @@ var main = func( addon ) {
         if (enabledNode.getValue() == "1") {
             if (is_loop_running == 0) {
                 is_loop_running = 1;
-                # Kept original 'or 1' exclusively here for timer boot safety
-                var interval = num(refreshRateNode.getValue()) or 1;
                 watchdog_timer.restart(interval);
             }
         } else {
