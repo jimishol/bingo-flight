@@ -4,11 +4,11 @@ An automated high-altitude safety watchdog built for long-haul cruise monitoring
 
 ## What it does
 
-Copilot Pillow was born out of a desire for a realistic safety net during long, real-time cruise flights. During a 90-minute cruise phase with navigation enabled—where the engine was leaned out to maximum EGT (Exhaust Gas Temperature) to stretch fuel range—unpredicted atmospheric changes across shifting weather tiles caused the aircraft to bleed speed, stall, and enter a flat spin while the pilot was away from the desk.
+Copilot Pillow was born out of a desire for a realistic safety net during long, real-time cruise flights using live weather data. During a 90-minute cruise phase with navigation enabled—where the engine was leaned out to maximum EGT (Exhaust Gas Temperature) to stretch fuel range—unpredicted atmospheric changes across shifting weather tiles caused the aircraft to bleed speed, stall, and enter a flat spin while the pilot was away from the desk.
 
-Since pausing the simulator manually or using time compression takes away from the experience of a continuous, real-time flight, Copilot Pillow provides a clever workaround. It acts as your automated virtual copilot during steady, long-haul high-altitude cruise phases.
+Since manually pausing the simulator takes away from the experience of a continuous, real-time flight, and using time compression leaves you with no time to recover from sudden emergencies, Copilot Pillow provides a clever workaround. It acts as your automated virtual copilot during steady, long-haul, high-altitude cruise phases.
 
-If you step away from the controls and the aircraft drops below **or exceeds** your safety limits while remaining at your high cruise altitude, the add-on instantly triggers FlightGear's native **Pause** state. This safely freezes the simulation mid-air, preventing a catastrophic stall, structural overspeed, or loss of control, giving you complete peace of mind during hours of continuous, uncompressed flight.
+Copilot Pillow continuously monitors your flight envelope in the background. If your airspeed drops below or exceeds your defined safety limits at cruise altitude, the add-on instantly triggers FlightGear's native Pause state. This safely freezes the simulation mid-air before a catastrophic stall, structural overspeed, or loss of control can occur—giving you complete peace of mind whether you step away from your desk during real-time flight or lack the split-second reaction time needed under time compression.
 
 ## How it Works
 
