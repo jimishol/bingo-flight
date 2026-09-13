@@ -118,6 +118,7 @@ var main = func( addon ) {
     # Instantiate the modern Object-Oriented timer as a single-shot engine
     watchdog_timer = maketimer(interval, check_watchdog);
     watchdog_timer.singleShot = 1;
+    watchdog_timer.simulatedTime = 1;
 
     # 2. DYNAMIC LOOP CONTROL CHECK
     var check_loop_state = func() {
