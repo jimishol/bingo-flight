@@ -10,7 +10,7 @@ var main = func( addon ) {
     var mySettingsRootPath = "/addons/by-id/" ~ myAddonId;
     var is_loop_running = 0;
     var watchdog_timer = nil;
-    var interval = 16/60;
+    var interval = 1/60;
 
     # Track structural generation targets
     var enabledNode = props.globals.getNode(mySettingsRootPath ~ "/enabled", 1);
@@ -118,7 +118,6 @@ var main = func( addon ) {
     # Instantiate the modern Object-Oriented timer as a single-shot engine
     watchdog_timer = maketimer(interval, check_watchdog);
     watchdog_timer.singleShot = 1;
-    watchdog_timer.simulatedTime = 1;
 
     # 2. DYNAMIC LOOP CONTROL CHECK
     var check_loop_state = func() {
