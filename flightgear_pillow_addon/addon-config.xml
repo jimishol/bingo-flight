@@ -1,3 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>  
-<PropertyList>  
+<?xml version="1.0" encoding="UTF-8"?>
+<PropertyList>
+    <addons>
+        <by-id>
+            <com.cholidis.flightgear.CopilotPillow>
+                <!-- Default interval: 1/60 sec (~0.016667) -->
+                <interval-sec userarchive="y">0.0166666666666667</interval-sec>
+            </com.cholidis.flightgear.CopilotPillow>
+        </by-id>
+    </addons>
 </PropertyList>

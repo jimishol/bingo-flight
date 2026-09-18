@@ -10,7 +10,16 @@ var main = func( addon ) {
     var mySettingsRootPath = "/addons/by-id/" ~ myAddonId;
     var is_loop_running = 0;
     var watchdog_timer = nil;
-    var interval = 1/60;
+
+    var intervalNode = props.globals.getNode(mySettingsRootPath ~ "/interval-sec", 1);
+    
+    # Defensive check: Only set defaults/attributes if XML didn't populate it
+    if (intervalNode.getValue() == nil) {
+        intervalNode.setAttribute("userarchive", "y");
+        intervalNode.setValue(1/60);
+    }
+
+    var interval = num(intervalNode.getValue()) or (1/60);
 
     # Track structural generation targets
     var enabledNode = props.globals.getNode(mySettingsRootPath ~ "/enabled", 1);
