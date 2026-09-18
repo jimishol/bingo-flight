@@ -4,12 +4,13 @@
   <name type="string">Thrustmaster T.A320 Copilot</name>
   <axis>
     <desc type="string">Aileron</desc>
+    <dead-band type="double">0.05</dead-band>
     <binding>
       <command type="string">property-scale</command>
       <property type="string">/controls/flight/aileron</property>
       <factor type="double">1</factor>
       <offset type="double">0</offset>
-      <power type="double">1</power>
+      <power type="double">1.4</power>
     </binding>
   </axis>
   <axis n="1">
