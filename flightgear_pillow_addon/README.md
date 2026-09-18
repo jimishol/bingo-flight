@@ -44,6 +44,8 @@ Inside the in-game FlightGear menu under **Copilot Pillow Options**, you can con
 
 💡 Tip: A solid baseline for cruise monitoring is setting your lower limit to 80% of cruise speed (or RPM) and your upper limit to 115%. Speed decays much faster during an unexpected pitch-up than it accelerates in a dive.
 
+Keep in mind that high time compression (speed-up) drastically amplifies these dynamics. On light aircraft like the default C172P, higher compression rates reduce physics precision and lead to severe limit overshoots—especially during sudden pitch changes, crosswind gusts, or heavy turbulence. When flying at 8x compression, tightening your limits to 90% lower / 105% upper helps catch trends early before the aircraft drifts into an awkward situation. Running at 16x compression is effectively a running joke—unless you enjoy seeing what wild, unrecoverable attitude the simulator eventually pauses itself in!
+
 ---
 
 ## Remote Control & Verification (Via FlightGear HTTPD)
