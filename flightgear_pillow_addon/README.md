@@ -42,9 +42,16 @@ Inside the in-game FlightGear menu under **Copilot Pillow Options**, you can con
 | **Airspeed min / (RPM min for Heli)** | Knots / Raw RPM | **Planes**: Target minimum airspeed threshold (e.g., `60` kt for C172P). <br>**Helis**: Minimum physical main rotor RPM threshold. |
 | **Airspeed max / (RPM max for Heli)** | Knots / Raw RPM | **Planes**: Maximum allowed airspeed below structural $V_{ne}$ (e.g., `125` kt). <br>**Helis**: Maximum main rotor RPM threshold before over-rev. |
 
-💡 Tip: A solid baseline for cruise monitoring is setting your lower limit to 80% of cruise speed (or RPM) and your upper limit to 115%. Speed decays much faster during an unexpected pitch-up than it accelerates in a dive.
+💡 **Tip:** A solid baseline for cruise monitoring is setting your lower limit to 80% of cruise speed (or RPM) and your upper limit to 115%. Speed decays much faster during an unexpected pitch-up than it accelerates in a dive.
 
-Keep in mind that high time compression (speed-up) drastically amplifies these dynamics. On light aircraft like the default C172P, higher compression rates reduce physics precision and lead to severe limit overshoots—especially during sudden pitch changes, crosswind gusts, or heavy turbulence. When flying at 8x compression, tightening your limits to 90% lower / 105% upper helps catch trends early before the aircraft drifts into an awkward situation. Running at 16x compression is effectively a running joke—unless you enjoy seeing what wild, unrecoverable attitude the simulator eventually pauses itself in!
+**⚠️ The Physics of Time Compression & Window Focus**
+Keep in mind that high time compression (`speed-up`)—or leaving the FlightGear window running in the background without OS focus—drastically amplifies these dynamics.
+
+*Why does this happen?* Even though Copilot Pillow checks your limits constantly in real-world time, FlightGear's engine processes flight physics in discrete frame steps. Under high time compression, or when your operating system starves a backgrounded window of rendering resources, a single simulation "frame" can instantly jump forward by several simulated seconds (`simDt`). Because the Flight Dynamics Model (FDM) applies this massive block of time all at once *before* the watchdog's timer can execute again, the aircraft state violently overshoots your limits.
+
+*(**Developer Note:** Whenever the watchdog triggers, it records the exact size of this time balloon to the property tree. You can inspect `/addons/by-id/com.cholidis.flightgear.CopilotPillow/last-frame-sim-dt-sec` to see exactly how large the simulated frame jump was that caused the pause.)*
+
+To compensate for this on light aircraft like the default C172P, tightening your limits to **90% lower / 105% upper** when flying at **8x compression** helps catch trends early before the aircraft drifts into an awkward situation. Running at **16x compression** is effectively a running joke—unless you enjoy seeing what wild, unrecoverable attitude the simulator eventually pauses itself in!
 
 ---
 
@@ -140,6 +147,15 @@ Simply run the command directly from your terminal session whenever you need to 
 fg_pause
 
 ```
+
+### 4. Uninstallation & Property Tree Cleanup
+
+If you ever decide to remove Copilot Pillow, simply deleting the add-on folder will stop it from running. However, because your settings are actively saved between sessions, FlightGear will keep your configured limits cached in its autosave file. 
+
+To completely wipe the add-on's ghost variables from your property tree:
+1. Navigate to your FlightGear home directory (e.g., `~/.fgfs/` on Linux/Mac, or `%APPDATA%\flightgear.org\` on Windows).
+2. Open your `autosave_X.X.X.xml` file in a text editor.
+3. Find and delete the XML blocks associated with `<com.cholidis.flightgear.CopilotPillow>`.
 
 ## License
 The core logic and code of this add-on are original works created by the author and licensed under the **GNU General Public License version 3** (see the local `LICENSE` file for the full text). 

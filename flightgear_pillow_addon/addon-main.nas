@@ -1,96 +1,106 @@
 #
 # Copilot Pillow addon
 #
-# Synced dynamically to identifier: com.cholidis.flightgear.CopilotPillow
+# Synced strictly to identifier: com.cholidis.flightgear.CopilotPillow
 #
 
 var main = func( addon ) {
     var root = addon.basePath;
-    var myAddonId  = addon.id; 
+    
+    # Forcing the exact ID so no remnants of org.flightgear.addons.copilot_pillow can ever slip in.
+    var myAddonId  = "com.cholidis.flightgear.CopilotPillow"; 
     var mySettingsRootPath = "/addons/by-id/" ~ myAddonId;
+    
     var is_loop_running = 0;
     var watchdog_timer = nil;
 
     var intervalNode = props.globals.getNode(mySettingsRootPath ~ "/interval-sec", 1);
-    
-    # Defensive check: Only set defaults/attributes if XML didn't populate it
     if (intervalNode.getValue() == nil) {
         intervalNode.setAttribute("userarchive", "y");
-        intervalNode.setValue(1/60);
+        intervalNode.setDoubleValue(1/60);
     }
-
     var interval = num(intervalNode.getValue()) or (1/60);
 
-    # Track structural generation targets
+    # Off by default logic
     var enabledNode = props.globals.getNode(mySettingsRootPath ~ "/enabled", 1);
     enabledNode.setAttribute("userarchive", "y");
-    if (enabledNode.getValue() == nil) enabledNode.setValue("0");
+    if (enabledNode.getValue() == nil) enabledNode.setBoolValue(0);
 
-    # NEW: Helicopter Checkbox Node
     var heliNode = props.globals.getNode(mySettingsRootPath ~ "/is_helicopter", 1);
     heliNode.setAttribute("userarchive", "y");
-    if (heliNode.getValue() == nil) heliNode.setValue("0");
+    if (heliNode.getValue() == nil) heliNode.setBoolValue(0);
 
     var altOffsetNode = props.globals.getNode(mySettingsRootPath ~ "/alt_offset", 1);
     altOffsetNode.setAttribute("userarchive", "y");
-    if (altOffsetNode.getValue() == nil) altOffsetNode.setValue("1500");
+    if (altOffsetNode.getValue() == nil) altOffsetNode.setDoubleValue(1500);
 
     var airspeedNode = props.globals.getNode(mySettingsRootPath ~ "/airspeed_offset", 1);
     airspeedNode.setAttribute("userarchive", "y");
-    if (airspeedNode.getValue() == nil) airspeedNode.setValue("60");
+    if (airspeedNode.getValue() == nil) airspeedNode.setDoubleValue(60);
 
-    # Single dual-purpose node for Max Airspeed / RPM
     var maxAirspeedNode = props.globals.getNode(mySettingsRootPath ~ "/max_airspeed_offset", 1);
     maxAirspeedNode.setAttribute("userarchive", "y");
-    if (maxAirspeedNode.getValue() == nil) maxAirspeedNode.setValue("125");
+    if (maxAirspeedNode.getValue() == nil) maxAirspeedNode.setDoubleValue(125);
 
-    # 1. CORE WATCHDOG ENGINE CORE
+    # REVEALED: Initialize last-frame-sim-dt-sec immediately so it shows up in the property tree browser
+    var lastFrameDtNode = props.globals.getNode(mySettingsRootPath ~ "/last-frame-sim-dt-sec", 1);
+    if (lastFrameDtNode.getValue() == nil) {
+        lastFrameDtNode.setDoubleValue(0.0);
+    }
+
+    # Track the previous frame's simulation time across timer ticks
+    var last_sim_time = nil;
+
+    # 1. CORE WATCHDOG ENGINE
     var check_watchdog = func() {
-        if (enabledNode.getValue() != "1") {
+        if (enabledNode.getValue() != 1 and enabledNode.getValue() != "1") {
             is_loop_running = 0;
+            last_sim_time = nil;
             if (watchdog_timer != nil) watchdog_timer.stop();
-            print("copilot_pillow: Watchdog loop deactivated cleanly.");
+            logprint(LOG_INFO, "copilot_pillow: Watchdog loop deactivated cleanly.");
             return;
         }
-    
-        var alt_agl = num(getprop("position/altitude-agl-ft"));
-        
-        # READ DIRECTLY FROM THE CHECKBOX NODE (Returns 1 for true, 0 for false)
+
+        # Measure simulated frame time elapsed since the previous tick
+        var current_sim_time = num(getprop("/sim/time/elapsed-sec"));
+        var frame_sim_dt = 0;
+        if (last_sim_time != nil and current_sim_time != nil) {
+            frame_sim_dt = current_sim_time - last_sim_time;
+        }
+        last_sim_time = current_sim_time;
+
+        var alt_agl = num(getprop("/position/altitude-agl-ft"));
         var heli = heliNode.getBoolValue();
-    
+        
         var ias = nil;
         var rpm = nil;
-    
+        
         if (heli) {
-            rpm = num(getprop("rotors/main/rpm"));
+            rpm = num(getprop("/rotors/main/rpm"));
         } else {
-            ias = num(getprop("velocities/airspeed-kt"));
+            ias = num(getprop("/velocities/airspeed-kt"));
         }
 
-        # Fetch directly from GUI nodes, no guessing or hardcoded fallbacks
         var target_alt = num(altOffsetNode.getValue());
         var target_spd = num(airspeedNode.getValue());
         var target_max = num(maxAirspeedNode.getValue()); 
-    
-        # NEW STRICT VALIDATION: If the GUI input is missing or broken, disable the addon entirely!
+        
         if (target_alt == nil or target_spd == nil or target_max == nil) {
-            print("Copilot Pillow: Invalid or empty GUI inputs detected! Disabling addon safety block.");
-            enabledNode.setValue("0");
+            logprint(LOG_ALERT, "Copilot Pillow: Invalid or empty GUI inputs detected! Disabling addon safety block.");
+            enabledNode.setBoolValue(0);
             is_loop_running = 0;
+            last_sim_time = nil;
             watchdog_timer.stop();
             return;
         }
 
-        # Wait safely for altitude to populate from FDM
         if (alt_agl == nil) {
             watchdog_timer.restart(interval);
             return;
         }
-    
+        
         var trigger = 0;
-    
-        # EXACT user logic applied: 
-        # if alt < altOffset OR (V > min AND V < max) then not pause else pause
+        
         if (heli) {
             if (rpm != nil) {
                 if (alt_agl < target_alt or (rpm > target_spd and rpm < target_max)) {
@@ -108,40 +118,46 @@ var main = func( addon ) {
                 }
             }
         }
-    
+        
         if (trigger) {
-	    print("Copilot Pillow: CRITERIA MATCHED! Resetting time compression to 1x and pausing.");
-	    setprop("/sim/speed-up", 1);
+            logprint(LOG_ALERT, sprintf("Copilot Pillow: CRITERIA MATCHED! Sim jumped %.4f sec in triggering frame. Resetting speed-up and pausing.", frame_sim_dt));
+            
+            # Records the precise dt of the paused frame
+            lastFrameDtNode.setDoubleValue(frame_sim_dt);
+
+            setprop("/sim/speed-up", 1);
             fgcommand("pause");
             
-            # RESTORED EXACT ORIGINAL TOGGLE MECHANISM
-            enabledNode.setValue("0");
+            # Turns the addon off again
+            enabledNode.setBoolValue(0);
             is_loop_running = 0;
+            last_sim_time = nil;
             watchdog_timer.stop();
             return;
         }
-    
+        
         watchdog_timer.restart(interval);
     };
 
-    # Instantiate the modern Object-Oriented timer as a single-shot engine
     watchdog_timer = maketimer(interval, check_watchdog);
     watchdog_timer.singleShot = 1;
 
     # 2. DYNAMIC LOOP CONTROL CHECK
     var check_loop_state = func() {
-        if (enabledNode.getValue() == "1") {
+        if (enabledNode.getValue() == 1 or enabledNode.getValue() == "1") {
             if (is_loop_running == 0) {
                 is_loop_running = 1;
+                last_sim_time = nil; # Prevent stale time if recently enabled
                 watchdog_timer.restart(interval);
             }
         } else {
             is_loop_running = 0;
+            last_sim_time = nil; # Deepwiki fix: clear stale time when disabled via GUI
             watchdog_timer.stop();
         }
     };
 
-    # 3. NATIVE SIGNAL LISTENERS (Untouched)
+    # 3. NATIVE SIGNAL LISTENERS (Restored to original logic)
     var init_listener = _setlistener(mySettingsRootPath ~ "/enabled", func() {
         check_loop_state();
     });
@@ -158,10 +174,11 @@ var main = func( addon ) {
 
     var exit_listener = setlistener("/sim/signals/exit", func() {
         removelistener(exit_listener);
-        enabledNode.setValue("0");
+        enabledNode.setBoolValue(0);
         is_loop_running = 0;
+        last_sim_time = nil;
         watchdog_timer.stop();
     });
 
-    print("Copilot Pillow node mapping targets built cleanly inside: " ~ mySettingsRootPath);
+    logprint(LOG_INFO, "Copilot Pillow nodes generated strictly inside: " ~ mySettingsRootPath);
 }
