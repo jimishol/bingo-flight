@@ -10,7 +10,7 @@
       <property type="string">/controls/flight/aileron</property>
       <factor type="double">1</factor>
       <offset type="double">0</offset>
-      <power type="double">1.4</power>
+      <power type="double">2</power>
     </binding>
   </axis>
   <axis n="1">
@@ -25,12 +25,13 @@
   </axis>
   <axis n="2">
     <desc type="string">Rudder</desc>
+    <dead-band type="double">0.07</dead-band>
     <binding>
       <command type="string">property-scale</command>
       <property type="string">/controls/flight/rudder</property>
       <factor type="double">1</factor>
       <offset type="double">0</offset>
-      <power type="double">1</power>
+      <power type="double">2</power>
     </binding>
   </axis>
   <axis n="3">
