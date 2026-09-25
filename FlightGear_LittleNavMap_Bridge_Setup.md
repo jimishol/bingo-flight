@@ -227,7 +227,21 @@ Copy your modern X-Plane 11 formatted AIRAC database files directly into the `de
 
 ```
 
-### Step D: Install FlightGear's Airport Layouts into LittleNavMap
+### Step D: Load OpenAIP Airspace Boundaries (Optional)
+ 
+Depending on your setup, Little Navmap may not display airspace boundaries by default. If airspace borders are missing, you can import OpenAIP airspace data manually.
+ 
+1. Visit https://www.openaip.net/ and open the **Data Exports** section.
+2. Open the **Filter** dialog and configure:
+- **Country:** yourCountry
+- **Content Type:** Airspace
+- **Format:** OpenAIR Version 1
+3. Download the resulting file (e.g. `gr_asp_v1.txt` for Greece).
+4. Create a directory for OpenAIP `mkdir -p openAIP-airspaces` airspace data inside your project or preferred data location.
+5. Place the downloaded file in the `openAIP-airspaces/` directory.
+6. In Little Navmap, open: `Scenery Library → Load User Airspace`. Select the openAIP-airspaces/ directory.
+
+### Step E: Install FlightGear's Airport Layouts into LittleNavMap
 
 To synchronize airfield structures perfectly, move the core FlightGear airport data file into your fake directory tree:
 
