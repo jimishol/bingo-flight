@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<PropertyList>  
+    <meta>  
+        <file-type type="string">FlightGear add-on metadata</file-type>  
+        <format-version type="int">1</format-version>  
+    </meta>  
+  
+    <addon>  
+        <identifier type="string">com.cholidis.flightgear.tourguide</identifier>  
+        <name type="string">TourGuide</name>  
+        <version type="string">1.0.0</version>  
+  
+        <authors>  
+            <author>  
+                <name type="string">Dimitrios Cholidis</name>  
+                <email type="string"></email>  
+                <url type="string"></url>  
+            </author>  
+        </authors>  
+  
+	<short-description type="string">Announces nearby flight landmarks via on-screen ATC messages.</short-description>
+	
+	<long-description type="string">TourGuide queries FlightGear's POI database (cities, towns, villages, and visual reporting points) to deliver sector-aware spatial announcements (ahead, left, right, behind, and directly below) via ATC messages. Supports on-demand hotkey triggers as well as automatic periodic flight-time announcements.</long-description> 
+	
+        <license>  
+            <designation type="string">GNU GPL version 3</designation>  
+            <file type="string">LICENSE</file>  
+        </license>  
+  
+        <min-FG-version type="string">2020.3.0</min-FG-version>  
+        <max-FG-version type="string">none</max-FG-version>  
+  
+        <tags>  
+            <tag type="string">navigation</tag>  
+            <tag type="string">poi</tag>  
+            <tag type="string">utility</tag>  
+        </tags>  
+    </addon>  
+</PropertyList>

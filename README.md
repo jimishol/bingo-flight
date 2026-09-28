@@ -280,10 +280,14 @@ nano journey_log.txt
 If you fly within FlightGear and want to enhance or safeguard your flight environment, review these dedicated configurations:
 
 * **Live Tracking Bridge**: Sync real-time telemetry, map nodes, and interactive position briefings dynamically between your flight simulator and tracking software.  
-👉 **FlightGear ↔ LittleNavMap Navigation Bridge Setup Guide**
+  👉 **[FlightGear ↔ LittleNavMap Navigation Bridge Setup Guide](./FlightGear_LittleNavMap_Bridge_Setup.md)**
 
 * **Copilot Pillow Add-on**: A lightweight, high-altitude safety watchdog built in Nasal for steady long-haul cruise phases. It monitors Calibrated Airspeed ($V_{cal}$) and automatically triggers FlightGear's native pause to protect your airframe from a catastrophic stall spin if atmospheric changes shift while you are away from the desk.  
-👉 **Copilot Pillow Add-on Documentation**
+  👉 **[Copilot Pillow Add-on Documentation](./flightgear_pillow_addon/README.md)**
+
+* **TourGuide Add-on**: A spatial-aware flight announcement add-on that queries FlightGear's POI database to deliver real-time, sector-based landmark updates via on-screen ATC messages.  
+  👉 **[TourGuide Add-on Documentation](./flightgear_atc_tourguide_addon/README.md)**
+### 🛩️ FlightGear Companion Tools & Integrations
 
 * **METAR Capability Refresh**: FlightGear’s bundled `metar.dat.gz` contains outdated station capability data, which can cause real‑weather updates to stall or freeze when airports with obsolete METAR service block fallback logic. The setup guide includes a regeneration step that rebuilds a fresh, correct capability list and restores stable live‑weather behavior.
 
