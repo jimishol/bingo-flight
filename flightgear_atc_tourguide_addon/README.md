@@ -78,53 +78,20 @@ By default, TourGuide automatically announces nearby landmarks every **15 minute
 
 ## Configuration Reference
 
-You can customize detection ranges, sector angles, keys, and exclusions by editing `config.xml` inside the add-on folder or overriding properties in FlightGear.
+Custom options are set in `addon-config.xml`.
 
-```xml
-<PropertyList>
-  <addons>
-    <by-id>
-      <com.cholidis.flightgear.tourguide>
-        <!-- Periodic announcement interval in flight seconds (0 to disable) -->
-        <auto-interval-sec type="double">900.0</auto-interval-sec>
+> ⚠️ **Important:** Properties are loaded on initial startup and are **not updated at runtime**. You must **relaunch FlightGear (`fgfs`)** for modified configuration values to take effect.
 
-        <!-- Delay (seconds) between sequential message output lines -->
-        <speech-queue-interval-sec type="double">5.0</speech-queue-interval-sec>
-
-        <!-- Keyboard Key Code to trigger announcement (96 = Backtick `) -->
-        <trigger-key-code type="int">96</trigger-key-code>
-
-        <!-- Base Sector Search Ranges (in Nautical Miles) -->
-        <range-ahead-nm type="double">18.0</range-ahead-nm>
-        <range-aside-nm type="double">9.0</range-aside-nm>
-        <range-behind-nm type="double">6.0</range-behind-nm>
-
-        <!-- Ahead Sector Half-Angle in degrees (+/- off aircraft nose) -->
-        <ahead-angle-deg type="double">22.5</ahead-angle-deg>
-
-        <!-- Landmark Type Range Multipliers -->
-        <mult-city type="double">2.0</mult-city>
-        <mult-town type="double">1.0</mult-town>
-        <mult-village type="double">0.5</mult-village>
-        <mult-vrp type="double">1.5</mult-vrp>
-
-        <!-- AGL Multiplier for "Directly Below" Zone Radius -->
-        <agl-under-multiplier type="double">2.0</agl-under-multiplier>
-
-        <!-- Comma-separated list of POI Type Names or IDs to exclude -->
-        <exclude-types type="string">10,1001</exclude-types>
-      </com.cholidis.flightgear.tourguide>
-    </by-id>
-  </addons>
-</PropertyList>
-
-```
-
-### Config Property Details
-
-* **`auto-interval-sec`**: Interval for periodic automatic announcements (in simulated flight seconds). Set to `0` to disable automatic messages.
-* **`trigger-key-code`**: ASCII key code for manual triggers (default `96` for backtick ```).
-* **`exclude-types`**: Filter out unwanted POI types using string identifiers or `poi.dat` numeric codes (e.g., `10` = Country borders, `1001` = Navigational waypoints).
+| Setting | Default | Description |
+| --- | --- | --- |
+| `auto-interval-sec` | `900.0` | Flight-time interval in seconds for auto announcements (`0` disables). |
+| `speech-queue-interval-sec` | `5.0` | Delay in seconds between consecutive sector lines in the ATC queue. |
+| `trigger-key-code` | `96` | ASCII code for manual announcement key (default: backtick ```). |
+| `range-ahead-nm` / `aside` / `behind` | `18.0` / `9.0` / `6.0` | Base sector search radii (NM) before type multipliers are applied. |
+| `ahead-angle-deg` | `22.5` | Ahead sector half-angle (±22.5° off aircraft nose). |
+| `mult-city` / `vrp` / `town` / `village` | `2.0` / `1.5` / `1.0` / `0.5` | Type multipliers applied to base ranges across all sectors. |
+| `agl-under-multiplier` | `2.0` | Scaling factor applied to AGL altitude for the "Directly Below" zone. |
+| `exclude-types` | `"10,1001"` | Comma-separated list of POI type names or `poi.dat` numeric IDs to ignore. |
 
 ---
 
