@@ -21,7 +21,7 @@
 Landmarks are grouped into 4 horizontal sectors off your nose heading, plus 1 overhead zone:
 
 ```
-                  \   Ahead (+/-22.5°)   /
+                  \   Ahead (+/-45°)   /
                    \                  /
                     \   r_ahead*mult /
                      \              /
@@ -88,7 +88,7 @@ Custom options are set in `addon-config.xml`.
 | `speech-queue-interval-sec` | `5.0` | Delay in seconds between consecutive sector lines in the ATC queue. |
 | `trigger-key-code` | `96` | ASCII code for manual announcement key (default: backtick ```). |
 | `range-ahead-nm` / `aside` / `behind` | `18.0` / `9.0` / `6.0` | Base sector search radii (NM) before type multipliers are applied. |
-| `ahead-angle-deg` | `22.5` | Ahead sector half-angle (±22.5° off aircraft nose). |
+| `ahead-angle-deg` | `45` | Ahead sector half-angle (±22.5° off aircraft nose). |
 | `mult-city` / `vrp` / `town` / `village` | `2.0` / `1.5` / `1.0` / `0.5` | Type multipliers applied to base ranges across all sectors. |
 | `agl-under-multiplier` | `2.0` | Scaling factor applied to AGL altitude for the "Directly Below" zone. |
 | `exclude-types` | `"10,1001"` | Comma-separated list of POI type names or `poi.dat` numeric IDs to ignore. |

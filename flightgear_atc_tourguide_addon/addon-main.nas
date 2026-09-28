@@ -196,7 +196,7 @@ var main = func(addon) {
         var r_ahead  = get_cfg(addon, "range-ahead-nm", 18.0);  
         var r_aside  = get_cfg(addon, "range-aside-nm", 9.0);  
         var r_behind = get_cfg(addon, "range-behind-nm", 6.0);  
-        var a_angle  = get_cfg(addon, "ahead-angle-deg", 22.5);  
+        var a_angle  = get_cfg(addon, "ahead-angle-deg", 45);  
   
         # Type Multipliers  
         var mult_city    = get_cfg(addon, "mult-city", 2.0);  

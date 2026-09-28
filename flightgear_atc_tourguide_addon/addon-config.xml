@@ -18,7 +18,7 @@
         <range-behind-nm type="double">6.0</range-behind-nm>
 
         <!-- Ahead Sector Half-Angle in degrees (+/- off aircraft nose) -->
-        <ahead-angle-deg type="double">22.5</ahead-angle-deg>
+        <ahead-angle-deg type="double">45</ahead-angle-deg>
 
         <!-- Landmark Type Range Multipliers -->
         <mult-city type="double">2.0</mult-city>
