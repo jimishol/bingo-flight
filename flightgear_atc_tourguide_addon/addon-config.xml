@@ -9,7 +9,7 @@
         <!-- Real-time delay (seconds) between sequential spoken/ATC messages -->
         <speech-queue-interval-sec type="double">5.0</speech-queue-interval-sec>
 
-        <!-- Keyboard Key Code to trigger announcement (96 = Backtick `) -->
+        <!-- Keyboard Key Code to trigger announcement (96 = Backtick `) (0 or nill to disable) -->
         <trigger-key-code type="int">96</trigger-key-code>
 
         <!-- Base Sector Search Ranges (in Nautical Miles) -->

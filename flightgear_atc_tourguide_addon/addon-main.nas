@@ -75,7 +75,6 @@ var clean_tts_text = func(text) {
 };  
 
 # Build Exclusion Lookup Map from Config  
-# Accepts both type names ("visual-reporting-point") and numeric poi.dat codes ("1000")  
 var build_exclusion_map = func(raw_cfg) {  
     var map = {};  
     if (raw_cfg == nil) return map;  
@@ -121,7 +120,6 @@ var format_sector_message = func(items, prefix_single, prefix_compound) {
     var primary = s[0];  
     var secondary_city = nil;  
   
-    # Look for a farther major landmark (City) in the same sector  
     if (primary.type != "city") {  
         foreach (var item; s) {  
             if (item.dist > primary.dist and item.type == "city") {  
@@ -148,31 +146,30 @@ var main = func(addon) {
     var msg_interval = get_cfg(addon, "speech-queue-interval-sec", 5.0);  
     var trigger_key  = get_cfg(addon, "trigger-key-code", 96);  
 
-    # Configurable Speech Queue Handler (FIFO)  
-    var speak_lines = func(lines) {  
-        if (size(lines) == 0) return;  
+    # Non-blocking Static Queue Emitter (Defined once to avoid closure bugs)
+    var emit_next = func {  
+        if (size(msg_queue) == 0) return;  
   
-        msg_queue = lines;  
+        var current_msg = msg_queue[0];  
+        msg_queue = subvec(msg_queue, 1);  
   
-        var emit_next = func {  
-            if (size(msg_queue) == 0) return;  
+        setprop("/sim/messages/atc", current_msg);  
   
-            var current_msg = msg_queue[0];  
-            msg_queue = subvec(msg_queue, 1);  
-  
-            setprop("/sim/messages/atc", current_msg);  
-  
-            if (size(msg_queue) > 0) {  
-                msg_timer.restart(msg_interval);  
-            }  
-        };  
-  
-        if (msg_timer == nil) {  
-            msg_timer = maketimer(msg_interval, emit_next);  
-            msg_timer.singleShot = 1;  
-        } else {  
-            msg_timer.stop();  
+        if (size(msg_queue) > 0) {  
+            msg_timer.restart(msg_interval);  
         }  
+    };  
+
+    msg_timer = maketimer(msg_interval, emit_next);  
+    msg_timer.singleShot = 1;  
+
+    # Flush Queue Handler: Clears previous pending lines on new trigger
+    var speak_lines = func(lines) {  
+        if (lines == nil or size(lines) == 0) return;  
+  
+        msg_timer.stop();  
+        msg_queue = [];  
+        foreach (var l; lines) append(msg_queue, l);  
   
         emit_next();  
     };  
@@ -333,23 +330,37 @@ var main = func(addon) {
     };  
   
     globals["speak_nearest_poi"] = speak_nearest_poi;  
-  
-    # Dynamic trigger key binding  
-    setlistener("/devices/status/keyboard/event", func(n) {  
-        if (!n.getValue("pressed")) return;  
-        if (n.getValue("key") == trigger_key) speak_nearest_poi();  
-    });  
-  
-    var preload_timer = maketimer(1.0, ensure_cache_loaded);  
-    preload_timer.singleShot = 1;  
-    preload_timer.start();  
-  
+
+    # Dynamic trigger key binding (disabled if 0 or nil)
+    var key_msg = "";
+    if (trigger_key != nil and trigger_key > 0) {
+        setlistener("/devices/status/keyboard/event", func(n) {  
+            if (!n.getValue("pressed")) return;  
+            if (n.getValue("key") == trigger_key) speak_nearest_poi();  
+        });  
+        key_msg = sprintf("[TourGuide] Loaded. Press key code %d to speak landmarks.", trigger_key);
+    } else {
+        key_msg = "[TourGuide] Loaded. Manual hotkey trigger is disabled.";
+    }
+    print(key_msg);
+
+    # Dynamic auto-announcement timer
+    var auto_msg = "";
     if (auto_sec > 0) {  
         auto_timer = maketimer(auto_sec, speak_nearest_poi);  
         auto_timer.simulatedTime = 1;   # sim/flight time; set before start()  
         auto_timer.start();  
-        print(sprintf("[TourGuide] Auto-announcements active every %.0f flight seconds.", auto_sec));  
-    }  
-  
-    print(sprintf("[TourGuide] Loaded. Press key code %d to speak landmarks.", trigger_key));  
+        auto_msg = sprintf("[TourGuide] Auto-announcements active every %.0f flight seconds.", auto_sec);  
+    } else {
+        auto_msg = "[TourGuide] Auto-announcements disabled.";
+    }
+    print(auto_msg);
+
+    # Preload database cache on initial load frame
+    var preload_timer = maketimer(1.0, ensure_cache_loaded);  
+    preload_timer.singleShot = 1;  
+    preload_timer.start();  
+
+    # Send startup status messages to ATC display
+    speak_lines([key_msg, auto_msg]);
 };
