@@ -31,6 +31,12 @@
 
         <!-- Comma-separated list of Landmark Types or Type IDs to exclude -->
         <exclude-types type="string">10,1001</exclude-types>
+
+
+	<!-- Number of POIs evaluated per frame chunk: (~800,000 total POIs)-->
+        <!-- Higher = shorter delay before speech, but higher risk of frame lag -->
+        <!-- Lower  = smoother framerate, but longer delay before speech -->
+        <chunk-size type="int">24000</chunk-size>
       </com.cholidis.flightgear.tourguide>
     </by-id>
   </addons>

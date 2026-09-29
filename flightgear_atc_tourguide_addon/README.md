@@ -92,6 +92,7 @@ Custom options are set in `addon-config.xml`.
 | `mult-city` / `vrp` / `town` / `village` | `2.0` / `1.5` / `1.0` / `0.5` | Type multipliers applied to base ranges across all sectors. |
 | `agl-under-multiplier` | `2.0` | Scaling factor applied to AGL altitude for the "Directly Below" zone. |
 | `exclude-types` | `"10,1001"` | Comma-separated list of POI type names or `poi.dat` numeric IDs to ignore. |
+| `chunk-size` | `24000` | POIs processed per frame chunk (~800k total). Higher reduces response delay; lower prevents frame lag. |
 
 ---
 
