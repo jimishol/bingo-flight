@@ -114,28 +114,28 @@ var ensure_cache_loaded = func {
 };  
 
 # Helper: Compound Announcement Generator for Sectors  
-var format_sector_message = func(items, prefix_single, prefix_compound) {  
-    var sort_by_dist = func(a, b) { return a.dist - b.dist; };  
-    var s = sort(items, sort_by_dist);  
-    var primary = s[0];  
-    var secondary_city = nil;  
-  
-    if (primary.type != "city") {  
-        foreach (var item; s) {  
-            if (item.dist > primary.dist and item.type == "city") {  
-                secondary_city = item;  
-                break;  
-            }  
-        }  
-    }  
-  
-    if (secondary_city != nil) {  
-        return sprintf(prefix_compound, primary.name, secondary_city.name, primary.dist);  
-    } else {  
-        return sprintf(prefix_single, primary.name, primary.dist);  
-    }  
-};  
-  
+ var format_sector_message = func(items, prefix_single, prefix_compound) {   
+    var sort_by_dist = func(a, b) { return a.dist - b.dist; };   
+    var s = sort(items, sort_by_dist);   
+    var primary = s[0];   
+    var secondary_city = nil;   
+   
+    if (primary.type != "city") {   
+        foreach (var item; s) {   
+            if (item.dist > primary.dist and item.type == "city") {   
+                secondary_city = item;   
+                break;   
+            }   
+        }   
+    }   
+   
+    if (secondary_city != nil) {   
+        return sprintf(prefix_compound, primary.name, primary.dist, secondary_city.name, secondary_city.dist);   
+    } else {   
+        return sprintf(prefix_single, primary.name, primary.dist);   
+    }   
+}; 
+
 # ------------------------------------------------------------------------------  
 # Main Addon Logic  
 # ------------------------------------------------------------------------------  
@@ -313,9 +313,9 @@ var main = func(addon) {
 
                 var lines = [];
 
-                if (size(sectors.ahead) > 0) append(lines, format_sector_message(sectors.ahead, "Ahead: Approaching %s, %.1f nm", "Ahead: Approaching %s towards %s, %.1f nm"));
-                if (size(sectors.left) > 0) append(lines, format_sector_message(sectors.left, "On your left: %s, %.1f nm", "On your left: %s and farther %s, %.1f nm"));
-                if (size(sectors.right) > 0) append(lines, format_sector_message(sectors.right, "On your right: %s, %.1f nm", "On your right: %s and farther %s, %.1f nm"));
+		if (size(sectors.ahead) > 0) append(lines, format_sector_message(sectors.ahead, "Ahead: Approaching %s, %.1f nm", "Ahead: Approaching %s (%.1f nm) towards %s (%.1f nm)"));
+		if (size(sectors.left) > 0) append(lines, format_sector_message(sectors.left, "On your left: %s, %.1f nm", "On your left: %s (%.1f nm) and farther %s (%.1f nm)"));
+		if (size(sectors.right) > 0) append(lines, format_sector_message(sectors.right, "On your right: %s, %.1f nm", "On your right: %s (%.1f nm) and farther %s (%.1f nm)"));
                 
                 if (size(sectors.behind) > 0) {
                     var s = sort(sectors.behind, sort_by_dist);
