@@ -97,7 +97,22 @@ var is_excluded = func(p_type, excluded_map) {
     }  
     return 0;  
 };  
-  
+
+# Standalone Helper: VRP Fallback Filter
+# If suppress_vrp is enabled and populated places (city/town/village) exist, drop VRPs
+var filter_vrp_fallback = func(items, suppress_vrp) {
+    if (items == nil or size(items) == 0) return [];
+    if (!suppress_vrp) return items;
+
+    var populated = [];
+    foreach (var item; items) {
+        if (item.type == "city" or item.type == "town" or item.type == "village") {
+            append(populated, item);
+        }
+    }
+    return (size(populated) > 0) ? populated : items;
+};
+
 # Defer C++ Database Load to Initial Load Frame  
 var ensure_cache_loaded = func {  
     if (all_pois != nil) return;  
@@ -114,27 +129,27 @@ var ensure_cache_loaded = func {
 };  
 
 # Helper: Compound Announcement Generator for Sectors  
- var format_sector_message = func(items, prefix_single, prefix_compound) {   
-    var sort_by_dist = func(a, b) { return a.dist - b.dist; };   
-    var s = sort(items, sort_by_dist);   
-    var primary = s[0];   
-    var secondary_city = nil;   
-   
-    if (primary.type != "city") {   
-        foreach (var item; s) {   
-            if (item.dist > primary.dist and item.type == "city") {   
-                secondary_city = item;   
-                break;   
-            }   
-        }   
-    }   
-   
-    if (secondary_city != nil) {   
-        return sprintf(prefix_compound, primary.name, primary.dist, secondary_city.name, secondary_city.dist);   
-    } else {   
-        return sprintf(prefix_single, primary.name, primary.dist);   
-    }   
-}; 
+var format_sector_message = func(items, prefix_single, prefix_compound) {  
+    var sort_by_dist = func(a, b) { return a.dist - b.dist; };  
+    var s = sort(items, sort_by_dist);  
+    var primary = s[0];  
+    var secondary_city = nil;  
+  
+    if (primary.type != "city") {  
+        foreach (var item; s) {  
+            if (item.dist > primary.dist and item.type == "city") {  
+                secondary_city = item;  
+                break;  
+            }  
+        }  
+    }  
+  
+    if (secondary_city != nil) {  
+        return sprintf(prefix_compound, primary.name, primary.dist, secondary_city.name, secondary_city.dist);  
+    } else {  
+        return sprintf(prefix_single, primary.name, primary.dist);  
+    }  
+};
 
 # ------------------------------------------------------------------------------  
 # Main Addon Logic  
@@ -143,7 +158,7 @@ var main = func(addon) {
     print("[TourGuide] Initializing...");  
   
     var auto_sec     = get_cfg(addon, "auto-interval-sec", 900.0);  
-    var msg_interval = get_cfg(addon, "speech-queue-interval-sec", 5.0);  
+    var msg_interval = get_cfg(addon, "speech-queue-interval-sec", 4.0);  
     var trigger_key  = get_cfg(addon, "trigger-key-code", 96);  
 
     var emit_next = func {  
@@ -194,16 +209,17 @@ var main = func(addon) {
         }
         if (ac_agl == nil) ac_agl = 0.0;  
   
-        var r_ahead  = get_cfg(addon, "range-ahead-nm", 18.0);  
-        var r_aside  = get_cfg(addon, "range-aside-nm", 9.0);  
-        var r_behind = get_cfg(addon, "range-behind-nm", 6.0);  
+        var r_ahead  = get_cfg(addon, "range-ahead-nm", 16.0);  
+        var r_aside  = get_cfg(addon, "range-aside-nm", 8.0);  
+        var r_behind = get_cfg(addon, "range-behind-nm", 4.0);  
         var a_angle  = get_cfg(addon, "ahead-angle-deg", 45);  
   
         var mult_city    = get_cfg(addon, "mult-city", 2.0);  
         var mult_town    = get_cfg(addon, "mult-town", 1.0);  
         var mult_village = get_cfg(addon, "mult-village", 0.5);  
         var mult_vrp     = get_cfg(addon, "mult-vrp", 1.5);  
-  
+        var suppress_vrp = get_cfg(addon, "suppress-vrp-fallback", get_cfg(addon, "isolate-vrp-fallback", 0));
+
         var exclude_cfg = get_cfg(addon, "exclude-types", "10,1001");  
         var excluded_map = build_exclusion_map(exclude_cfg);  
   
@@ -226,7 +242,7 @@ var main = func(addon) {
   
         var i = 0;
         var total_pois = size(all_pois);
-	var CHUNK = get_cfg(addon, "chunk-size", 24000);
+        var CHUNK = get_cfg(addon, "chunk-size", 24000);
 
         # Forward declare the scan function so the timer can reference it
         var scan_chunk = nil; 
@@ -305,20 +321,26 @@ var main = func(addon) {
                 print("[TourGuide] Scan finished.");
                 var sort_by_dist = func(a, b) { return a.dist - b.dist; };
 
-                if (size(under_pois) > 0) {
-                    var s = sort(under_pois, sort_by_dist);
-                    speak_lines([sprintf("Directly below: %s, %.1f nm", s[0].name, s[0].dist)]);
-                    return;
-                }
+                # Filter VRP fallbacks cleanly across all 5 sectors
+                var under_active  = filter_vrp_fallback(under_pois, suppress_vrp);
+                var ahead_active  = filter_vrp_fallback(sectors.ahead, suppress_vrp);
+                var left_active   = filter_vrp_fallback(sectors.left, suppress_vrp);
+                var right_active  = filter_vrp_fallback(sectors.right, suppress_vrp);
+                var behind_active = filter_vrp_fallback(sectors.behind, suppress_vrp);
 
                 var lines = [];
 
-		if (size(sectors.ahead) > 0) append(lines, format_sector_message(sectors.ahead, "Ahead: Approaching %s, %.1f nm", "Ahead: Approaching %s (%.1f nm) towards %s (%.1f nm)"));
-		if (size(sectors.left) > 0) append(lines, format_sector_message(sectors.left, "On your left: %s, %.1f nm", "On your left: %s (%.1f nm) and farther %s (%.1f nm)"));
-		if (size(sectors.right) > 0) append(lines, format_sector_message(sectors.right, "On your right: %s, %.1f nm", "On your right: %s (%.1f nm) and farther %s (%.1f nm)"));
+		if (size(under_active) > 0) {
+		    var s = sort(under_active, sort_by_dist);
+		    append(lines, sprintf("Directly below: %s, %.1f nm", s[0].name, s[0].dist));
+		}
+
+                if (size(ahead_active) > 0) append(lines, format_sector_message(ahead_active, "Ahead: Approaching %s, %.1f nm", "Ahead: Approaching %s (%.1f nm) towards %s (%.1f nm)"));
+                if (size(left_active) > 0)  append(lines, format_sector_message(left_active, "On your left: %s, %.1f nm", "On your left: %s (%.1f nm) and farther %s (%.1f nm)"));
+                if (size(right_active) > 0) append(lines, format_sector_message(right_active, "On your right: %s, %.1f nm", "On your right: %s (%.1f nm) and farther %s (%.1f nm)"));
                 
-                if (size(sectors.behind) > 0) {
-                    var s = sort(sectors.behind, sort_by_dist);
+                if (size(behind_active) > 0) {
+                    var s = sort(behind_active, sort_by_dist);
                     append(lines, sprintf("Behind: Just passed %s, %.1f nm", s[0].name, s[0].dist));
                 }
 

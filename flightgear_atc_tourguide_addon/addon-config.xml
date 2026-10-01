@@ -7,31 +7,38 @@
         <auto-interval-sec type="double">900.0</auto-interval-sec>
 
         <!-- Real-time delay (seconds) between sequential spoken/ATC messages -->
-        <speech-queue-interval-sec type="double">5.0</speech-queue-interval-sec>
+        <speech-queue-interval-sec type="double">4.0</speech-queue-interval-sec>
 
         <!-- Keyboard Key Code to trigger announcement (96 = Backtick `) (0 or nill to disable) -->
         <trigger-key-code type="int">96</trigger-key-code>
 
         <!-- Base Sector Search Ranges (in Nautical Miles) -->
-        <range-ahead-nm type="double">18.0</range-ahead-nm>
-        <range-aside-nm type="double">9.0</range-aside-nm>
-        <range-behind-nm type="double">6.0</range-behind-nm>
+        <range-ahead-nm type="double">16.0</range-ahead-nm>
+        <range-aside-nm type="double">8.0</range-aside-nm>
+        <range-behind-nm type="double">4.0</range-behind-nm>
 
         <!-- Ahead Sector Half-Angle in degrees (+/- off aircraft nose) -->
         <ahead-angle-deg type="double">45</ahead-angle-deg>
 
         <!-- Landmark Type Range Multipliers -->
-        <mult-city type="double">2.0</mult-city>
+        <mult-city type="double">1.5</mult-city>
         <mult-town type="double">1.0</mult-town>
         <mult-village type="double">0.5</mult-village>
-        <mult-vrp type="double">1.5</mult-vrp>
-
-        <!-- AGL Multiplier for "Directly Below" Overhead Zone -->
+        <mult-vrp type="double">2.0</mult-vrp>
+	<!-- If true, VRPs/islands only show when no city/town/village is in range for that sector -->
+        <isolate-vrp-fallback type="bool">true</isolate-vrp-fallback>
+	
+	<!-- AGL Multiplier for "Directly Below" Overhead Zone -->
         <agl-under-multiplier type="double">2.0</agl-under-multiplier>
 
-        <!-- Comma-separated list of Landmark Types or Type IDs to exclude -->
-        <exclude-types type="string">10,1001</exclude-types>
-
+	<!-- Available poi.dat Type IDs in FlightGear: -->
+	<!-- 10   = COUNTRY (Countries, Major Regions) -->
+	<!-- 12   = CITY (Large Cities) -->
+	<!-- 13   = TOWN (Towns) -->
+	<!-- 14   = VILLAGE (Villages, Small Settlements) -->
+	<!-- 1000 = VISUAL_REPORTING_POINT (VRPs, Islands, Landmarks) -->
+	<!-- 1001 = WAYPOINT (Navigation Waypoints) -->
+	<exclude-types type="string">10,1001</exclude-types>
 
 	<!-- Number of POIs evaluated per frame chunk: (~800,000 total POIs)-->
         <!-- Higher = shorter delay before speech, but higher risk of frame lag -->
