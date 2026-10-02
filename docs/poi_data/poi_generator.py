@@ -1,92 +1,89 @@
 import csv
+import os
+import zipfile
 
 # ==============================================================================
 # CONFIGURATION ZONE
 # ==============================================================================
-INPUT_FILE = "GR.txt"
-OUTPUT_FILE = "poi.dat"
+# Country code (matches XX.zip downloaded beside this script)
+COUNTRY_CODE = "GR"
+
+# Paths
+ZIP_FILE = f"{COUNTRY_CODE}.zip"
+TARGET_DIR = COUNTRY_CODE
+INPUT_TXT = os.path.join(TARGET_DIR, f"{COUNTRY_CODE}.txt")
+OUTPUT_FILE = os.path.join(TARGET_DIR, "poi.dat")
 
 # FlightGear POI type code (1000 = VISUAL_REPORTING_POINT)
-# Type 1000 treats islands as visual landmarks without misclassifying them as 
-# cities/towns or triggering SG_RANGE_EXCEPTION errors in poidb.cxx.
 POI_TYPE = 1000
 
-# Feature Class 'T' stands for Terrain features in GeoNames (mountains, islands, rocks, etc.).
-# Filtering strictly by 'T' prevents administrative boundaries (Class 'A') or 
-# populated places (Class 'P') from mixing with geographical island markers.
+# Feature Class 'T' (Terrain features in GeoNames)
 FEATURE_CLASS = "T"
 
-# 'ISL' = Single/Individual Island in GeoNames.
-# Restricting to 'ISL' excludes archipelagos/groups ('ISLS') like the Cyclades or 
-# Sporades, ensuring flight vectors target specific islands rather than region names.
-ACCEPTED_FEATURE_CODES = ["ISL"]
+# Terrain rules & DEM elevation thresholds (in meters):
+# Commenting out any line completely excludes that feature type from processing.
+FEATURE_RULES = {
+    # --- Active Features ---
+    "ISL":  {"min_dem": 20,  "enabled": True, "append_alt": False, "desc": "Islands"},
+    "MT":   {"min_dem": 350, "enabled": True, "append_alt": True,  "desc": "Mountains"},
+    "PK":   {"min_dem": 1000, "enabled": True, "append_alt": True,  "desc": "Peaks"},
 
-# Minimum average elevation in meters (Column 17 / DEM index 16).
-# WHY THIS REPLACES NAME KEYWORDS:
-# Sea-level rocks, reefs, and low-lying islets register a DEM grid average between 
-# 0m and 15m. Major inhabited islands (e.g., Lemnos, Ios, Chios) have high interior 
-# terrain, giving them a DEM average of >= 20m. Setting this floor cleanly drops 
-# flat coastal rocks without risking false-positive keyword exclusions.
-MIN_DEM_ELEVATION = 20
+    # --- Commented Examples (Uncomment to enable) ---
+    # "MTS":  {"min_dem": 400, "enabled": True, "append_alt": True,  "desc": "Mountain Ranges"},
+    # "PKS":  {"min_dem": 600, "enabled": True, "append_alt": True,  "desc": "Peak Groups"},
+    # "PASS": {"min_dem": 600, "enabled": True, "append_alt": True,  "desc": "Mountain Passes"},
+    # "RDGE": {"min_dem": 500, "enabled": True, "append_alt": True,  "desc": "Ridges"},
+    # "RK":   {"min_dem": 10,  "enabled": True, "append_alt": False, "desc": "Rocks / Islets"},
+    # "VAL":  {"min_dem": 200, "enabled": True, "append_alt": False, "desc": "Valleys"},
+}
 
-# FlightGear POI Header definition.
-# FlightGear's POILoader (poidb.cxx) skips the first 2 lines automatically. 
-# Subsequent lines starting with '#' are parsed as comments and ignored.
-HEADER = f"""# poi.dat v1.02 - Filtered Main Islands
-# Data extracted from GeoNames ({INPUT_FILE})
-# ID = {POI_TYPE} (Visual Reporting Points for Major Islands)
+# FlightGear POI Header definition
+HEADER = f"""# poi.dat v1.02 - Custom VFR Reporting Points ({COUNTRY_CODE})
+# Data extracted from GeoNames ({COUNTRY_CODE})
+# ID = {POI_TYPE} (Visual Reporting Points)
 
 # ID | LAT | LON | NAME
 """
 # ==============================================================================
 
 
-def is_valid_island(row):
-    """
-    Evaluates a GeoNames CSV row against the Configuration Zone settings.
-    
-    GeoNames 'geoname' table structure (0-indexed):
-    row[2]  : asciiname (Clean ASCII string, avoids encoding bugs in FlightGear)
-    row[4]  : latitude
-    row[5]  : longitude
-    row[6]  : feature_class ('T', 'P', 'A', etc.)
-    row[7]  : feature_code ('ISL', 'ISLS', 'ISLET', etc.)
-    row[16] : dem (Digital Elevation Model average in meters)
-    """
-    # Ensure row contains enough fields for DEM evaluation
+def ensure_input_extracted():
+    """Checks if GR/GR.txt exists. If missing, extracts GR.zip into GR/ folder."""
+    if os.path.exists(INPUT_TXT):
+        return True
+
+    if os.path.exists(ZIP_FILE):
+        print(f"Extracting '{ZIP_FILE}' into '{TARGET_DIR}/'...")
+        os.makedirs(TARGET_DIR, exist_ok=True)
+        with zipfile.ZipFile(ZIP_FILE, "r") as zip_ref:
+            zip_ref.extractall(TARGET_DIR)
+        return os.path.exists(INPUT_TXT)
+
+    return False
+
+
+def get_dem_elevation(row):
+    """Extracts DEM average elevation in meters from Column 17 (Index 16)."""
     if len(row) < 17:
-        return False
-
-    feature_class = row[6]
-    feature_code = row[7]
-
-    # 1. Feature Class & Feature Code Filter
-    if feature_class != FEATURE_CLASS or feature_code not in ACCEPTED_FEATURE_CODES:
-        return False
-
-    # 2. DEM Elevation Filter
-    # Parses SRTM/GTOPO30 elevation to strip low-altitude islets and rocks
+        return 0
     dem_str = row[16].strip()
-    dem = int(dem_str) if dem_str.lstrip("-").isdigit() else 0
-    if dem < MIN_DEM_ELEVATION:
-        return False
-
-    # 3. Name check (Column 3 / Index 2: asciiname)
-    name_ascii = row[2].strip()
-    if not name_ascii:
-        return False
-
-    return True
+    return int(dem_str) if dem_str.lstrip("-").isdigit() else 0
 
 
 def process_geonames_to_poi():
-    total_islands = 0
-    kept_islands = 0
+    if not ensure_input_extracted():
+        print(f"Error: Neither '{INPUT_TXT}' nor '{ZIP_FILE}' was found.")
+        print(f"Please place '{ZIP_FILE}' next to 'poi_generator.py' or extract it to '{TARGET_DIR}/'.")
+        return
 
-    with open(INPUT_FILE, mode="r", encoding="utf-8") as infile, \
+    os.makedirs(TARGET_DIR, exist_ok=True)
+
+    stats = {code: {"found": 0, "kept": 0} for code in FEATURE_RULES}
+    total_written = 0
+
+    with open(INPUT_TXT, mode="r", encoding="utf-8") as infile, \
          open(OUTPUT_FILE, mode="w", encoding="utf-8") as outfile:
 
-        # Write required FlightGear POI header
         outfile.write(HEADER)
         reader = csv.reader(infile, delimiter="\t")
 
@@ -94,23 +91,56 @@ def process_geonames_to_poi():
             if len(row) < 8:
                 continue
 
-            # Track total 'ISL' entries in the input file
-            if row[6] == FEATURE_CLASS and row[7] in ACCEPTED_FEATURE_CODES:
-                total_islands += 1
+            feature_class = row[6].strip()
+            feature_code = row[7].strip()
 
-            if is_valid_island(row):
-                name = row[2].strip()  # Column 3: asciiname
-                lat = float(row[4])    # Column 5: Latitude
-                lon = float(row[5])    # Column 6: Longitude
+            # Skipping missing feature keys here guarantees commented-out rules are ignored
+            if feature_class != FEATURE_CLASS or feature_code not in FEATURE_RULES:
+                continue
 
-                # Format expected by poidb.cxx: <rawType> <lat> <lon> <name>
-                outfile.write(f"{POI_TYPE} {lat:.7f} {lon:.7f} {name}\n")
-                kept_islands += 1
+            rule = FEATURE_RULES[feature_code]
+            if not rule["enabled"]:
+                continue
 
-    print(f"Scan Complete.")
-    print(f"- Total 'ISL' terrain entries found: {total_islands}")
-    print(f"- Islands exported to {OUTPUT_FILE} (DEM >= {MIN_DEM_ELEVATION}m): {kept_islands}")
-    print(f"- Flat islets/rocks filtered out: {total_islands - kept_islands}")
+            stats[feature_code]["found"] += 1
+
+            dem_m = get_dem_elevation(row)
+            if dem_m < rule["min_dem"]:
+                continue
+
+            name_ascii = row[2].strip()
+            if not name_ascii:
+                continue
+
+            lat = float(row[4])
+            lon = float(row[5])
+
+            # Build name string formatted for FlightGear poidb.cxx
+            if rule["append_alt"] and dem_m > 0:
+                dem_ft = int(round(dem_m * 3.28084))
+                formatted_name = f"{name_ascii} ({dem_ft} ft)"
+            else:
+                formatted_name = name_ascii
+
+            # Format: <rawType> <lat> <lon> <name>
+            outfile.write(f"{POI_TYPE} {lat:.7f} {lon:.7f} {formatted_name}\n")
+            
+            stats[feature_code]["kept"] += 1
+            total_written += 1
+
+    print("=" * 60)
+    print(f"GeoNames POI Generator ({COUNTRY_CODE}) - Scan Summary")
+    print("=" * 60)
+    for code, rule in FEATURE_RULES.items():
+        if rule["enabled"]:
+            found = stats[code]["found"]
+            kept = stats[code]["kept"]
+            min_dem = rule["min_dem"]
+            desc = rule["desc"]
+            print(f"- {code:4s} ({desc:15s}): {kept:4d} exported / {found:4d} found (DEM >= {min_dem}m)")
+    print("-" * 60)
+    print(f"Total VRP entries written to {OUTPUT_FILE}: {total_written}")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
