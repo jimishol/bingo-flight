@@ -7,3 +7,4 @@ flight_tiers.conf
 excluded_airports.txt
 docs/METAR_live_data/metar_update.log
 docs/nav_merged_ILS/nav_AIRAC.dat
+flightgear_atc_tourguide_addon/addon-config.xml

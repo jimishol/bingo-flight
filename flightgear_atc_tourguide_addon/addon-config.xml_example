@@ -17,14 +17,14 @@
         <range-aside-nm type="double">8.0</range-aside-nm>
         <range-behind-nm type="double">4.0</range-behind-nm>
 
-        <!-- Ahead Sector Half-Angle in degrees (+/- off aircraft nose) -->
-        <ahead-angle-deg type="double">45</ahead-angle-deg>
+	<!-- Half-angle of directional sectors in degrees (30.0 = 60-deg sector slices) -->
+	<sector-half-angle-deg type="double">30.0</sector-half-angle-deg>
 
         <!-- Landmark Type Range Multipliers -->
-        <mult-city type="double">1.5</mult-city>
-        <mult-town type="double">1.0</mult-town>
-        <mult-village type="double">0.5</mult-village>
-        <mult-vrp type="double">2.0</mult-vrp>
+        <mult-city type="double">1.0</mult-city>
+        <mult-town type="double">0.7</mult-town>
+        <mult-village type="double">0.35</mult-village>
+        <mult-vrp type="double">1.3</mult-vrp>
 	<!-- If true, VRPs/islands only show when no city/town/village is in range for that sector -->
         <isolate-vrp-fallback type="bool">true</isolate-vrp-fallback>
 	

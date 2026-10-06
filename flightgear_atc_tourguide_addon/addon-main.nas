@@ -1,5 +1,5 @@
 # ==============================================================================  
-# FlightGear ATC TourGuide Addon - Main Script  
+# FlightGear ATC TourGuide Addon - Main Script (8-Sector Version)
 # ==============================================================================  
   
 var all_pois   = nil;  
@@ -158,7 +158,7 @@ var main = func(addon) {
     print("[TourGuide] Initializing...");  
   
     var auto_sec     = get_cfg(addon, "auto-interval-sec", 900.0);  
-    var msg_interval = get_cfg(addon, "speech-queue-interval-sec", 4.0);  
+    var msg_interval = get_cfg(addon, "speech-queue-interval-sec", 5.0);  
     var trigger_key  = get_cfg(addon, "trigger-key-code", 96);  
 
     var emit_next = func {  
@@ -212,12 +212,22 @@ var main = func(addon) {
         var r_ahead  = get_cfg(addon, "range-ahead-nm", 16.0);  
         var r_aside  = get_cfg(addon, "range-aside-nm", 8.0);  
         var r_behind = get_cfg(addon, "range-behind-nm", 4.0);  
-        var a_angle  = get_cfg(addon, "ahead-angle-deg", 45);  
+        
+        # Sector half-angle (alpha) clamped to [0.0, 45.0]
+        var raw_angle = get_cfg(addon, "sector-half-angle-deg", get_cfg(addon, "ahead-angle-deg", 30.0));
+        var a_angle   = math.abs(raw_angle);
+        if (a_angle > 45.0) a_angle = 45.0;
+        if (a_angle < 0.0)  a_angle = 0.0;
+
+        # Dynamic angle boundaries for 8 sectors
+        var right_inner = 90.0 - a_angle;
+        var right_outer = 90.0 + a_angle;
+        var back_inner  = 180.0 - a_angle;
   
-        var mult_city    = get_cfg(addon, "mult-city", 2.0);  
-        var mult_town    = get_cfg(addon, "mult-town", 1.0);  
-        var mult_village = get_cfg(addon, "mult-village", 0.5);  
-        var mult_vrp     = get_cfg(addon, "mult-vrp", 1.5);  
+	var mult_city    = get_cfg(addon, "mult-city", 1.0);  
+	var mult_town    = get_cfg(addon, "mult-town", 0.7);  
+	var mult_village = get_cfg(addon, "mult-village", 0.35);  
+	var mult_vrp     = get_cfg(addon, "mult-vrp", 1.3);
         var suppress_vrp = get_cfg(addon, "suppress-vrp-fallback", get_cfg(addon, "isolate-vrp-fallback", 0));
 
         var exclude_cfg = get_cfg(addon, "exclude-types", "10,1001");  
@@ -238,7 +248,10 @@ var main = func(addon) {
         var ac_pos = geo.Coord.new().set_latlon(ac_lat, ac_lon);  
   
         var under_pois = [];  
-        var sectors = { ahead: [], left: [], right: [], behind: [] };  
+        var sectors = { 
+            ahead: [], front_right: [], right: [], back_right: [],
+            behind: [], back_left: [], left: [], front_left: []
+        };  
   
         var i = 0;
         var total_pois = size(all_pois);
@@ -274,9 +287,11 @@ var main = func(addon) {
 
                                     var clean_name = clean_tts_text(poi_name(p));
                                     if (clean_name != "") {
+                                        # Stage 1: Directly Below Check
                                         if (r_under > 0 and dist <= r_under) {
                                             append(under_pois, {name: clean_name, dist: dist, type: p_type});
                                         } else {
+                                            # Stage 2: 8-Sector Directional Routing
                                             var t_mult = 1.0;
                                             if (p_type == "city") t_mult = mult_city;
                                             elsif (p_type == "town") t_mult = mult_town;
@@ -288,14 +303,23 @@ var main = func(addon) {
                                             while (diff > 180) diff -= 360;
                                             while (diff < -180) diff += 360;
 
+                                            # Sector buckets
                                             if (diff >= -a_angle and diff <= a_angle) {
                                                 if (dist <= (r_ahead * t_mult)) append(sectors.ahead, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            } elsif (diff > a_angle and diff < (180.0 - a_angle)) {
+                                            } elsif (diff > a_angle and diff < right_inner) {
+                                                if (dist <= (r_aside * t_mult)) append(sectors.front_right, {name: clean_name, dist: dist, diff: diff, type: p_type});
+                                            } elsif (diff >= right_inner and diff <= right_outer) {
                                                 if (dist <= (r_aside * t_mult)) append(sectors.right, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            } elsif (diff < -a_angle and diff > -(180.0 - a_angle)) {
+                                            } elsif (diff > right_outer and diff < back_inner) {
+                                                if (dist <= (r_aside * t_mult)) append(sectors.back_right, {name: clean_name, dist: dist, diff: diff, type: p_type});
+                                            } elsif (diff >= back_inner or diff <= -back_inner) {
+                                                if (dist <= (r_behind * t_mult)) append(sectors.behind, {name: clean_name, dist: dist, diff: diff, type: p_type});
+                                            } elsif (diff > -back_inner and diff < -right_outer) {
+                                                if (dist <= (r_aside * t_mult)) append(sectors.back_left, {name: clean_name, dist: dist, diff: diff, type: p_type});
+                                            } elsif (diff >= -right_outer and diff <= -right_inner) {
                                                 if (dist <= (r_aside * t_mult)) append(sectors.left, {name: clean_name, dist: dist, diff: diff, type: p_type});
                                             } else {
-                                                if (dist <= (r_behind * t_mult)) append(sectors.behind, {name: clean_name, dist: dist, diff: diff, type: p_type});
+                                                if (dist <= (r_aside * t_mult)) append(sectors.front_left, {name: clean_name, dist: dist, diff: diff, type: p_type});
                                             }
                                         }
                                     }
@@ -321,28 +345,49 @@ var main = func(addon) {
                 print("[TourGuide] Scan finished.");
                 var sort_by_dist = func(a, b) { return a.dist - b.dist; };
 
-                # Filter VRP fallbacks cleanly across all 5 sectors
-                var under_active  = filter_vrp_fallback(under_pois, suppress_vrp);
-                var ahead_active  = filter_vrp_fallback(sectors.ahead, suppress_vrp);
-                var left_active   = filter_vrp_fallback(sectors.left, suppress_vrp);
-                var right_active  = filter_vrp_fallback(sectors.right, suppress_vrp);
-                var behind_active = filter_vrp_fallback(sectors.behind, suppress_vrp);
+                # Apply VRP filter per sector
+                var under_active       = filter_vrp_fallback(under_pois, suppress_vrp);
+                var ahead_active       = filter_vrp_fallback(sectors.ahead, suppress_vrp);
+                var front_right_active = filter_vrp_fallback(sectors.front_right, suppress_vrp);
+                var right_active       = filter_vrp_fallback(sectors.right, suppress_vrp);
+                var back_right_active  = filter_vrp_fallback(sectors.back_right, suppress_vrp);
+                var behind_active      = filter_vrp_fallback(sectors.behind, suppress_vrp);
+                var back_left_active   = filter_vrp_fallback(sectors.back_left, suppress_vrp);
+                var left_active        = filter_vrp_fallback(sectors.left, suppress_vrp);
+                var front_left_active  = filter_vrp_fallback(sectors.front_left, suppress_vrp);
 
                 var lines = [];
 
-		if (size(under_active) > 0) {
-		    var s = sort(under_active, sort_by_dist);
-		    append(lines, sprintf("Directly below: %s, %.1f nm", s[0].name, s[0].dist));
-		}
-
-                if (size(ahead_active) > 0) append(lines, format_sector_message(ahead_active, "Ahead: Approaching %s, %.1f nm", "Ahead: Approaching %s (%.1f nm) towards %s (%.1f nm)"));
-                if (size(left_active) > 0)  append(lines, format_sector_message(left_active, "On your left: %s, %.1f nm", "On your left: %s (%.1f nm) and farther %s (%.1f nm)"));
-                if (size(right_active) > 0) append(lines, format_sector_message(right_active, "On your right: %s, %.1f nm", "On your right: %s (%.1f nm) and farther %s (%.1f nm)"));
-                
-                if (size(behind_active) > 0) {
-                    var s = sort(behind_active, sort_by_dist);
-                    append(lines, sprintf("Behind: Just passed %s, %.1f nm", s[0].name, s[0].dist));
+                # Directly Below: Strictly single nearest landmark
+                if (size(under_active) > 0) {
+                    var s = sort(under_active, sort_by_dist);
+                    append(lines, sprintf("Directly below: %s, %.1f nm", s[0].name, s[0].dist));
                 }
+
+                # 8 Directional Sector Announcements
+                if (size(ahead_active) > 0) 
+                    append(lines, format_sector_message(ahead_active, "Ahead: Approaching %s, %.1f nm", "Ahead: Approaching %s (%.1f nm) towards %s (%.1f nm)"));
+                
+                if (size(front_right_active) > 0) 
+                    append(lines, format_sector_message(front_right_active, "Off your front right: %s, %.1f nm", "Off your front right: %s (%.1f nm) and farther %s (%.1f nm)"));
+                
+                if (size(right_active) > 0) 
+                    append(lines, format_sector_message(right_active, "On your right: %s, %.1f nm", "On your right: %s (%.1f nm) and farther %s (%.1f nm)"));
+                
+                if (size(back_right_active) > 0) 
+                    append(lines, format_sector_message(back_right_active, "Off your back right: %s, %.1f nm", "Off your back right: %s (%.1f nm) and farther %s (%.1f nm)"));
+                
+                if (size(behind_active) > 0) 
+                    append(lines, format_sector_message(behind_active, "Behind: Just passed %s, %.1f nm", "Behind: Just passed %s (%.1f nm) towards %s (%.1f nm)"));
+                
+                if (size(back_left_active) > 0) 
+                    append(lines, format_sector_message(back_left_active, "Off your back left: %s, %.1f nm", "Off your back left: %s (%.1f nm) and farther %s (%.1f nm)"));
+                
+                if (size(left_active) > 0) 
+                    append(lines, format_sector_message(left_active, "On your left: %s, %.1f nm", "On your left: %s (%.1f nm) and farther %s (%.1f nm)"));
+                
+                if (size(front_left_active) > 0) 
+                    append(lines, format_sector_message(front_left_active, "Off your front left: %s, %.1f nm", "Off your front left: %s (%.1f nm) and farther %s (%.1f nm)"));
 
                 if (size(lines) == 0) {
                     speak_lines(["No landmarks in range"]);
