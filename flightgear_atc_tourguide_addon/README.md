@@ -7,10 +7,11 @@
 ## Features
 
 * 🧭 **8-Sector Spatial Orientation:** Categorizes landmarks into **8 directional sectors** (**Ahead**, **Front Right**, **Right**, **Back Right**, **Behind**, **Back Left**, **Left**, **Front Left**) plus **1 Overhead Zone** (**Directly Below**), emitting non-blocking combined announcements across all active sectors.
+* 🚦 **Output Density Capping (`max-directional-lines`):** Priorities are assigned by closest distance, capping directional callouts (default: 4 lines) so ATC message queues stay concise in dense landmark regions without suppressing the reserved overhead slot.
 * 🏢 **Hierarchy & Multi-Landmark Synthesis:** Generates intelligent compound announcements when multiple landmarks fall within a sector (e.g., *"Ahead: Approaching SmallTown (8.5 nm) towards BigCity (18.2 nm)"*).
-* 🛡️ **Smart VRP Fallback Isolation:** Custom Visual Reporting Points (VRPs) and islands are dynamically isolated—showing only when no populated settlements (cities, towns, villages) are present in that sector.
+* 🛡️ **Smart VRP Fallback Isolation:** Custom Visual Reporting Points (VRPs) and islands are dynamically isolated—showing only when no higher-priority non-VRP landmarks are present in that local sector.
 * ⛰️ **Dynamic Overhead (Directly Below) Zone:** Calculates an altitude-dependent ground cone (AGL-based) to announce landmarks directly beneath the aircraft without suppressing directional announcements.
-* ⚡ **High-Performance Querying:** Utilizes a lightweight bounding-box pre-filter to process thousands of global landmarks without frame drops.
+* ⚡ **Non-Blocking Chunked Querying:** Processes thousands of global landmarks in lightweight frame chunks (`chunk-size`), preventing frame drops during background spatial searches.
 * 🎛️ **Fully Configurable Ranges & Multipliers:** Scale detection ranges based on landmark type, with configurable priority multipliers.
 * ⏱️ **Flight-Time Auto Announcements & Hotkeys:** Receive periodic tour updates at custom flight-time intervals or trigger an instant update at any time with a single hotkey.
 * 🧹 **Text Sanitization:** Automatic ASCII filtering ensures clean rendering on ATC dialogs and seamless pronunciation with Text-To-Speech (TTS) synthesizer engines.
@@ -19,12 +20,12 @@
 
 ## Sector & Detection Logic
 
-Landmarks are grouped into **8 directional horizontal sectors** centered around the aircraft's track plus **1 overhead zone**, allowing a theoretical maximum of **8 + 1 distinct announcement lines** per scan:
+Landmarks are grouped into **8 directional horizontal sectors** centered around the aircraft's track plus **1 overhead zone**, allowing a theoretical maximum output of **8 + 1 distinct announcement lines** per scan:
 
 ```text
                         \     Ahead     /
-   Front Left            \   (±alpha)  /           Front Right
-   (r_aside * mult)       \           /       (r_aside * mult)
+   Front Left            \   (±alpha)  /            Front Right
+   (r_aside * mult)       \           /        (r_aside * mult)
                            \         /
    Left --------------------✈ aircraft -------------------- Right
    (r_aside * mult)        / Directly\        (r_aside * mult)
@@ -36,13 +37,14 @@ Landmarks are grouped into **8 directional horizontal sectors** centered around 
 
 ```
 
-### Alpha Angle (α) & Output Tuning
+### Alpha Angle (α) & Sector Tuning
 
 The angular span of each sector is governed by the sector half-angle parameter `sector-half-angle-deg` (α):
 
-* **Default 8-Sector Layout (α = 30.0°):** Provides 8 active directional sectors (60° wide cardinal sectors for Ahead, Right, Behind, and Left, alongside 30° wide off-side sectors).
-* **Reducing Output Density in Populated Areas:** Increasing α narrows the four off-side sectors (each off-side sector covers an arc of 90° - 2α). This reduces the likelihood of landmarks landing in off-side sectors when flying through dense areas.
-* **Disabling Off-Side Sectors (α = 45.0°):** When α reaches 45.0°, the off-side sector width shrinks to 0°, eliminating the four off-side sectors entirely. Announcements automatically fall back to a strict 4-cardinal sector layout + overhead zone to prevent text spam.
+* **Default Uniform 8-Sector Layout (α = 22.5°):** Divides the 360° horizon into 8 perfectly equal 45° sectors. Each of the 4 cardinal sectors covers 2 * α = 45°, and each of the 4 off-side sectors covers 90° - 2 * α = 45°.
+* **Deviating Toward 45.0° (Narrows Off-Side Sectors):** Increasing α expands cardinal sectors up to 90° while narrowing off-side sectors (90° - 2 * α). At α = 45.0°, off-side sectors shrink to 0°, collapsing the system into a strict 4-cardinal sector layout.
+* **Deviating Toward 0.0° (Narrows Cardinal Sectors):** Decreasing α expands off-side sectors up to 90° while narrowing cardinal sectors (2 * α). At α = 0.0°, cardinal sectors shrink to 0°, collapsing the system into a 4-diagonal off-side sector layout.
+* **Output Line Reduction:** Any deviation away from 22.5° narrows four of the eight directional sectors, naturally lowering the likelihood of landmarks landing in those sectors and reducing output lines alongside the hard `max-directional-lines` cap.
 
 ### Base Detection Ranges & Multipliers
 
@@ -79,11 +81,11 @@ Flightgear/NavData_Override/
 
 1. Copy or link the `flightgear_atc_tourguide_addon` directory into your FlightGear Add-ons folder.
 2. Create your local active configuration file from the example:
+
 ```bash
 cp flightgear_atc_tourguide_addon/addon-config.xml_example flightgear_atc_tourguide_addon/addon-config.xml
 
 ```
-
 
 3. Enable the add-on via the FlightGear launcher or in-game Add-ons menu.
 
@@ -105,20 +107,21 @@ By default, TourGuide automatically announces nearby landmarks every **15 minute
 
 Custom options are set in `addon-config.xml`.
 
-> ⚠️ **Important:** Properties are loaded on initial startup and are **not updated at runtime**. You must **relaunch FlightGear (`fgfs`)** for modified configuration values to take effect.
+> ℹ️ **Note on Runtime Updates:** Modifying `addon-config.xml` on disk requires restarting FlightGear. However, scan limits, ranges, angles, multipliers, and filters can be adjusted live in-game without restarting via **Debug → Browse Property Tree** under `/addons/by-id/com.cholidis.flightgear.tourguide/`.
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `auto-interval-sec` | `900.0` | Flight-time interval in seconds for auto announcements (`0` disables). |
-| `speech-queue-interval-sec` | `5.0` | Delay in seconds between consecutive sector lines in the ATC queue. |
-| `trigger-key-code` | `96` | ASCII code for manual announcement key (default: backtick ```) (0 or nill disables).|
+| `auto-interval-sec` | `900.0` | Flight-time interval in seconds for auto announcements (`0` disables). *(Requires restart)* |
+| `speech-queue-interval-sec` | `5.0` | Delay in seconds between consecutive spoken/ATC sector messages. *(Requires restart)* |
+| `trigger-key-code` | `96` | ASCII code for manual announcement key (default: backtick ```) (`0` or `nil` disables). *(Requires restart)* |
+| `max-directional-lines` | `4` | Maximum directional sectors spoken per scan (1 to 8; excluding +1 "Directly below" slot). Sectors with closest landmarks take priority. |
 | `range-ahead-nm` / `aside` / `behind` | `16.0` / `8.0` / `4.0` | Base sector search radii (NM) before type multipliers are applied. |
-| `sector-half-angle-deg` | `30.0` | Sector half-angle (α) in degrees. Increasing toward 45.0 shrinks the 4 off-side sectors. |
+| `sector-half-angle-deg` | `22.5` | Sector half-angle (α) in degrees. At 22.5°, all 8 sectors are 45° wide. Deviating toward 0° or 45° shrinks 4 sectors. |
 | `mult-city` / `town` / `village` / `vrp` | `1.0` / `0.7` / `0.35` / `1.3` | Type multipliers applied to base ranges across all sectors. |
-| `isolate-vrp-fallback` | `true` | If true, VRPs/islands only show when no city, town, or village is in range for that sector. |
+| `isolate-vrp-fallback` | `true` | If true, VRPs/islands only show when no non-VRP landmark exists in that sector. |
 | `agl-under-multiplier` | `2.0` | Scaling factor applied to AGL altitude for the "Directly Below" zone. |
 | `exclude-types` | `"10,1001"` | Comma-separated list of POI type names or `poi.dat` numeric IDs to ignore (e.g., 10=Country, 1001=Waypoint). |
-| `chunk-size` | `24000` | POIs processed per frame chunk (~800k total). Higher reduces response delay; lower prevents frame lag. |
+| `chunk-size` | `24000` | POIs evaluated per frame chunk (~800k total). Higher reduces response delay; lower prevents frame lag. |
 
 ---
 

@@ -1,5 +1,5 @@
 # ==============================================================================  
-# FlightGear ATC TourGuide Addon - Main Script (8-Sector Version)
+# FlightGear ATC TourGuide Addon - Main Script (8-Sector Version with Priority)
 # ==============================================================================  
   
 var all_pois   = nil;  
@@ -30,7 +30,7 @@ var get_cfg = func(addon, node_path, default_val) {
     return (cfg_node != nil) ? cfg_node.getValue() : default_val;  
 };  
   
-# Helper: Basic Whitespace Trimmer (preserves hyphens and underscore identifiers)
+# Helper: Basic Whitespace Trimmer
 var trim_str = func(s) {
     if (s == nil) return "";
     var str = "" ~ s;
@@ -87,7 +87,7 @@ var build_exclusion_map = func(raw_cfg) {
     return map;  
 };  
   
-# Returns 1 if this POI type is excluded (matched by name or by numeric code)  
+# Returns 1 if this POI type is excluded  
 var is_excluded = func(p_type, excluded_map) {  
     if (p_type == nil) return 0;  
     if (contains(excluded_map, "" ~ p_type)) return 1;  
@@ -99,18 +99,21 @@ var is_excluded = func(p_type, excluded_map) {
 };  
 
 # Standalone Helper: VRP Fallback Filter
-# If suppress_vrp is enabled and populated places (city/town/village) exist, drop VRPs
+# If suppress_vrp is enabled and ANY non-1000 landmark exists in the sector, drop VRPs
 var filter_vrp_fallback = func(items, suppress_vrp) {
     if (items == nil or size(items) == 0) return [];
     if (!suppress_vrp) return items;
 
-    var populated = [];
+    var non_vrp = [];
     foreach (var item; items) {
-        if (item.type == "city" or item.type == "town" or item.type == "village") {
-            append(populated, item);
+        if (item.type != "visual-reporting-point" and item.type != 1000 and item.type != "1000") {
+            append(non_vrp, item);
         }
     }
-    return (size(populated) > 0) ? populated : items;
+
+    # If any non-VRP landmark exists in this sector, return ONLY non-VRP items.
+    # Otherwise, fall back to returning all original items (VRPs).
+    return (size(non_vrp) > 0) ? non_vrp : items;
 };
 
 # Defer C++ Database Load to Initial Load Frame  
@@ -214,7 +217,7 @@ var main = func(addon) {
         var r_behind = get_cfg(addon, "range-behind-nm", 4.0);  
         
         # Sector half-angle (alpha) clamped to [0.0, 45.0]
-        var raw_angle = get_cfg(addon, "sector-half-angle-deg", get_cfg(addon, "ahead-angle-deg", 30.0));
+        var raw_angle = get_cfg(addon, "sector-half-angle-deg", get_cfg(addon, "ahead-angle-deg", 22.5));
         var a_angle   = math.abs(raw_angle);
         if (a_angle > 45.0) a_angle = 45.0;
         if (a_angle < 0.0)  a_angle = 0.0;
@@ -264,88 +267,77 @@ var main = func(addon) {
         var chunk_timer = maketimer(0, func { scan_chunk(); });
         chunk_timer.singleShot = 1;
 
+        # --- Spatial Scanning Chunk Function ---
         scan_chunk = func {
-            var err = [];
-            
-            # call() acts as a try-catch block for Nasal exceptions
-            call(func {
-                var end_idx = i + CHUNK;
-                if (end_idx > total_pois) end_idx = total_pois;
+            var start_i = i;
+            var end_i = start_i + CHUNK;
+            if (end_i > total_pois) end_i = total_pois;
 
-                while (i < end_idx) {
-                    var p = all_pois[i];
-                    if (p != nil) {
-                        var p_lat = poi_lat(p);
-                        var p_lon = poi_lon(p);
-                        var p_type = poi_type(p);
-                        
-                        if (p_lat != nil and p_lon != nil) {
-                            if (math.abs(p_lat - ac_lat) <= lat_margin and math.abs(p_lon - ac_lon) <= lon_margin) {
-                                if (!is_excluded(p_type, excluded_map)) {
-                                    var p_pos = geo.Coord.new().set_latlon(p_lat, p_lon);
-                                    var dist = ac_pos.distance_to(p_pos) * 0.000539957;
+            for (; i < end_i; i += 1) {
+                var p = all_pois[i];
+                var p_lt = poi_lat(p);
+                var p_ln = poi_lon(p);
+                if (math.abs(p_lt - ac_lat) > lat_margin) continue;
+                if (math.abs(p_ln - ac_lon) > lon_margin) continue;
 
-                                    var clean_name = clean_tts_text(poi_name(p));
-                                    if (clean_name != "") {
-                                        # Stage 1: Directly Below Check
-                                        if (r_under > 0 and dist <= r_under) {
-                                            append(under_pois, {name: clean_name, dist: dist, type: p_type});
-                                        } else {
-                                            # Stage 2: 8-Sector Directional Routing
-                                            var t_mult = 1.0;
-                                            if (p_type == "city") t_mult = mult_city;
-                                            elsif (p_type == "town") t_mult = mult_town;
-                                            elsif (p_type == "village") t_mult = mult_village;
-                                            elsif (p_type == "visual-reporting-point") t_mult = mult_vrp;
+                var p_tp = poi_type(p);
+                if (is_excluded(p_tp, excluded_map)) continue;
 
-                                            var bearing = ac_pos.course_to(p_pos);
-                                            var diff = bearing - ac_hdg;
-                                            while (diff > 180) diff -= 360;
-                                            while (diff < -180) diff += 360;
+                var target = geo.Coord.new().set_latlon(p_lt, p_ln);
+                var dist = ac_pos.distance_to(target) * 0.000539957; # meters to NM
+                
+                var mult = 1.0;
+                if (p_tp == "city") mult = mult_city;
+                elsif (p_tp == "town") mult = mult_town;
+                elsif (p_tp == "village") mult = mult_village;
+                elsif (p_tp == "visual-reporting-point") mult = mult_vrp;
 
-                                            # Sector buckets
-                                            if (diff >= -a_angle and diff <= a_angle) {
-                                                if (dist <= (r_ahead * t_mult)) append(sectors.ahead, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            } elsif (diff > a_angle and diff < right_inner) {
-                                                if (dist <= (r_aside * t_mult)) append(sectors.front_right, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            } elsif (diff >= right_inner and diff <= right_outer) {
-                                                if (dist <= (r_aside * t_mult)) append(sectors.right, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            } elsif (diff > right_outer and diff < back_inner) {
-                                                if (dist <= (r_aside * t_mult)) append(sectors.back_right, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            } elsif (diff >= back_inner or diff <= -back_inner) {
-                                                if (dist <= (r_behind * t_mult)) append(sectors.behind, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            } elsif (diff > -back_inner and diff < -right_outer) {
-                                                if (dist <= (r_aside * t_mult)) append(sectors.back_left, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            } elsif (diff >= -right_outer and diff <= -right_inner) {
-                                                if (dist <= (r_aside * t_mult)) append(sectors.left, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            } else {
-                                                if (dist <= (r_aside * t_mult)) append(sectors.front_left, {name: clean_name, dist: dist, diff: diff, type: p_type});
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    i += 1;
+                if (dist <= r_under) {
+                    append(under_pois, { name: clean_tts_text(poi_name(p)), dist: dist, type: p_tp });
+                    continue;
                 }
-            }, [], nil, err);
 
-            if (size(err) > 0) {
-                print("[TourGuide] Scan error aborted loop: " ~ err[0]);
-                is_scanning = 0; 
-                return;
+                var brg = ac_pos.course_to(target);
+                var diff = brg - ac_hdg;
+                while (diff > 180.0) diff -= 360.0;
+                while (diff < -180.0) diff += 360.0;
+
+                var max_r = r_aside;
+                if (diff >= -a_angle and diff <= a_angle) max_r = r_ahead;
+                elsif (diff >= back_inner or diff <= -back_inner) max_r = r_behind;
+                
+                if (dist > (max_r * mult)) continue;
+
+                var cleaned_name = clean_tts_text(poi_name(p));
+                if (cleaned_name == "") continue;
+                var item = { name: cleaned_name, dist: dist, type: p_tp };
+
+                if (diff >= -a_angle and diff <= a_angle) {
+                    append(sectors.ahead, item);
+                } elsif (diff > a_angle and diff < right_inner) {
+                    append(sectors.front_right, item);
+                } elsif (diff >= right_inner and diff <= right_outer) {
+                    append(sectors.right, item);
+                } elsif (diff > right_outer and diff < back_inner) {
+                    append(sectors.back_right, item);
+                } elsif (diff >= back_inner or diff <= -back_inner) {
+                    append(sectors.behind, item);
+                } elsif (diff > -back_inner and diff < -right_outer) {
+                    append(sectors.back_left, item);
+                } elsif (diff >= -right_outer and diff <= -right_inner) {
+                    append(sectors.left, item);
+                } else {
+                    append(sectors.front_left, item);
+                }
             }
 
             if (i < total_pois) {
                 # Restart single-shot timer for the next frame
                 chunk_timer.restart(0);
             } else {
-                is_scanning = 0; 
-                print("[TourGuide] Scan finished.");
+                # --- SCAN COMPLETE: Priority Filter & Announcement Generator ---
                 var sort_by_dist = func(a, b) { return a.dist - b.dist; };
 
-                # Apply VRP filter per sector
                 var under_active       = filter_vrp_fallback(under_pois, suppress_vrp);
                 var ahead_active       = filter_vrp_fallback(sectors.ahead, suppress_vrp);
                 var front_right_active = filter_vrp_fallback(sectors.front_right, suppress_vrp);
@@ -356,39 +348,56 @@ var main = func(addon) {
                 var left_active        = filter_vrp_fallback(sectors.left, suppress_vrp);
                 var front_left_active  = filter_vrp_fallback(sectors.front_left, suppress_vrp);
 
+                var max_dir_lines = get_cfg(addon, "max-directional-lines", 4);
                 var lines = [];
 
+                # 1. Reserved Overhead Slot (+1 Line)
                 # Directly Below: Strictly single nearest landmark
                 if (size(under_active) > 0) {
                     var s = sort(under_active, sort_by_dist);
                     append(lines, sprintf("Directly below: %s, %.1f nm", s[0].name, s[0].dist));
                 }
 
-                # 8 Directional Sector Announcements
-                if (size(ahead_active) > 0) 
-                    append(lines, format_sector_message(ahead_active, "Ahead: Approaching %s, %.1f nm", "Ahead: Approaching %s (%.1f nm) towards %s (%.1f nm)"));
-                
-                if (size(front_right_active) > 0) 
-                    append(lines, format_sector_message(front_right_active, "Off your front right: %s, %.1f nm", "Off your front right: %s (%.1f nm) and farther %s (%.1f nm)"));
-                
-                if (size(right_active) > 0) 
-                    append(lines, format_sector_message(right_active, "On your right: %s, %.1f nm", "On your right: %s (%.1f nm) and farther %s (%.1f nm)"));
-                
-                if (size(back_right_active) > 0) 
-                    append(lines, format_sector_message(back_right_active, "Off your back right: %s, %.1f nm", "Off your back right: %s (%.1f nm) and farther %s (%.1f nm)"));
-                
-                if (size(behind_active) > 0) 
-                    append(lines, format_sector_message(behind_active, "Behind: Just passed %s, %.1f nm", "Behind: Just passed %s (%.1f nm) towards %s (%.1f nm)"));
-                
-                if (size(back_left_active) > 0) 
-                    append(lines, format_sector_message(back_left_active, "Off your back left: %s, %.1f nm", "Off your back left: %s (%.1f nm) and farther %s (%.1f nm)"));
-                
-                if (size(left_active) > 0) 
-                    append(lines, format_sector_message(left_active, "On your left: %s, %.1f nm", "On your left: %s (%.1f nm) and farther %s (%.1f nm)"));
-                
-                if (size(front_left_active) > 0) 
-                    append(lines, format_sector_message(front_left_active, "Off your front left: %s, %.1f nm", "Off your front left: %s (%.1f nm) and farther %s (%.1f nm)"));
+                # 2. Sector Definitions
+                var dir_candidates = [];
+                var sector_defs = [
+                    { key: "ahead",       items: ahead_active,       single: "Ahead: Approaching %s, %.1f nm",                         compound: "Ahead: Approaching %s (%.1f nm) towards %s (%.1f nm)" },
+                    { key: "front_right", items: front_right_active, single: "Off your front right: %s, %.1f nm",                  compound: "Off your front right: %s (%.1f nm) and farther %s (%.1f nm)" },
+                    { key: "right",       items: right_active,       single: "On your right: %s, %.1f nm",                         compound: "On your right: %s (%.1f nm) and farther %s (%.1f nm)" },
+                    { key: "back_right",  items: back_right_active,  single: "Off your back right: %s, %.1f nm",                   compound: "Off your back right: %s (%.1f nm) and farther %s (%.1f nm)" },
+                    { key: "behind",      items: behind_active,      single: "Behind: Just passed %s, %.1f nm",                        compound: "Behind: Just passed %s (%.1f nm) towards %s (%.1f nm)" },
+                    { key: "back_left",   items: back_left_active,   single: "Off your back left: %s, %.1f nm",                    compound: "Off your back left: %s (%.1f nm) and farther %s (%.1f nm)" },
+                    { key: "left",        items: left_active,        single: "On your left: %s, %.1f nm",                          compound: "On your left: %s (%.1f nm) and farther %s (%.1f nm)" },
+                    { key: "front_left",  items: front_left_active,  single: "Off your front left: %s, %.1f nm",                   compound: "Off your front left: %s (%.1f nm) and farther %s (%.1f nm)" }
+                ];
 
+                # 3. Collect Active Sectors and Nearest Distance
+                foreach (var sdef; sector_defs) {
+                    if (size(sdef.items) > 0) {
+                        var sorted_items = sort(sdef.items, sort_by_dist);
+                        append(dir_candidates, {
+                            sdef: sdef,
+                            min_dist: sorted_items[0].dist
+                        });
+                    }
+                }
+
+                # 4. Sort Sectors by Nearest Landmark
+                var sort_sectors_by_dist = func(a, b) { return a.min_dist - b.min_dist; };
+                dir_candidates = sort(dir_candidates, sort_sectors_by_dist);
+
+                # 5. Cap Directional Sectors to Max Limit
+                var count = size(dir_candidates);
+                if (count > max_dir_lines) count = max_dir_lines;
+
+                for (var idx = 0; idx < count; idx += 1) {
+                    var candidate = dir_candidates[idx];
+                    append(lines, format_sector_message(candidate.sdef.items, candidate.sdef.single, candidate.sdef.compound));
+                }
+
+                is_scanning = 0; # Unlock scanning state
+
+                # 6. Dispatch Speech
                 if (size(lines) == 0) {
                     speak_lines(["No landmarks in range"]);
                     return;
@@ -398,6 +407,7 @@ var main = func(addon) {
             }
         };
 
+        # Trigger first chunk
         scan_chunk();
     };  
   
