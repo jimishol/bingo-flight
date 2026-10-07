@@ -1,19 +1,11 @@
 import csv
 import os
+import sys
 import zipfile
 
 # ==============================================================================
 # CONFIGURATION ZONE
 # ==============================================================================
-# Country code (matches XX.zip downloaded beside this script)
-COUNTRY_CODE = "GR"
-
-# Paths
-ZIP_FILE = f"{COUNTRY_CODE}.zip"
-TARGET_DIR = COUNTRY_CODE
-INPUT_TXT = os.path.join(TARGET_DIR, f"{COUNTRY_CODE}.txt")
-OUTPUT_FILE = os.path.join(TARGET_DIR, "poi.dat")
-
 # FlightGear POI type code (1000 = VISUAL_REPORTING_POINT)
 POI_TYPE = 1000
 
@@ -21,11 +13,10 @@ POI_TYPE = 1000
 FEATURE_CLASS = "T"
 
 # Terrain rules & DEM elevation thresholds (in meters):
-# Commenting out any line completely excludes that feature type from processing.
 FEATURE_RULES = {
     # --- Active Features ---
-    "ISL":  {"min_dem": 20,  "enabled": True, "append_alt": False, "desc": "Islands"},
-    "MT":   {"min_dem": 350, "enabled": True, "append_alt": True,  "desc": "Mountains"},
+    "ISL":  {"min_dem": 20,   "enabled": True, "append_alt": False, "desc": "Islands"},
+    "MT":   {"min_dem": 350,  "enabled": True, "append_alt": True,  "desc": "Mountains"},
     "PK":   {"min_dem": 1000, "enabled": True, "append_alt": True,  "desc": "Peaks"},
 
     # --- Commented Examples (Uncomment to enable) ---
@@ -36,33 +27,31 @@ FEATURE_RULES = {
     # "RK":   {"min_dem": 10,  "enabled": True, "append_alt": False, "desc": "Rocks / Islets"},
     # "VAL":  {"min_dem": 200, "enabled": True, "append_alt": False, "desc": "Valleys"},
 }
-
-# FlightGear POI Header definition
-HEADER = f"""# poi.dat v1.02 - Custom VFR Reporting Points ({COUNTRY_CODE})
-# Data extracted from GeoNames ({COUNTRY_CODE})
-# ID = {POI_TYPE} (Visual Reporting Points)
-
-# ID | LAT | LON | NAME
-"""
 # ==============================================================================
 
 
-def ensure_input_extracted():
-    """Checks if GR/GR.txt exists. If missing, extracts GR.zip into GR/ folder."""
-    if os.path.exists(INPUT_TXT):
-        return True
+def get_country_code() -> str:
+    """Gets the prefix from CLI arguments or exits if missing."""
+    if len(sys.argv) < 2 or not sys.argv[1].strip():
+        print("Error: prefix must be supplied")
+        sys.exit(1)
 
-    if os.path.exists(ZIP_FILE):
-        print(f"Extracting '{ZIP_FILE}' into '{TARGET_DIR}/'...")
-        os.makedirs(TARGET_DIR, exist_ok=True)
-        with zipfile.ZipFile(ZIP_FILE, "r") as zip_ref:
-            zip_ref.extractall(TARGET_DIR)
-        return os.path.exists(INPUT_TXT)
-
-    return False
+    return sys.argv[1].strip().upper()
 
 
-def get_dem_elevation(row):
+def ensure_input_extracted(country_code: str, target_dir: str, input_txt: str, zip_file: str) -> bool:
+    """Extracts XX.zip into XX/ directory, overwriting existing files if zip exists."""
+    if os.path.exists(zip_file):
+        print(f"Extracting '{zip_file}' into '{target_dir}/'...")
+        os.makedirs(target_dir, exist_ok=True)
+        with zipfile.ZipFile(zip_file, "r") as zip_ref:
+            zip_ref.extractall(target_dir)
+        return os.path.exists(input_txt)
+
+    return os.path.exists(input_txt)
+
+
+def get_dem_elevation(row: list) -> int:
     """Extracts DEM average elevation in meters from Column 17 (Index 16)."""
     if len(row) < 17:
         return 0
@@ -71,20 +60,33 @@ def get_dem_elevation(row):
 
 
 def process_geonames_to_poi():
-    if not ensure_input_extracted():
-        print(f"Error: Neither '{INPUT_TXT}' nor '{ZIP_FILE}' was found.")
-        print(f"Please place '{ZIP_FILE}' next to 'poi_generator.py' or extract it to '{TARGET_DIR}/'.")
-        return
+    country_code = get_country_code()
+    zip_file = f"{country_code}.zip"
+    target_dir = country_code
+    input_txt = os.path.join(target_dir, f"{country_code}.txt")
+    output_file = os.path.join(target_dir, "poi.dat")
 
-    os.makedirs(TARGET_DIR, exist_ok=True)
+    header = f"""# poi.dat v1.02 - Custom VFR Reporting Points ({country_code})
+# Data extracted from GeoNames ({country_code})
+# ID = {POI_TYPE} (Visual Reporting Points)
+
+# ID | LAT | LON | NAME
+"""
+
+    if not ensure_input_extracted(country_code, target_dir, input_txt, zip_file):
+        print(f"Error: Neither '{input_txt}' nor '{zip_file}' was found.")
+        print(f"Please place '{zip_file}' next to 'poi_generator.py' or extract it to '{target_dir}/'.")
+        sys.exit(1)
+
+    os.makedirs(target_dir, exist_ok=True)
 
     stats = {code: {"found": 0, "kept": 0} for code in FEATURE_RULES}
     total_written = 0
 
-    with open(INPUT_TXT, mode="r", encoding="utf-8") as infile, \
-         open(OUTPUT_FILE, mode="w", encoding="utf-8") as outfile:
+    with open(input_txt, mode="r", encoding="utf-8") as infile, \
+         open(output_file, mode="w", encoding="utf-8") as outfile:
 
-        outfile.write(HEADER)
+        outfile.write(header)
         reader = csv.reader(infile, delimiter="\t")
 
         for row in reader:
@@ -94,7 +96,6 @@ def process_geonames_to_poi():
             feature_class = row[6].strip()
             feature_code = row[7].strip()
 
-            # Skipping missing feature keys here guarantees commented-out rules are ignored
             if feature_class != FEATURE_CLASS or feature_code not in FEATURE_RULES:
                 continue
 
@@ -115,21 +116,19 @@ def process_geonames_to_poi():
             lat = float(row[4])
             lon = float(row[5])
 
-            # Build name string formatted for FlightGear poidb.cxx
             if rule["append_alt"] and dem_m > 0:
                 dem_ft = int(round(dem_m * 3.28084))
                 formatted_name = f"{name_ascii} ({dem_ft} ft)"
             else:
                 formatted_name = name_ascii
 
-            # Format: <rawType> <lat> <lon> <name>
             outfile.write(f"{POI_TYPE} {lat:.7f} {lon:.7f} {formatted_name}\n")
-            
+
             stats[feature_code]["kept"] += 1
             total_written += 1
 
     print("=" * 60)
-    print(f"GeoNames POI Generator ({COUNTRY_CODE}) - Scan Summary")
+    print(f"GeoNames POI Generator ({country_code}) - Scan Summary")
     print("=" * 60)
     for code, rule in FEATURE_RULES.items():
         if rule["enabled"]:
@@ -139,7 +138,7 @@ def process_geonames_to_poi():
             desc = rule["desc"]
             print(f"- {code:4s} ({desc:15s}): {kept:4d} exported / {found:4d} found (DEM >= {min_dem}m)")
     print("-" * 60)
-    print(f"Total VRP entries written to {OUTPUT_FILE}: {total_written}")
+    print(f"Total VRP entries written to {output_file}: {total_written}")
     print("=" * 60)
 
 

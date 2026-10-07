@@ -2,40 +2,51 @@
 
 A light, standalone Python utility that parses raw **GeoNames** geographical dumps and generates a filtered, FlightGear-compatible Points of Interest database file (`poi.dat`).
 
-This tool extracts prominent terrain landmarks (mountains, peaks, islands, passes), converting them into **Visual Reporting Points (Type `1000`)** while stripping away sea-level rocks, minor hills, and administrative boundaries.
+This tool extracts prominent terrain landmarks (mountains, peaks, islands, passes), converting them into **Visual Reporting Points (Type 1000)** while stripping away sea-level rocks, minor hills, and administrative boundaries.
 
 ---
 
 ## Features
 
-* **Automatic Zip Extraction:** Extracts `GR.zip` automatically into a target `GR/` directory if raw text files aren't pre-extracted.
+* **Flexible Prefix Argument:** Accepts any country or dataset prefix (`<XX>`) as a command-line argument.
+* **Automatic Fresh Extraction:** Always extracts and overrides `<XX>/<XX>.txt` whenever `<XX>.zip` is present, ensuring updated downloads are processed immediately.
+* **Clean Overwrite Execution:** Safely truncates and overwrites existing `<XX>/poi.dat` on every run, keeping output entries current without duplicates.
 * **FlightGear-Safe Encoding:** Uses ASCII names (`asciiname` column) to prevent character encoding crashes or rendering glitches inside FlightGear.
 * **Smart Elevation Filtering:** Employs per-feature **Digital Elevation Model (DEM)** floor filters to ignore minor topography while keeping major landmarks.
-* **Granular Feature Selection:** Uses a configurable dictionary (`FEATURE_RULES`) allowing you to enable, disable, or comment out specific GeoNames terrain codes (`MT`, `PK`, `ISL`, `PASS`, etc.).
-* **Visual Elevation Tags:** Appends calculated elevations in feet (`Olympos (9573 ft)`) to display names for instant cockpit awareness.
-* **Auto-Formatted Headers:** Prepends the mandatory header comments expected by FlightGear's C++ loader (`poidb.cxx`).
+* **Granular Feature Selection:** Configured via `FEATURE_RULES` to easily toggle specific GeoNames terrain codes (`MT`, `PK`, `ISL`, `PASS`, etc.).
+* **Visual Elevation Tags:** Appends calculated elevations in feet (e.g., `Olympos (9573 ft)`) to display names for instant cockpit awareness.
+* **Auto-Formatted Headers:** Prepends header comments required by FlightGear's C++ loader (`poidb.cxx`).
 
 ---
 
 ## Prerequisites & Data Source
 
 ### Prerequisites
-* **Python:** Python 3.6+ (uses built-in standard modules `csv`, `os`, `zipfile`).
-* **Input File:** Target country `.zip` archive from GeoNames.
+* **Python:** Python 3.6+ (uses built-in standard modules `csv`, `os`, `sys`, `zipfile`).
+* **Input File:** Target country archive (e.g., `GR.zip`) or pre-extracted folder (`GR/`) from GeoNames.
 
 ### Obtaining Data Files & Running
 
 1. Visit the **[GeoNames Dump Server](https://download.geonames.org/export/dump/)**.
-2. Download your target country archive (e.g., `GR.zip` for Greece).
-3. Place `GR.zip` in the same folder as `poi_generator.py`.
-4. Run the script:
+2. Download your target country archive (e.g., `GR.zip` for Greece, `FR.zip` for France).
+3. Place `<XX>.zip` in the same directory as `poi_generator.py`.
+4. Run the script passing the dataset prefix as an argument:
 
 ```bash
-python3 poi_generator.py
+# Example for Greece (matches GR.zip or GR/ directory)
+python3 poi_generator.py GR
+
+# Lowercase input is automatically handled
+python3 poi_generator.py gr
 
 ```
 
-> **Note:** The script automatically creates a `GR/` subfolder, extracts `GR.txt`, and outputs `GR/poi.dat`.
+> **Note:**
+> * If `<XX>.zip` is present, the script extracts and overwrites `<XX>/<XX>.txt` on every run.
+> * Re-running the script cleanly overwrites `<XX>/poi.dat` with updated results based on your current configuration.
+> * Running without an argument exits with `Error: prefix must be supplied`. If neither `<XX>.zip` nor `<XX>/<XX>.txt` exists, the script notifies you that the file was not found and exits.
+> 
+> 
 
 ---
 
@@ -46,27 +57,28 @@ Extracting 'GR.zip' into 'GR/'...
 ============================================================
 GeoNames POI Generator (GR) - Scan Summary
 ============================================================
-- ISL  (Islands        ):  396 exported / 1035 found (DEM >= 20m)
-- MT   (Mountains      ):  751 exported /  820 found (DEM >= 350m)
-- PK   (Peaks          ):  406 exported / 1091 found (DEM >= 1000m)
+- ISL  (Islands        ):   396 exported / 1035 found (DEM >= 20m)
+- MT   (Mountains      ):   751 exported /  820 found (DEM >= 350m)
+- PK   (Peaks          ):   406 exported / 1091 found (DEM >= 1000m)
 ------------------------------------------------------------
 Total VRP entries written to GR/poi.dat: 1553
 ============================================================
+
 ```
 
 ---
 
 ## Configuration Zone
 
-All operational controls are located in the `FEATURE_RULES` dictionary at the top of `poi_generator.py`.
+Topographical thresholds and feature toggles are located in the `FEATURE_RULES` dictionary near the top of `poi_generator.py`.
 
-Features can be toggled via `"enabled": True/False` or simply by **commenting out** the feature line:
+Features can be toggled via `"enabled": True/False` or by **commenting out** the feature line:
 
 ```python
 FEATURE_RULES = {
     # --- Active Features ---
-    "ISL":  {"min_dem": 20,  "enabled": True, "append_alt": False, "desc": "Islands"},
-    "MT":   {"min_dem": 350, "enabled": True, "append_alt": True,  "desc": "Mountains"},
+    "ISL":  {"min_dem": 20,   "enabled": True, "append_alt": False, "desc": "Islands"},
+    "MT":   {"min_dem": 350,  "enabled": True, "append_alt": True,  "desc": "Mountains"},
     "PK":   {"min_dem": 1000, "enabled": True, "append_alt": True,  "desc": "Peaks"},
 
     # --- Commented Examples (Uncomment to enable) ---
@@ -88,7 +100,7 @@ FEATURE_RULES = {
 
 ## Output File Format (`poi.dat`)
 
-The generated database is saved to `GR/poi.dat` and adheres strictly to the schema required by FlightGear's `poidb.cxx`:
+The generated database is saved to `<XX>/poi.dat` and adheres strictly to the schema required by FlightGear's `poidb.cxx`:
 
 ```text
 # poi.dat v1.02 - Custom VFR Reporting Points (GR)
@@ -99,6 +111,7 @@ The generated database is saved to `GR/poi.dat` and adheres strictly to the sche
 1000 39.9423500 25.2433000 Lemnos
 1000 40.0817500 22.3495400 Mount Olympus (9462 ft)
 1000 38.5352800 22.6218800 Parnassus (7933 ft)
+
 ```
 
 ---
