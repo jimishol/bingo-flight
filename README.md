@@ -287,7 +287,6 @@ If you fly within FlightGear and want to enhance or safeguard your flight enviro
 
 * **TourGuide Add-on**: A spatial-aware flight announcement add-on that queries FlightGear's POI database to deliver real-time, sector-based landmark updates via on-screen ATC messages.  
   👉 **[TourGuide Add-on Documentation](./flightgear_atc_tourguide_addon/README.md)**
-### 🛩️ FlightGear Companion Tools & Integrations
 
 * **METAR Capability Refresh**: FlightGear’s bundled `metar.dat.gz` contains outdated station capability data, which can cause real‑weather updates to stall or freeze when airports with obsolete METAR service block fallback logic. The setup guide includes a regeneration step that rebuilds a fresh, correct capability list and restores stable live‑weather behavior.
 
