@@ -43,6 +43,14 @@ visited_WS.txt         |  1  /7        | Last: WSAP
 ~/.cache/flight_dispatch 🐧 
 ```
 
+## 🎬 End-to-End Workflow Walkthrough
+
+Experience the complete `bingo-flight` ecosystem in action—from terminal dispatching and payload calculation to live FlightGear integration with **Copilot Pillow**, **TourGuide**, and **LittleNavMap**:
+
+[bingo-flight-workflow-showcase.webm](https://github.com/user-attachments/assets/817de897-0f5b-4dce-b8bc-62e46a2c4142)
+
+> 💡 **Watch the 8-minute demonstration** to see how the dispatch engine, safety watchdogs, and spatial announcement add-ons operate seamlessly across key segments of a multi-leg flight plan.
+
 ## 🚀 Features
 
 * **GPL-3.0 Licensed Open-Source Platform**: Built to protect software freedom, ensuring all derivative additions and expansions remain fully accessible to the community.
