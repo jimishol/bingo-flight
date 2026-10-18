@@ -16,8 +16,8 @@ FG_ROOT = os.environ.get("FG_ROOT", "/usr/share/flightgear")
 SYSTEM_APT_GZ = os.path.join(FG_ROOT, "Airports", "apt.dat.gz")
 FG_HOME = os.environ.get("FG_HOME", os.path.expanduser("~/.fgfs"))
 
-# Row codes for ILS (4), GS (6), and DME-ILS (12)
-ILS_ROW_CODES = {"4", "6", "12"}
+# Row codes for ILS (4), GS (6), OM (7), MM (8), IM (9) and DME-ILS (12)
+ILS_ROW_CODES = {"4", "6", "7", "8", "9", "12"}
 
 
 def open_system_gz(path):
