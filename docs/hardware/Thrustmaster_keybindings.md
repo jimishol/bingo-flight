@@ -16,18 +16,18 @@ This controller handles your primary flight controls, independent wheel braking,
 ### 🔘 Button Map & System Scripts
 
 * **Button 0 (Trigger):** Master Wheel Brakes
-* *Action:* Applies **both** left and right main wheel brakes smoothly on hold; completely releases them upon lifting your index finger.
+* *Action:* Applies **both** left and right main wheel brakes on hold; completely releases them upon lifting your index finger.
 
 
 * **Button 1:** Instant Cockpit View Reset
-* *Action:* Snaps camera coordinates back to center pilot level (`y-offset: 0.285m`), sets a natural Field of View (`42`), centers horizontal heading, and tilts down slightly (`-14^\circ`) directly toward the main instrument panel instrument cluster.
+* *Action:* Cockpit-view only — snaps position/orientation offsets (heading `0`, pitch `-14°`, roll `0`), eye height `0.285m`, FOV `42`, plus the corresponding goal and user default properties.
 
 
 * **Button 2:** View Cycle Forwards (`view.stepView(1)`)
 * **Button 3:** View Cycle Backwards (`view.stepView(-1)`)
 * **Button 4:** Elevator Trim Down (`controls.elevatorTrim(1)`) [Repeatable]
 * **Button 5:** Differential Left Brake Only
-* *Action:* Targets `/controls/gear/brakes[0]` via Nasal array. Useful for tight taxi pivot turns.
+* *Action:* Sets `/controls/gear/brake-left` to 1 on press, 0 on release. Useful for tight taxi pivot turns.
 
 
 * **Button 6:** Virtual Seat Adjustment Up
@@ -39,14 +39,14 @@ This controller handles your primary flight controls, independent wheel braking,
 
 
 * **Button 8:** Differential Right Brake Only
-* *Action:* Targets `/controls/gear/brakes[1]` via Nasal array.
+* *Action:* Sets `/controls/gear/brake-right to 1` on press, 0 on release.
 
 
 * **Button 9:** Elevator Trim Up (`controls.elevatorTrim(-1)`) [Repeatable]
 * **Button 10:** Zoom View Out / Decrease Field of View (`view.decrease(0.75)`)
 * **Button 15:** Zoom View In / Increase Field of View (`view.increase(0.75)`)
 * **Button 16:** Engine Fuel Primer Pump Loop (`c172p.pumpPrimer()`)
-* *Action:* Injected module execution that strokes the manual primer line on both physical click-down *and* pull-release cycles.
+* *Action:* Calls `c172p.pumpPrimer()` (Cessna 172P-specific) on both press and release.
 
 
 

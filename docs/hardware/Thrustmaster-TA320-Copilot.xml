@@ -2,6 +2,7 @@
 
 <PropertyList>
   <name type="string">Thrustmaster T.A320 Copilot</name>
+
   <axis>
     <desc type="string">Aileron</desc>
     <dead-band type="double">0.05</dead-band>
@@ -13,6 +14,7 @@
       <power type="double">2</power>
     </binding>
   </axis>
+
   <axis n="1">
     <desc type="string">Elevator</desc>
     <binding>
@@ -23,6 +25,7 @@
       <power type="double">1</power>
     </binding>
   </axis>
+
   <axis n="2">
     <desc type="string">Rudder</desc>
     <dead-band type="double">0.07</dead-band>
@@ -34,6 +37,7 @@
       <power type="double">2</power>
     </binding>
   </axis>
+
   <axis n="3">
     <desc type="string">Mixture All Engines</desc>
     <binding>
@@ -44,6 +48,7 @@
       <power type="double">1</power>
     </binding>
   </axis>
+
   <axis n="4">
     <desc type="string">View (horizontal)</desc>
     <low>
@@ -61,6 +66,7 @@
       <repeatable type="bool">true</repeatable>
     </high>
   </axis>
+
   <axis n="5">
     <desc type="string">View (vertical)</desc>
     <low>
@@ -78,9 +84,10 @@
       <repeatable type="bool">true</repeatable>
     </high>
   </axis>
+
   <button>
     <desc type="string">Brakes</desc>
-    <repeatable type="string">false</repeatable>
+    <repeatable type="bool">false</repeatable>
     <binding>
       <command type="string">nasal</command>
       <script type="string">controls.applyBrakes(1);</script>
@@ -93,19 +100,32 @@
     </mod-up>
   </button>
 
-  <button n="1">  
-    <desc type="string">Reset View</desc>  
-    <binding>  
-      <command type="string">nasal</command>  
-      <script type="string">  
-        setprop("/sim/current-view/user/y-offset-m", 0.285);  
-        setprop("/sim/current-view/y-offset-m", 0.285);  
-        setprop("/sim/current-view/field-of-view", 42);  
-        setprop("/sim/current-view/goal-heading-offset-deg", 0);  
-        setprop("/sim/current-view/goal-pitch-offset-deg", -14);  
-      </script>  
-    </binding>  
-  </button>
+  <button n="1">
+    <desc type="string">Reset Cockpit View</desc>
+    <binding>
+      <condition>
+        <equals>
+          <property>/sim/current-view/view-number</property>
+          <value>0</value>
+        </equals>
+      </condition>
+      <command type="string">nasal</command>
+      <script type="string">
+          setprop("/sim/current-view/y-offset-m", 0.285);
+          setprop("/sim/current-view/field-of-view", 42);
+          setprop("/sim/current-view/heading-offset-deg", 0);
+          setprop("/sim/current-view/pitch-offset-deg", -14);
+          setprop("/sim/current-view/roll-offset-deg", 0);
+          setprop("/sim/current-view/goal-heading-offset-deg", 0);
+          setprop("/sim/current-view/goal-pitch-offset-deg", -14);
+          setprop("/sim/current-view/goal-roll-offset-deg", 0);
+          setprop("/sim/current-view/user/y-offset-m", 0.285);
+          setprop("/sim/current-view/user/pitch-offset-deg", -14);
+          setprop("/sim/current-view/user/default-field-of-view-deg", 42);
+      </script>
+    </binding>
+    <repeatable type="bool">false</repeatable>
+  </button> 
 
   <button n="2">
     <desc type="string">View Cycle Forwards</desc>
@@ -113,134 +133,135 @@
       <command type="string">nasal</command>
       <script type="string">view.stepView(1);</script>
     </binding>
-    <repeatable type="double">0</repeatable>
+    <repeatable type="bool">false</repeatable>
   </button>
+
   <button n="3">
     <desc type="string">View Cycle Backwards</desc>
     <binding>
       <command type="string">nasal</command>
       <script type="string">view.stepView(-1);</script>
     </binding>
-    <repeatable type="double">0</repeatable>
+    <repeatable type="bool">false</repeatable>
   </button>
+
   <button n="4">
     <desc type="string">Elevator Trim Down</desc>
     <binding>
       <command type="string">nasal</command>
       <script type="string">controls.elevatorTrim(1);</script>
     </binding>
-    <repeatable type="double">1</repeatable>
+    <repeatable type="bool">true</repeatable>
   </button>
+
   <button n="5">
-    <desc type="string">Custom</desc>
+    <desc type="string">Brake Left</desc>
     <binding>
       <command type="string">nasal</command>
-      <script type="string">controls.applyBrakes(1, -1)</script>
-      <module type="string">__js2</module>
-      <offset type="double">1</offset>
+      <script type="string">setprop("/controls/gear/brake-left", 1);</script>
     </binding>
     <mod-up>
       <binding>
         <command type="string">nasal</command>
-        <script type="string">controls.applyBrakes(0, -1)</script>
-        <module type="string">__js2</module>
-        <offset type="double">1</offset>
+        <script type="string">setprop("/controls/gear/brake-left", 0);</script>
       </binding>
     </mod-up>
+    <repeatable type="bool">false</repeatable>
   </button>
 
-  <button n="6">  
-    <desc type="string">Seat Up</desc>  
-    <binding>  
-      <command type="string">property-adjust</command>  
-      <property type="string">/sim/current-view/user/y-offset-m</property>  
-      <step type="double">0.005</step>  
-      <min type="double">0.15</min>  
-      <max type="double">0.35</max>  
-    </binding>  
-    <binding>  
-      <command type="string">property-adjust</command>  
-      <property type="string">/sim/current-view/y-offset-m</property>  
-      <step type="double">0.005</step>  
-      <min type="double">0.15</min>  
-      <max type="double">0.35</max>  
-    </binding>  
-    <repeatable type="double">1</repeatable>  
-  </button>  
-    
-  <button n="7">  
-    <desc type="string">Seat Down</desc>  
-    <binding>  
-      <command type="string">property-adjust</command>  
-      <property type="string">/sim/current-view/user/y-offset-m</property>  
-      <step type="double">-0.005</step>  
-      <min type="double">0.15</min>  
-      <max type="double">0.35</max>  
-    </binding>  
-    <binding>  
-      <command type="string">property-adjust</command>  
-      <property type="string">/sim/current-view/y-offset-m</property>  
-      <step type="double">-0.005</step>  
-      <min type="double">0.15</min>  
-      <max type="double">0.35</max>  
-    </binding>  
-    <repeatable type="double">1</repeatable>  
+  <button n="6">
+    <desc type="string">Seat Up</desc>
+    <binding>
+      <command type="string">property-adjust</command>
+      <property type="string">/sim/current-view/user/y-offset-m</property>
+      <step type="double">0.005</step>
+      <min type="double">0.15</min>
+      <max type="double">0.35</max>
+    </binding>
+    <binding>
+      <command type="string">property-adjust</command>
+      <property type="string">/sim/current-view/y-offset-m</property>
+      <step type="double">0.005</step>
+      <min type="double">0.15</min>
+      <max type="double">0.35</max>
+    </binding>
+    <repeatable type="bool">true</repeatable>
+  </button>
+
+  <button n="7">
+    <desc type="string">Seat Down</desc>
+    <binding>
+      <command type="string">property-adjust</command>
+      <property type="string">/sim/current-view/user/y-offset-m</property>
+      <step type="double">-0.005</step>
+      <min type="double">0.15</min>
+      <max type="double">0.35</max>
+    </binding>
+    <binding>
+      <command type="string">property-adjust</command>
+      <property type="string">/sim/current-view/y-offset-m</property>
+      <step type="double">-0.005</step>
+      <min type="double">0.15</min>
+      <max type="double">0.35</max>
+    </binding>
+    <repeatable type="bool">true</repeatable>
   </button>
 
   <button n="8">
-    <desc type="string">Custom</desc>
+    <desc type="string">Brake Right</desc>
     <binding>
       <command type="string">nasal</command>
-      <script type="string">controls.applyBrakes(1, 1)</script>
-      <module type="string">__js2</module>
+      <script type="string">setprop("/controls/gear/brake-right", 1);</script>
     </binding>
     <mod-up>
       <binding>
         <command type="string">nasal</command>
-        <script type="string">controls.applyBrakes(0, 1)</script>
-        <module type="string">__js2</module>
+        <script type="string">setprop("/controls/gear/brake-right", 0);</script>
       </binding>
     </mod-up>
+    <repeatable type="bool">false</repeatable>
   </button>
+
   <button n="9">
     <desc type="string">Elevator Trim Up</desc>
     <binding>
       <command type="string">nasal</command>
       <script type="string">controls.elevatorTrim(-1);</script>
     </binding>
-    <repeatable type="double">1</repeatable>
+    <repeatable type="bool">true</repeatable>
   </button>
+
   <button n="10">
     <desc type="string">View Decrease</desc>
     <binding>
       <command type="string">nasal</command>
       <script type="string">view.decrease(0.75);</script>
     </binding>
-    <repeatable type="double">1</repeatable>
+    <repeatable type="bool">true</repeatable>
   </button>
+
   <button n="15">
     <desc type="string">View Increase</desc>
     <binding>
       <command type="string">nasal</command>
       <script type="string">view.increase(0.75);</script>
     </binding>
-    <repeatable type="double">1</repeatable>
+    <repeatable type="bool">true</repeatable>
   </button>
+
   <button n="16">
-    <desc type="string">Custom</desc>
+    <desc type="string">Engine Primer</desc>
     <binding>
       <command type="string">nasal</command>
       <script type="string">c172p.pumpPrimer();</script>
-      <module type="string">__js2</module>
-      <offset type="double">1</offset>
     </binding>
-    <repeatable type="double">0</repeatable>
+    <repeatable type="bool">false</repeatable>
     <mod-up>
       <binding>
         <command type="string">nasal</command>
         <script type="string">c172p.pumpPrimer();</script>
-        <module type="string">__js2</module>
       </binding>
     </mod-up>
   </button>
+
 </PropertyList>
