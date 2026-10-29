@@ -289,6 +289,14 @@ cd docs/nav_merged_ILS/
 python3 merge_and_clean_nav.py
 ```
 
+> [!NOTE]
+> **Scenery Sync & ILS Restoration**
+> Using raw, unedited AIRAC databases normally breaks ILS needles at legacy airports because modern AIRAC runway designators (e.g., `28C`) fail to match FlightGear's base scenery definitions (e.g., `28`).
+> The automated Python workflow solves this by:
+> * **Scanning modern AIRAC runways** against base scenery (`apt.dat.gz`) to find mismatching runway identifiers.
+> * **Smart-matching and renaming** identifiers (stripping letters or shifting headings for magnetic drift) so ILS localizers and Glide Slopes lock onto active runways seamlessly.
+> * **Preserving raw format alignments** so FlightGear's strict parser can read the override file cleanly without crashing.
+
 3. The script will decompress system base data in memory, reconcile runway numbering mismatches (e.g., modern `26R` mapped back to scenery `27R`), drop orphaned country codes, and output the cleaned, hybrid `nav.dat` directly to:
 `/mnt/data/games/Flightgear/NavData_Override/NavData/nav/nav.dat`
 
@@ -313,14 +321,6 @@ No merging is needed for fixes — a plain copy works. If you use airway-based r
 4. Click **Add** and select your absolute override directory path: `/mnt/data/games/Flightgear/NavData_Override`
 
 ---
-
-> [!NOTE]
-> **Scenery Sync & ILS Restoration**
-> Using raw, unedited AIRAC databases normally breaks ILS needles at legacy airports because modern AIRAC runway designators (e.g., `28C`) fail to match FlightGear's base scenery definitions (e.g., `28`).
-> The automated Python workflow solves this by:
-> * **Scanning modern AIRAC runways** against base scenery (`apt.dat.gz`) to find mismatching runway identifiers.
-> * **Smart-matching and renaming** identifiers (stripping letters or shifting headings for magnetic drift) so ILS localizers and Glide Slopes lock onto active runways seamlessly.
-> * **Preserving raw format alignments** so FlightGear's strict parser can read the override file cleanly without crashing.
 
 ## 8. Updating FlightGear’s METAR Capability List
 
