@@ -289,9 +289,19 @@ cd docs/nav_merged_ILS/
 python3 merge_and_clean_nav.py
 ```
 
-
 3. The script will decompress system base data in memory, reconcile runway numbering mismatches (e.g., modern `26R` mapped back to scenery `27R`), drop orphaned country codes, and output the cleaned, hybrid `nav.dat` directly to:
 `/mnt/data/games/Flightgear/NavData_Override/NavData/nav/nav.dat`
+
+### Step 3 (optional): Add enroute fixes (`fix.dat`) and/or airways (`awy.dat`)  
+  
+If your flight plans reference enroute waypoints/fixes (e.g. `ASTUS`, `D249Y`),  
+copy `earth_fix.dat` from your AIRAC source (the same folder used for LittleNavMap's `Resources/default data/`) to:  
+  
+    Flightgear/NavData_Override/NavData/fix/fix.dat  
+  
+No merging is needed for fixes — a plain copy works. If you use airway-based routing, you can similarly copy `earth_awy.dat` to:  
+  
+    Flightgear/NavData_Override/NavData/awy/awy.dat
 
 ---
 
