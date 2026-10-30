@@ -422,8 +422,8 @@ fgfs-metar() {
     
     # Local patch addition
     LOCAL_STG="/mnt/data/games/Flightgear/TerraSync/Objects/e020n30/e023n39/3334218.stg"
-    if [ -f "$LOCAL_STG" ] && grep -Fq 'Models/Airport/Jetway/glass.airline.FGFS.xml' "$LOCAL_STG"; then
-        sed -i '/Models\/Airport\/Jetway\/glass\.airline\.FGFS\.xml/s/^/#/' "$LOCAL_STG"
+    if [ -f "$LOCAL_STG" ] && grep -q '^[^#]*Models/Airport/Jetway/glass.airline.FGFS.xml' "$LOCAL_STG"; then
+        sed -i '/^[^#]*Models\/Airport\/Jetway\/glass\.airline\.FGFS\.xml/s/^/#/' "$LOCAL_STG"
         echo "LOCAL PATCH: Commented out crashing line in local 3334218.stg"
     fi
 
