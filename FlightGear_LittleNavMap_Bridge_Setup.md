@@ -411,7 +411,7 @@ You can pass arguments to bypass interactive prompts:
 
 You can chain the updater directly to your launcher command using a region prefix:
 
-> Optional LGSK-specific safety check: The initial, before CONFIGURATION, block is only relevant if you fly near LGSK. It checks whether the scenery tile still contains the Jetway object that can trigger the stale tile condition that crashes fgfs. If that object is present in the installed tile, remove the offending line from the local 3334218.stg file before launch; otherwise FlightGear will crash even with auto scenery download disabled. If you do not fly near LGSK, remove this initial block.
+> **Optional LGSK-specific safety check & auto-patch:** The initial block is only relevant if you fly near LGSK. It automatically checks your local 3334218.stg file (edit alias to your LOCAL_STG path) and comments out the crashing jetway object if present, preventing FlightGear from crashing. It also checks the remote upstream tile to notify you of its status so as to disable scenery auto download. Manual removal is no longer necessary. If you do not fly near LGSK, you can safely remove this initial block.
 
 ```bash
 # Add to ~/.bashrc or ~/.zshrc (using double quotes to expand $HOME)
@@ -419,6 +419,14 @@ fgfs-metar() {
     # Remove this section if you do not fly near LGSK or if this check is no longer necessary.
     echo
     echo "== LGSK scenery preflight: checking 3334218.stg for Jetway/glass.airline.FGFS.xml =="
+    
+    # Local patch addition
+    LOCAL_STG="/mnt/data/games/Flightgear/TerraSync/Objects/e020n30/e023n39/3334218.stg"
+    if [ -f "$LOCAL_STG" ] && grep -Fq 'Models/Airport/Jetway/glass.airline.FGFS.xml' "$LOCAL_STG"; then
+        sed -i '/Models\/Airport\/Jetway\/glass\.airline\.FGFS\.xml/s/^/#/' "$LOCAL_STG"
+        echo "LOCAL PATCH: Commented out crashing line in local 3334218.stg"
+    fi
+
     if curl -fsSL "https://flightgear.sourceforge.net/scenery/Objects/e020n30/e023n39/3334218.stg" > /tmp/3334218.stg 2>/dev/null; then
         if grep -Fq 'OBJECT_SHARED Models/Airport/Jetway/glass.airline.FGFS.xml' /tmp/3334218.stg; then
             echo "WARNING: Jetway/glass.airline.FGFS.xml is present in the remote scenery tile. If you plan to fly near LGSK, disable auto scenery download in the launcher GUI."
