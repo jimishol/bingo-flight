@@ -411,9 +411,26 @@ You can pass arguments to bypass interactive prompts:
 
 You can chain the updater directly to your launcher command using a region prefix:
 
+> Optional LGSK-specific safety check: The initial, before CONFIGURATION, block is only relevant if you fly near LGSK. It checks whether the scenery tile still contains the Jetway object that can trigger the stale tile condition that crashes fgfs. If that object is present in the installed tile, remove the offending line from the local 3334218.stg file before launch; otherwise FlightGear will crash even with auto scenery download disabled. If you do not fly near LGSK, remove this initial block.
+
 ```bash
 # Add to ~/.bashrc or ~/.zshrc (using double quotes to expand $HOME)
 fgfs-metar() {
+    # Remove this section if you do not fly near LGSK or if this check is no longer necessary.
+    echo
+    echo "== LGSK scenery preflight: checking 3334218.stg for Jetway/glass.airline.FGFS.xml =="
+    if curl -fsSL "https://flightgear.sourceforge.net/scenery/Objects/e020n30/e023n39/3334218.stg" > /tmp/3334218.stg 2>/dev/null; then
+        if grep -Fq 'OBJECT_SHARED Models/Airport/Jetway/glass.airline.FGFS.xml' /tmp/3334218.stg; then
+            echo "WARNING: Jetway/glass.airline.FGFS.xml is present in the remote scenery tile. If you plan to fly near LGSK, disable auto scenery download in the launcher GUI."
+        else
+            echo "OK: No Jetway/glass.airline.FGFS.xml object detected in the remote tile; LGSK appears updated and this check is no longer necessary."
+        fi
+    else
+        echo "WARNING: The LGSK scenery tile could not be checked because the remote fetch failed. Treat this as unverified/stale; disable auto scenery download if flying near LGSK."
+    fi
+    echo "============================================================================================================================================================="
+    echo
+
     # -------------------------------------------------------------------------
     # CONFIGURATION
     # -------------------------------------------------------------------------
