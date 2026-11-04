@@ -411,65 +411,10 @@ You can pass arguments to bypass interactive prompts:
 
 You can chain the updater directly to your launcher command using a region prefix:
 
-> **Optional LGSK-specific safety check & auto-patch:** The initial block is only relevant if you fly near LGSK. It automatically checks your local 3334218.stg file (edit alias to your LOCAL_STG path) and comments out the crashing jetway object if present, preventing FlightGear from crashing. It also checks the remote upstream tile to notify you of its status so as to disable scenery auto download. Manual removal is no longer necessary. If you do not fly near LGSK, you can safely remove this initial block.
-> **Workaround:** *Official Scenery Tile Updated, Plus Mirror and Manual Sync Fixes for Linux Crashes*
->
-> Following up on the Linux crash issue caused by legacy shared jetway XML fragments (`glass.airline.*.xml`), I have an update regarding scenery synchronization and workarounds.
-> 
-> 1. Official Scenery Update
-> 
-> The upstream scenery database has finally been updated to remove the crash-inducing objects (such as the tile near LGSK). However, because automatic data mirror selection [b]does[/b] experience ongoing synchronization lags and resolution issues, your local client still get stuck.
-> 
-> 2. Bypass Mirror Problems
-> 
-> Because automatic data mirrors have persistent issues, you can bypass the automatic DNS/NAPTR lookup entirely and pin a direct HTTP server in your launcher's [b]Additional Settings[/b]:
-> 
-> `--prop:/sim/terrasync/http-server=https://flightgear.sourceforge.net/scenery``
-> 
-> 3. Manual Tile Download & Sync Workaround
-> 
-> Since TerraSync will still refuse to update the specific tile folder automatically, you should manually download the clean objects directory for that tile:
-> 
-> 1. Navigate to your local tile directory (e.g., `TerraSync/Objects/e020n30/e023n39/`).
-> 2. Run this `curl` snippet to scrape and fetch the clean, updated tile files directly from the server through terminal:
-> 
-> ```bash
->   curl -s https://flightgear.sourceforge.net/scenery/Objects/e020n30/e023n39/ | \
->   grep -oE 'href="[^"]+"' | cut -d'"' -f2 | grep -vE '(\?|/|\.\.)' | while read -r file; do
->     echo "Downloading $file..."
->     curl -O "https://flightgear.sourceforge.net/scenery/Objects/e020n30/e023n39/$file"
->   done[/code]
-> ```
->
-> With the official scenery database now cleaned up, combining the server property override with a manual tile refresh ensures you stay crash-free despite ongoing replication pipeline hiccups.
-
 ```bash
 # Add to ~/.bashrc or ~/.zshrc (using double quotes to expand $HOME)
 
 fgfs-metar() {
-#     # Remove this section if you do not fly near LGSK or if this check is no longer necessary.
-#     echo
-#     echo "== LGSK scenery preflight: checking 3334218.stg for Jetway/glass.airline.FGFS.xml =="
-#     
-#     # Local patch addition
-#     LOCAL_STG="/mnt/data/games/Flightgear/TerraSync/Objects/e020n30/e023n39/3334218.stg"
-#     if [ -f "$LOCAL_STG" ] && grep -q '^[^#]*Models/Airport/Jetway/glass.airline.FGFS.xml' "$LOCAL_STG"; then
-#         sed -i '/^[^#]*Models\/Airport\/Jetway\/glass\.airline\.FGFS\.xml/s/^/#/' "$LOCAL_STG"
-#         echo "LOCAL PATCH: Commented out crashing line in local 3334218.stg"
-#     fi
-# 
-#     if curl -fsSL "https://flightgear.sourceforge.net/scenery/Objects/e020n30/e023n39/3334218.stg" > /tmp/3334218.stg 2>/dev/null; then
-#         if grep -Fq 'OBJECT_SHARED Models/Airport/Jetway/glass.airline.FGFS.xml' /tmp/3334218.stg; then
-#             echo "WARNING: Jetway/glass.airline.FGFS.xml is present in the remote scenery tile. If you plan to fly near LGSK, disable auto scenery download in the launcher GUI."
-#         else
-#             echo "OK: No Jetway/glass.airline.FGFS.xml object detected in the remote tile; LGSK appears updated and this check is no longer necessary."
-#         fi
-#     else
-#         echo "WARNING: The LGSK scenery tile could not be checked because the remote fetch failed. Treat this as unverified/stale; disable auto scenery download if flying near LGSK."
-#     fi
-#     echo "============================================================================================================================================================="
-#     echo
-
     # -------------------------------------------------------------------------
     # CONFIGURATION
     # -------------------------------------------------------------------------
