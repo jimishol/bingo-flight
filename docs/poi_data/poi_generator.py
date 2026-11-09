@@ -15,7 +15,7 @@ FEATURE_CLASS = "T"
 # Terrain rules & DEM elevation thresholds (in meters):
 FEATURE_RULES = {
     # --- Active Features ---
-    "ISL":  {"min_dem": 20,   "enabled": True, "append_alt": False, "desc": "Islands"},
+    "ISL":  {"min_dem": 125,   "enabled": True, "append_alt": False, "desc": "Islands"},
     "MT":   {"min_dem": 350,  "enabled": True, "append_alt": True,  "desc": "Mountains"},
     "PK":   {"min_dem": 1000, "enabled": True, "append_alt": True,  "desc": "Peaks"},
 
