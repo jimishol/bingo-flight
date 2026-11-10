@@ -156,15 +156,15 @@
 
   <button n="5">
     <desc type="string">Brake Left</desc>
-    <binding>
-      <command type="string">nasal</command>
-      <script type="string">setprop("/controls/gear/brake-left", 1);</script>
-    </binding>
-    <mod-up>
       <binding>
         <command type="string">nasal</command>
-        <script type="string">setprop("/controls/gear/brake-left", 0);</script>
+        <script type="string">controls.applyBrakes(1, -1);</script>
       </binding>
+    <mod-up>
+        <binding>
+            <command type="string">nasal</command>
+            <script type="string">controls.applyBrakes(0, -1);</script>
+        </binding>
     </mod-up>
     <repeatable type="bool">false</repeatable>
   </button>
@@ -209,15 +209,15 @@
 
   <button n="8">
     <desc type="string">Brake Right</desc>
-    <binding>
-      <command type="string">nasal</command>
-      <script type="string">setprop("/controls/gear/brake-right", 1);</script>
-    </binding>
-    <mod-up>
       <binding>
         <command type="string">nasal</command>
-        <script type="string">setprop("/controls/gear/brake-right", 0);</script>
+        <script type="string">controls.applyBrakes(1, 1);</script>
       </binding>
+    <mod-up>
+        <binding>
+            <command type="string">nasal</command>
+            <script type="string">controls.applyBrakes(0, 1);</script>
+        </binding>
     </mod-up>
     <repeatable type="bool">false</repeatable>
   </button>
