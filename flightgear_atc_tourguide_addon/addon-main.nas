@@ -217,8 +217,12 @@ var update_announced_pins = func(addon, items, line_count) {
         var pin_id = sprintf("%.4f_%.4f", item.lat, item.lon);
         var pin_label = (item.raw_name != nil and item.raw_name != "") ? item.raw_name : pin_id;
 
+	# Scale font size dynamically based on distance relative to 7 NM baseline,
+        # bounded above OSG's 32.0f texture resolution floor.
+        var scaled_font = math.max(pin_font * (item.dist / 7.0), 32.0);
+
         vrp_marker_pins[pin_id] = {
-            marker: geo.put_marker(pin_label, item.lat, item.lon, elev * M2FT, pin_rgb, pin_font, pin_height)
+            marker: geo.put_marker(pin_label, item.lat, item.lon, elev * M2FT, pin_rgb, scaled_font, pin_height)
         };
     }
 

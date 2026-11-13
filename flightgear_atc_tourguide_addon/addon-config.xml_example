@@ -55,6 +55,7 @@
         <announcement-pin-height-ft type="double">400.0</announcement-pin-height-ft>
 	<!-- Color presets: Amber=[1.0, 0.6, 0.0], Cyan=[0.0, 0.8, 1.0], Green=[0.2, 1.0, 0.2] -->
     	<announcement-pin-rgb type="string">1.0, 0.6, 0.0</announcement-pin-rgb>
+	<!-- Base 3D marker label font size in meters at 7 NM (scales dynamically with distance, minimum 32.0) -->
 	<announcement-pin-font-size type="double">128.0</announcement-pin-font-size>
 
       </com.cholidis.flightgear.tourguide>
