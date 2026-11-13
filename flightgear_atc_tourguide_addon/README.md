@@ -15,6 +15,7 @@
 * 🎛️ **Fully Configurable Ranges & Multipliers:** Scale detection ranges based on landmark type, with configurable priority multipliers.
 * ⏱️ **Flight-Time Auto Announcements & Hotkeys:** Receive periodic tour updates at custom flight-time intervals or trigger an instant update at any time with a single hotkey.
 * 🧹 **Text Sanitization:** Automatic ASCII filtering ensures clean rendering on ATC dialogs and seamless pronunciation with Text-To-Speech (TTS) synthesizer engines.
+* 📍 **Synchronized 3D Terrain Marker Pins:** Spawns temporary 3D map markers exclusively for announced landmarks, displaying authentic native UTF-8 names (e.g., Greek) while speech remains ASCII-sanitized. Pin duration scales dynamically (`(lines + 1) × speech-queue-interval-sec`, minimum `12s`) so markers stay visible throughout the entire voice broadcast.
 
 ---
 
@@ -122,6 +123,10 @@ Custom options are set in `addon-config.xml`.
 | `agl-under-multiplier` | `2.0` | Scaling factor applied to AGL altitude for the "Directly Below" zone. |
 | `exclude-types` | `"10,1001"` | Comma-separated list of POI type names or `poi.dat` numeric IDs to ignore (e.g., 10=Country, 1001=Waypoint). |
 | `chunk-size` | `24000` | POIs evaluated per frame chunk (~800k total). Higher reduces response delay; lower prevents frame lag. |
+| `announcement-pins-enabled` | `true` | Enables or disables temporary 3D terrain marker pins for announced landmarks. |
+| `announcement-pin-height-ft` | `400.0` | Height of the 3D marker pin stem above ground level (AGL) in feet. |
+| `announcement-pin-rgb` | `"1.0, 0.6, 0.0"` | Comma-separated normalized RGB floats (`0.0`–`1.0`) for pin color (e.g., Amber: `1.0, 0.6, 0.0`, Cyan: `0.0, 0.8, 1.0`). |
+| `announcement-pin-font-size` | `128.0` | Scale/font size of the 3D marker pin label. |
 
 ---
 

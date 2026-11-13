@@ -49,6 +49,14 @@
         <!-- Higher = shorter delay before speech, but higher risk of frame lag -->
         <!-- Lower  = smoother framerate, but longer delay before speech -->
         <chunk-size type="int">24000</chunk-size>
+
+        <!-- Enable temporary visual marker pins on announcement (true/false) -->
+        <announcement-pins-enabled type="bool">true</announcement-pins-enabled>
+        <announcement-pin-height-ft type="double">400.0</announcement-pin-height-ft>
+	<!-- Color presets: Amber=[1.0, 0.6, 0.0], Cyan=[0.0, 0.8, 1.0], Green=[0.2, 1.0, 0.2] -->
+    	<announcement-pin-rgb type="string">1.0, 0.6, 0.0</announcement-pin-rgb>
+	<announcement-pin-font-size type="double">128.0</announcement-pin-font-size>
+
       </com.cholidis.flightgear.tourguide>
     </by-id>
   </addons>
