@@ -373,6 +373,7 @@ var main = func(addon) {
 		if (dist <= r_under) {
 		    var raw_txt = poi_name(p);
 		    var clean_txt = clean_tts_text(raw_txt);
+		    if (clean_txt == "") continue;  # <--- Skips empty/invalid names just like regular sectors
 		    append(under_pois, { name: clean_txt, raw_name: raw_txt, dist: dist, type: p_tp, lat: p_lt, lon: p_ln });
 		    continue;
 		}
@@ -436,7 +437,7 @@ var main = func(addon) {
                 # 1. Reserved Overhead Slot (+1 Line)
                 if (size(under_active) > 0) {
                     var s = sort(under_active, sort_by_dist);
-                    append(lines, sprintf("Directly below: %s, %.1f nm", s[0].name, s[0].dist));
+		    append(lines, sprintf("Directly below: %s", s[0].name));
                     append(pin_items, s[0]);
                 }
 
