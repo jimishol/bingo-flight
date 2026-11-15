@@ -43,8 +43,8 @@
     <binding>
       <command type="string">property-scale</command>
       <property type="string">/controls/engines/mixture-all</property>
-      <factor type="double">1</factor>
-      <offset type="double">0</offset>
+      <factor type="double">1.084</factor>
+      <offset type="double">0.0775</offset>
       <power type="double">1</power>
     </binding>
   </axis>

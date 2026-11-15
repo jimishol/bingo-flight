@@ -27,7 +27,7 @@ This controller handles your primary flight controls, independent wheel braking,
 * **Button 3:** View Cycle Backwards (`view.stepView(-1)`)
 * **Button 4:** Elevator Trim Down (`controls.elevatorTrim(1)`) [Repeatable]
 * **Button 5:** Differential Left Brake Only
-* *Action:* Sets `/controls/gear/brake-left` to 1 on press, 0 on release. Useful for tight taxi pivot turns.
+* *Action:* Calls `controls.applyBrakes(1, -1)` on press and `controls.applyBrakes(0, -1)` on release, which sets `/controls/gear/brake-left` to 1 while held. Useful for tight taxi pivot turns.
 
 
 * **Button 6:** Virtual Seat Adjustment Up
@@ -39,7 +39,7 @@ This controller handles your primary flight controls, independent wheel braking,
 
 
 * **Button 8:** Differential Right Brake Only
-* *Action:* Sets `/controls/gear/brake-right to 1` on press, 0 on release.
+* *Action:* Calls `controls.applyBrakes(1, 1)` on press and `controls.applyBrakes(0, 1)` on release, which sets `/controls/gear/brake-right` to 1 while held.
 
 
 * **Button 9:** Elevator Trim Up (`controls.elevatorTrim(-1)`) [Repeatable]
