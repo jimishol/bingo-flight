@@ -189,8 +189,19 @@ var update_announced_pins = func(addon, items, line_count) {
     clear_vrp_pins();
 
     var pin_height   = get_cfg(addon, "announcement-pin-height-ft", 400.0);
-    var pin_font   = get_cfg(addon, "announcement-pin-font-size", 128.0);
+    var pin_font     = get_cfg(addon, "announcement-pin-font-size", 128.0);
     var msg_interval = get_cfg(addon, "speech-queue-interval-sec", 5.0);
+
+    # Calibration reference anchor
+    var ref_dist = 4.3;
+    var ref_fov  = 49.5;
+
+    # Read current camera FOV (fallback to reference FOV if property is nil)
+    var current_fov = getprop("/sim/current-view/field-of-view");
+    if (current_fov == nil) current_fov = ref_fov;
+
+    # FOV perspective ratio compensation
+    var fov_scale = current_fov / ref_fov;
 
     # Parse single-line RGB config string into a vector (defaulting to amber-orange)
     var rgb_str = get_cfg(addon, "announcement-pin-rgb", "1.0, 0.6, 0.0");
@@ -217,9 +228,11 @@ var update_announced_pins = func(addon, items, line_count) {
         var pin_id = sprintf("%.4f_%.4f", item.lat, item.lon);
         var pin_label = (item.raw_name != nil and item.raw_name != "") ? item.raw_name : pin_id;
 
-	# Scale font size dynamically based on distance relative to 7 NM baseline,
+        # Scale font size dynamically based on distance relative to 4.3 NM baseline,
+        # adjusted for current FOV perspective relative to 49.5 degrees,
         # bounded above OSG's 32.0f texture resolution floor.
-        var scaled_font = math.max(pin_font * (item.dist / 7.0), 32.0);
+        var base_scaled = pin_font * (item.dist / ref_dist);
+        var scaled_font = math.max(base_scaled * fov_scale, 32.0);
 
         vrp_marker_pins[pin_id] = {
             marker: geo.put_marker(pin_label, item.lat, item.lon, elev * M2FT, pin_rgb, scaled_font, pin_height)
