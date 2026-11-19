@@ -1,7 +1,11 @@
 {
+  "LNM_DB": "~/.config/ABarthel/little_navmap_db/little_navmap_xp11.sqlite",
+  "DB_URL": "https://davidmegginson.github.io/ourairports-data/airports.csv",
   "globe_data_dir": "~/Documents/Little Navmap Files/GLOBE Elevation Data/all10",
   "clearance": 300,
   "horizontal_buffer_nm": 0.5,
   "grid_step": 1,
-  "max_iters": 150000
+  "max_iters": 150000,
+  "DB_DIR": "~/.cache/flight_dispatch",
+  "default_cruise_alt_ft": 4500
 }

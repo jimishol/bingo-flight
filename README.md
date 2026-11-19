@@ -59,6 +59,7 @@ Experience the complete `bingo-flight` ecosystem in action—from terminal dispa
 * **Sub-Shell Logbook Workspace**: Direct interactive access to state storage. Spawns an internal terminal sub-shell directly in your cache directory, rejecting opaque database locks to give power users absolute autonomy to audit, repair, or backup career text records using standard terminal utilities.
 * **Rich Narrative Logic**: Evaluates your passenger manifests and cargo bounds to select structural text blocks from the localization database, painting context for empty freight runs, heavy operations, or multi-leg journeys.
 * **Zero-Dependency POSIX Execution**: Designed as an uncoupled, zero-installation footprint utility. Decoupled native configurations isolate text processing from core script memory, avoiding fragile Python runtime environments or heavy third-party framework layers.
+* **Contour-Flight Terrain Router (`docs/contour-flight/`)**: Computes low-level, obstacle-buffered mountain corridors via any-angle Theta* routing and GLOBE elevation tiles, reading `briefing.lnmpln` or `briefing.fgfp` from `DB_DIR`, resolving airport coordinates via `LNM_DB` with fallback to `DB_URL`, and synchronizing both formats in-place.
 
 ---
 
@@ -303,6 +304,9 @@ If you fly within FlightGear and want to enhance or safeguard your flight enviro
 * **METAR Capability Refresh**: FlightGear’s bundled `metar.dat.gz` contains outdated station capability data, which can cause real‑weather updates to stall or freeze when airports with obsolete METAR service block fallback logic. The setup guide includes a regeneration step that rebuilds a fresh, correct capability list and restores stable live‑weather behavior.
 
 * **Navigation Database Override (nav.dat)**: FlightGear’s stock navigation database often lags behind current AIRAC cycles, leading to mismatched navaids, missing fixes, and inconsistencies with external planners. The setup guide explains how to override FG’s `nav.dat` with a modern cycle so that LittleNavMap, route planners, and in‑sim navigation all agree.
+
+- **Contour-Flight Mountain Router**: A terrain-aware route planner using Theta* and GLOBE elevation data to weave low-level corridors around ridges and canyons, synchronizing `.lnmpln` and `.fgfp` draft plans in `DB_DIR`.
+  👉 **[Contour-Flight Documentation](./docs/contour-flight/readme.md)**
 
 ---
 

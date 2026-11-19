@@ -198,7 +198,7 @@ def get_terminal_min_alt(reader, coord, horizontal_buffer_nm, clearance):
     lon, lat = coord
     center_rc = lonlat_to_rowcol(lon, lat)
     offsets = build_buffer_offsets(horizontal_buffer_nm, lat)
-    
+
     max_elev_ft = 0.0
     for dr, dc in offsets:
         rc = (center_rc[0] + dr, center_rc[1] + dc)
@@ -332,20 +332,36 @@ def _lookup_global_csv(db_url, ident):
         raise ValueError(f"Airport '{ident}' not found in global CSV: {db_url}")
     return coord
 
-
 def resolve_airport_coord(ident, config):
-    mode = str(config.get("DB_SOURCE") or config.get("db_source") or "LNM").strip().upper()
-    if mode == "LNM":
-        lnm_db = config.get("LNM_DB") or config.get("lnm_db")
-        if not lnm_db:
-            raise ValueError("Missing LNM_DB / lnm_db in config for LNM lookup.")
-        return _lookup_lnm_sqlite(lnm_db, ident)
-    if mode == "GLOBAL":
-        db_url = config.get("DB_URL") or config.get("db_url")
-        if not db_url:
-            raise ValueError("Missing DB_URL / db_url in config for GLOBAL lookup.")
-        return _lookup_global_csv(db_url, ident)
-    raise ValueError(f"Unsupported DB_SOURCE / db_source mode: {mode}")
+    config = config or {}
+    raw_lnm_db = config.get("LNM_DB")
+    db_url = (config.get("DB_URL") or "").strip()
+
+    lnm_error = None
+    if raw_lnm_db and str(raw_lnm_db).strip():
+        expanded_db = os.path.expanduser(os.path.expandvars(str(raw_lnm_db).strip()))
+        if os.path.exists(expanded_db):
+            try:
+                return _lookup_lnm_sqlite(expanded_db, ident)
+            except ValueError as exc:
+                lnm_error = exc
+
+    if db_url:
+        try:
+            return _lookup_global_csv(db_url, ident)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Could not resolve '{ident}' from LNM_DB and DB_URL lookup failed "
+                f"(check your internet connection): {exc}"
+            ) from exc
+
+    if lnm_error is not None:
+        raise lnm_error
+
+    raise RuntimeError(
+        f"Could not resolve '{ident}': LNM_DB is not available and DB_URL is not configured "
+        f"(or there are internet problems)."
+    )
 
 def parse_saved_lnmpln(filepath, config=None):
     """Extracts cruise alt, departure, and destination coords/idents from a saved lnmpln file."""
@@ -526,14 +542,17 @@ if __name__ == "__main__":
     grid_step = int(config.get("grid_step", 1))
     max_iters = int(config.get("max_iters", 150000))
 
-    draft_lnmpln = os.path.expanduser("~/.cache/flight_dispatch/briefing.lnmpln")
-    draft_fgfp = os.path.expanduser("~/.cache/flight_dispatch/briefing.fgfp")
-
     raw_default_alt = config.get("default_cruise_alt_ft")
     default_cruise_alt_ft = float(raw_default_alt) if raw_default_alt is not None else None
 
     # Optional CLI argument override for cruise altitude (e.g., python contour_route.py 1500)
     cli_cruise_alt = float(sys.argv[1]) if len(sys.argv) > 1 else None
+
+    raw_db_dir = config.get("DB_DIR") or "~/.cache/flight_dispatch"
+    briefing_dir = os.path.expanduser(os.path.expandvars(str(raw_db_dir).strip()))
+
+    draft_lnmpln = os.path.join(briefing_dir, "briefing.lnmpln")
+    draft_fgfp = os.path.join(briefing_dir, "briefing.fgfp")
 
     # 1. Read input from whichever saved briefing format is available
     if os.path.exists(draft_lnmpln):
@@ -543,7 +562,9 @@ if __name__ == "__main__":
         print(f"Reading flight plan from FlightGear source: {draft_fgfp}...")
         file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_fgfp(draft_fgfp, config)
     else:
-        raise FileNotFoundError("No flight plan found at ~/.cache/flight_dispatch/briefing.lnmpln or briefing.fgfp.")
+        raise FileNotFoundError(
+            f"No flight plan found at {draft_lnmpln} or {draft_fgfp}."
+        )
 
     # Priority: CLI override > briefing file altitude > config.json default_cruise_alt_ft
     if cli_cruise_alt is not None:
@@ -554,7 +575,7 @@ if __name__ == "__main__":
         cruise_alt = default_cruise_alt_ft
     else:
         raise ValueError("No cruise altitude in CLI, briefing file, or config.json ('default_cruise_alt_ft').")
-    
+
     # 2. Compute Theta* terrain-aware path
     print(
         f"Computing Theta* route from {ident_a} {start_coord} to {ident_b} {goal_coord} "

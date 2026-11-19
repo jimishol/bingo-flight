@@ -16,10 +16,10 @@
 
 ## The Workflow Pipeline
 
-Contour-Flight operates on saved draft files located in `~/.cache/flight_dispatch/`.
-The draft flight plan creator `lnmpln_creator.sh` that run by consuming a formatted briefing of `flight.sh` (unified in `flight()` alias) generate the briefing and stage the cache via the upstream creator pipeline.
+Contour-Flight operates on saved draft files located in `DB_DIR` (by default `~/.cache/flight_dispatch/`).
+The draft flight plan creator `lnmpln_creator.sh` that runs by consuming a formatted briefing of `flight.sh` (unified in `flight()` alias) generates the briefing and stages the cache via the upstream creator pipeline.
 
-Once the draft cache is populated, `contour-flight` intercepts it, calculates the extreme mountain corridor, and synchronizes both formats in-place.
+Once the draft cache is populated, `contour_route.py` checks `briefing.lnmpln` first (falling back to `briefing.fgfp`), calculates the extreme mountain corridor, and synchronizes both formats in-place.
 
 ---
 
@@ -40,8 +40,8 @@ Once the draft cache is populated, `contour-flight` intercepts it, calculates th
 
 `contour_route.py` loads `config.json` from its own directory (`contour-flight/config.json`) so the tool stays portable regardless of your current working directory.
 
-* **`default_cruise_alt_ft`**: Fallback cruise altitude in feet when neither a CLI argument nor a cruise altitude tag in the briefing file is provided (if set to `null` or omitted, no fallback altitude is assumed).
-* **`DB_SOURCE`, `LNM_DB`** and **`DB_URL`** are copies from main project's `flight.conf`.
+- **`LNM_DB`**, **`DB_URL`**, and **`DB_DIR`** are copied from the main project's `flight.conf`. Airport coordinate lookup checks `LNM_DB` first when present and falls back to `DB_URL` (reporting potential internet issues if resolution fails). `DB_DIR` sets the directory for briefing input and output files without creating empty directories on missing input.
+- **`default_cruise_alt_ft`**: Fallback cruise altitude in feet when neither a CLI argument nor a cruise altitude tag in the briefing file is provided (if set to `null` or omitted, no fallback altitude is assumed).
 
 ### Cruise Altitude Priority
 
@@ -59,14 +59,14 @@ When planning a route, starting cruise altitude is resolved in this order:
 
 ## Usage
 
-Contour-Flight reads draft flight plans automatically from the local cache (`~/.cache/flight_dispatch/briefing.lnmpln` or `.fgfp`).
+Contour-Flight reads draft flight plans automatically from `DB_DIR` (`briefing.lnmpln` first, then `briefing.fgfp`; by default under `~/.cache/flight_dispatch/`).
 
-* **Run using the saved briefing file's cruise altitude:**
+- **Run using the saved briefing file's cruise altitude:**
 	```bash
 	python contour_route.py
 	```
 
-* **Run with a forced CLI cruise altitude override (e.g., 4,500 ft):**
+- **Run with a forced CLI cruise altitude override (e.g., 4,500 ft):**
 	```bash
 	python contour_route.py 4500
 	```
