@@ -279,14 +279,13 @@ def route_details(route_coords):
         print(f"Leg {i + 1}: Heading {heading:.1f}°, Distance {dist / 1000.0:.2f} km ({dist / 1852.0:.1f} nm)")
     print(f"Total Route Distance: {total_dist:.2f} km ({total_dist / 1.852:.1f} nm)")
 
-
 def parse_saved_lnmpln(filepath):
     """Extracts cruise alt, departure, and destination coords/idents from a saved lnmpln file."""
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
     alt_match = re.search(r"<CruisingAlt>(.*?)</CruisingAlt>", content)
-    cruising_alt = float(alt_match.group(1)) if alt_match else 4500.0
+    cruising_alt = float(alt_match.group(1)) if alt_match and alt_match.group(1).strip() else None
 
     pos_matches = re.findall(r'<Pos\s+[^>]*[Ll]on="([^"]+)"\s+[^>]*[Ll]at="([^"]+)"', content)
     if not pos_matches:
@@ -306,7 +305,6 @@ def parse_saved_lnmpln(filepath):
 
     return cruising_alt, dep_ident, dest_ident, start_coord, goal_coord
 
-
 def parse_saved_fgfp(filepath):
     """Extracts cruise alt, departure, and destination coords/idents from a saved fgfp file."""
     with open(filepath, "r", encoding="utf-8") as f:
@@ -322,7 +320,7 @@ def parse_saved_fgfp(filepath):
     if not cruise_match:
         cruise_match = re.search(r'<altitude-ft[^>]*>([\d\.]+)</altitude-ft>', content)
 
-    cruising_alt = float(cruise_match.group(1)) if cruise_match else 4500.0
+    cruising_alt = float(cruise_match.group(1)) if cruise_match else None
 
     lons = re.findall(r'<lon type="double">([\d\.-]+)</lon>', content)
     lats = re.findall(r'<lat type="double">([\d\.-]+)</lat>', content)
@@ -432,7 +430,8 @@ def update_fgfp_file(filepath, full_route_coords, cruising_alt, dep_ident, dest_
         f.write(content)
 
 if __name__ == "__main__":
-    config_file = "config.json"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_file = os.path.join(script_dir, "config.json")
     if os.path.exists(config_file):
         with open(config_file, "r", encoding="utf-8") as f:
             config = json.load(f)
@@ -454,6 +453,9 @@ if __name__ == "__main__":
     draft_lnmpln = os.path.expanduser("~/.cache/flight_dispatch/briefing.lnmpln")
     draft_fgfp = os.path.expanduser("~/.cache/flight_dispatch/briefing.fgfp")
 
+    raw_default_alt = config.get("default_cruise_alt_ft")
+    default_cruise_alt_ft = float(raw_default_alt) if raw_default_alt is not None else None
+
     # Optional CLI argument override for cruise altitude (e.g., python contour_route.py 1500)
     cli_cruise_alt = float(sys.argv[1]) if len(sys.argv) > 1 else None
 
@@ -467,8 +469,15 @@ if __name__ == "__main__":
     else:
         raise FileNotFoundError("No flight plan found at ~/.cache/flight_dispatch/briefing.lnmpln or briefing.fgfp.")
 
-    # Determine final starting cruise altitude: CLI override wins if specified, otherwise use file alt
-    cruise_alt = cli_cruise_alt if cli_cruise_alt is not None else file_cruise_alt
+    # Priority: CLI override > briefing file altitude > config.json default_cruise_alt_ft
+    if cli_cruise_alt is not None:
+        cruise_alt = cli_cruise_alt
+    elif file_cruise_alt is not None:
+        cruise_alt = file_cruise_alt
+    elif default_cruise_alt_ft is not None:
+        cruise_alt = default_cruise_alt_ft
+    else:
+        raise ValueError("No cruise altitude in CLI, briefing file, or config.json ('default_cruise_alt_ft').")
     
     # 2. Compute Theta* terrain-aware path
     print(

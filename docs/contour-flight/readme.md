@@ -36,25 +36,24 @@ Once the draft cache is populated, `contour-flight` intercepts it, calculates th
 
 ---
 
-## Configuration
+### Configuration (`config.json`)
 
-1. Copy the example template to create your local configuration file:
-	```bash
-	cp config.json.example config.json
-	```
+`contour_route.py` loads `config.json` from its own directory (`contour-flight/config.json`) so the tool stays portable regardless of your current working directory.
 
-2. Open `config.json` and configure your local path to the GLOBE `all10` directory:
-	```json
-	{
-  	"globe_data_dir": "~/Documents/GLOBE Elevation Data/all10",
-  	"clearance": 300,
-  	"horizontal_buffer_nm": 0.5,
-  	"grid_step": 1,
-  	"max_iters": 150000
-	}
-	```
+* **`default_cruise_alt_ft`**: Fallback cruise altitude in feet when neither a CLI argument nor a cruise altitude tag in the briefing file is provided (if set to `null` or omitted, no fallback altitude is assumed).
+* **`DB_SOURCE`, `LNM_DB`** and **`DB_URL`** are copies from main project's `flight.conf`.
 
-*(Note: `config.json` is excluded via `.gitignore` to keep local machine paths private.)*
+### Cruise Altitude Priority
+
+When planning a route, starting cruise altitude is resolved in this order:
+
+1. **CLI argument** (e.g., `python contour_route.py 1500`)
+2. **Briefing file altitude** (`<CruisingAlt>` in `briefing.lnmpln` or `<altitude-ft>` in `briefing.fgfp`, if present) 
+3. **`default_cruise_alt_ft`** in `config.json`
+
+*Notes:*
+- *The terminal buffer floor check in `plan()` still runs afterward and automatically raises `cruise_alt` if required for departure/destination terrain clearance.*
+- *`config.json` is excluded via `.gitignore` to keep local machine paths private.*
 
 ---
 
