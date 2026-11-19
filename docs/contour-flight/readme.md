@@ -6,6 +6,9 @@
 
 https://github.com/user-attachments/assets/d44cb45f-6b50-4fd2-bdde-be29bee07667
 
+> [!CAUTION]
+> **Simulation Use Only:** Please do not use Contour-Flight for real-world aviation. Low-level mountain threading without certified terrain databases, obstacle data, and regulatory clearance is dangerous and likely illegal—keep it strictly to crashing your simulator in style.
+
 ## Core Architecture & Features
 
 - **Any-Angle Theta* Routing**: Calculates efficient, non-grid-locked paths that hug complex mountain topography.
