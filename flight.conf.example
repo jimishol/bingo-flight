@@ -9,7 +9,7 @@ HOME_ICAO="LGHI"
 CITIES_ALERT_THRESHOLD=5
 
 # Gatekeepers: Set to 'true' for a pre-flight confirmation prompt, 'false' to auto-commit
-CONFIRMATION=true  
+CONFIRMATION=true
 
 # Set a two-letter prefix here to enforce it (e.g., "el" or "en").
 # Leave it blank "" to automatically detect it from your system's $LANG layout.
@@ -26,7 +26,8 @@ DB_URL="https://davidmegginson.github.io/ourairports-data/airports.csv"
 # LNM_DB="$HOME/.config/ABarthel/little_navmap_db/little_navmap_navigraph.sqlite"
 # Or for simulator's airports the below
 LNM_DB="$HOME/.config/ABarthel/little_navmap_db/little_navmap_xp11.sqlite"
-
+# Storage Directories & JSON Sync Outputs
+DB_DIR="${DB_DIR:-$HOME/.cache/flight_dispatch}"
 
 # ==============================================================================
 # SUB-ENGINE ENVIRONMENT BRIDGE

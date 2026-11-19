@@ -1,0 +1,4 @@
+venv/
+GLOBE Elevation Data/
+__pycache__/
+config.json
