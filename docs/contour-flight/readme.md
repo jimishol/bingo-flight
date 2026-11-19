@@ -4,7 +4,7 @@
 
 ## Demo
 
-<!-- Drag & drop your 7.8 MB .mp4 onto the line below in GitHub's web editor and remove this comment -->
+https://github.com/user-attachments/assets/d44cb45f-6b50-4fd2-bdde-be29bee07667
 
 ## Core Architecture & Features
 
