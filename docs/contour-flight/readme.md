@@ -2,6 +2,10 @@
 
 **Contour-Flight** is a standalone, extreme mountain-threading route planner for Little Navmap (`.lnmpln`) and FlightGear (`.fgfp`). Rather than generating standard, high-altitude commercial airways, Contour-Flight computes aggressive, low-level adventure corridors—skimming ridges, hugging canyon walls, and challenging whether an aircraft can weave *through* mountain peaks rather than flying far above them.
 
+## Demo
+
+<!-- Drag & drop your 7.8 MB .mp4 onto the line below in GitHub's web editor and remove this comment -->
+
 ## Core Architecture & Features
 
 - **Any-Angle Theta* Routing**: Calculates efficient, non-grid-locked paths that hug complex mountain topography.

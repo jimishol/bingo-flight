@@ -521,6 +521,38 @@ def update_fgfp_file(filepath, full_route_coords, cruising_alt, dep_ident, dest_
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(content)
 
+def parse_cli_args(argv):
+    """Parses optional altitude (float) and plan file path in any order, plus --file/-f."""
+    cli_cruise_alt = None
+    plan_path = None
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg.startswith("--file="):
+            plan_path = arg.split("=", 1)[1].strip()
+        elif arg in ("--file", "-f"):
+            if i + 1 >= len(argv):
+                raise ValueError(f"Missing path value after {arg}.")
+            i += 1
+            plan_path = argv[i].strip()
+        else:
+            # Try numeric cruise altitude first
+            try:
+                val = float(arg)
+                if math.isnan(val) or math.isinf(val):
+                    raise ValueError("Altitude must be a finite number.")
+                if cli_cruise_alt is not None:
+                    raise ValueError(f"Duplicate cruise altitude argument: '{arg}'.")
+                cli_cruise_alt = val
+            except ValueError:
+                if plan_path is not None:
+                    raise ValueError(f"Unexpected or duplicate argument: '{arg}'.")
+                plan_path = arg
+        i += 1
+
+    return plan_path, cli_cruise_alt
+
+
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     config_file = os.path.join(script_dir, "config.json")
@@ -545,28 +577,57 @@ if __name__ == "__main__":
     raw_default_alt = config.get("default_cruise_alt_ft")
     default_cruise_alt_ft = float(raw_default_alt) if raw_default_alt is not None else None
 
-    # Optional CLI argument override for cruise altitude (e.g., python contour_route.py 1500)
-    cli_cruise_alt = float(sys.argv[1]) if len(sys.argv) > 1 else None
+    try:
+        raw_plan_arg, cli_cruise_alt = parse_cli_args(sys.argv[1:])
+    except ValueError as e:
+        print(f"\n[CLI ERROR] {e}")
+        print("Usage: contour_route.py [ALT_FT] [PATH/TO/PLAN.{lnmpln,fgfp}] (or --file=PATH)")
+        sys.exit(1)
 
-    raw_db_dir = config.get("DB_DIR") or "~/.cache/flight_dispatch"
-    briefing_dir = os.path.expanduser(os.path.expandvars(str(raw_db_dir).strip()))
+    custom_plan_mode = raw_plan_arg is not None
 
-    draft_lnmpln = os.path.join(briefing_dir, "briefing.lnmpln")
-    draft_fgfp = os.path.join(briefing_dir, "briefing.fgfp")
+    if custom_plan_mode:
+        expanded_plan = os.path.abspath(os.path.expanduser(os.path.expandvars(raw_plan_arg)))
+        ext = os.path.splitext(expanded_plan)[1].lower()
+        if ext not in (".lnmpln", ".fgfp"):
+            print(f"\n[CLI ERROR] Unsupported flight plan extension '{ext or '(none)'}'. Expected .lnmpln or .fgfp.")
+            sys.exit(1)
+        if not os.path.exists(expanded_plan):
+            raise FileNotFoundError(f"Flight plan file not found: {expanded_plan}")
 
-    # 1. Read input from whichever saved briefing format is available
-    if os.path.exists(draft_lnmpln):
-        print(f"Reading flight plan from LNM source: {draft_lnmpln}...")
-        file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_lnmpln(draft_lnmpln, config)
-    elif os.path.exists(draft_fgfp):
-        print(f"Reading flight plan from FlightGear source: {draft_fgfp}...")
-        file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_fgfp(draft_fgfp, config)
+        stem, _ = os.path.splitext(expanded_plan)
+        target_lnmpln = f"{stem}.lnmpln"
+        target_fgfp = f"{stem}.fgfp"
+
+        print("\n\033[3m[WARNING] External plan mode: ONLY departure and destination endpoints are preserved;\033[0m")
+        print("\033[3m          any intermediate waypoints/legs will be replaced by the contour corridor.\033[0m\n")
+
+        if ext == ".lnmpln":
+            print(f"Reading flight plan from LNM source: {expanded_plan}...")
+            file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_lnmpln(expanded_plan, config)
+        else:
+            print(f"Reading flight plan from FlightGear source: {expanded_plan}...")
+            file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_fgfp(expanded_plan, config)
     else:
-        raise FileNotFoundError(
-            f"No flight plan found at {draft_lnmpln} or {draft_fgfp}."
-        )
+        raw_db_dir = config.get("DB_DIR") or "~/.cache/flight_dispatch"
+        briefing_dir = os.path.expanduser(os.path.expandvars(str(raw_db_dir).strip()))
 
-    # Priority: CLI override > briefing file altitude > config.json default_cruise_alt_ft
+        target_lnmpln = os.path.join(briefing_dir, "briefing.lnmpln")
+        target_fgfp = os.path.join(briefing_dir, "briefing.fgfp")
+
+        # 1. Read input from whichever saved briefing format is available
+        if os.path.exists(target_lnmpln):
+            print(f"Reading flight plan from LNM source: {target_lnmpln}...")
+            file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_lnmpln(target_lnmpln, config)
+        elif os.path.exists(target_fgfp):
+            print(f"Reading flight plan from FlightGear source: {target_fgfp}...")
+            file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_fgfp(target_fgfp, config)
+        else:
+            raise FileNotFoundError(
+                f"No flight plan found at {target_lnmpln} or {target_fgfp}."
+            )
+
+    # Priority: CLI override > briefing/plan file altitude > config.json default_cruise_alt_ft
     if cli_cruise_alt is not None:
         cruise_alt = cli_cruise_alt
     elif file_cruise_alt is not None:
@@ -574,7 +635,7 @@ if __name__ == "__main__":
     elif default_cruise_alt_ft is not None:
         cruise_alt = default_cruise_alt_ft
     else:
-        raise ValueError("No cruise altitude in CLI, briefing file, or config.json ('default_cruise_alt_ft').")
+        raise ValueError("No cruise altitude in CLI, flight plan file, or config.json ('default_cruise_alt_ft').")
 
     # 2. Compute Theta* terrain-aware path
     print(
@@ -596,13 +657,13 @@ if __name__ == "__main__":
         )
     except RuntimeError as e:
         print(f"\n[DISPATCH ERROR] Pathfinding failed: {e}")
-        exit(1)
+        sys.exit(1)
 
     print(f"Route calculated successfully with {len(route_coords)} waypoints.")
     route_details(route_coords)
 
-    # 3. Unconditionally export/update BOTH formats
-    if not os.path.exists(draft_lnmpln):
+    # 3. Unconditionally export/update BOTH formats in-place
+    if not os.path.exists(target_lnmpln):
         base_lnm = (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<LittleNavmap xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
@@ -614,11 +675,11 @@ if __name__ == "__main__":
             "    </Header>\n    <Waypoints>\n    </Waypoints>\n  </Flightplan>\n"
             "</LittleNavmap>"
         )
-        with open(draft_lnmpln, "w", encoding="utf-8") as f:
+        with open(target_lnmpln, "w", encoding="utf-8") as f:
             f.write(base_lnm)
 
     update_lnmpln_file(
-        filepath=draft_lnmpln,
+        filepath=target_lnmpln,
         full_route_coords=route_coords,
         cruising_alt=cruise_alt,
         dep_ident=ident_a,
@@ -626,9 +687,9 @@ if __name__ == "__main__":
         start_coord=start_coord,
         goal_coord=goal_coord,
     )
-    print(f"-> Synchronized Little Navmap format: {draft_lnmpln}")
+    print(f"-> Synchronized Little Navmap format: {target_lnmpln}")
 
-    if not os.path.exists(draft_fgfp):
+    if not os.path.exists(target_fgfp):
         base_fgfp = (
             '<?xml version="1.0"?>\n<PropertyList>\n'
             '  <version type="int">2</version>\n'
@@ -639,11 +700,11 @@ if __name__ == "__main__":
             f'  <destination>\n    <airport type="string">{ident_b}</airport>\n  </destination>\n'
             "  <route>\n  </route>\n</PropertyList>"
         )
-        with open(draft_fgfp, "w", encoding="utf-8") as f:
+        with open(target_fgfp, "w", encoding="utf-8") as f:
             f.write(base_fgfp)
 
     update_fgfp_file(
-        filepath=draft_fgfp,
+        filepath=target_fgfp,
         full_route_coords=route_coords,
         cruising_alt=cruise_alt,
         dep_ident=ident_a,
@@ -651,4 +712,4 @@ if __name__ == "__main__":
         start_coord=start_coord,
         goal_coord=goal_coord,
     )
-    print(f"-> Synchronized FlightGear format: {draft_fgfp}")
+    print(f"-> Synchronized FlightGear format: {target_fgfp}")
