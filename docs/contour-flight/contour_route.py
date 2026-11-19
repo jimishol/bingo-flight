@@ -14,6 +14,10 @@ import json
 import os
 import re
 import sys
+import csv
+import io
+import sqlite3
+import urllib.request
 from pyproj import Geod
 from global_reader import PythonGlobeReader
 
@@ -279,7 +283,71 @@ def route_details(route_coords):
         print(f"Leg {i + 1}: Heading {heading:.1f}°, Distance {dist / 1000.0:.2f} km ({dist / 1852.0:.1f} nm)")
     print(f"Total Route Distance: {total_dist:.2f} km ({total_dist / 1.852:.1f} nm)")
 
-def parse_saved_lnmpln(filepath):
+_GLOBAL_AIRPORTS_CACHE = {}
+
+
+def _lookup_lnm_sqlite(db_path, ident):
+    expanded = os.path.expanduser(db_path)
+    if not os.path.exists(expanded):
+        raise FileNotFoundError(f"LNM SQLite database not found: {expanded}")
+
+    conn = sqlite3.connect(expanded)
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT lonx, laty FROM airport WHERE UPPER(ident) = UPPER(?) LIMIT 1",
+            (ident.strip(),),
+        )
+        row = cur.fetchone()
+    finally:
+        conn.close()
+
+    if not row or row[0] is None or row[1] is None:
+        raise ValueError(f"Airport '{ident}' not found in LNM database: {expanded}")
+    return (float(row[0]), float(row[1]))
+
+
+def _lookup_global_csv(db_url, ident):
+    if db_url not in _GLOBAL_AIRPORTS_CACHE:
+        with urllib.request.urlopen(db_url, timeout=15) as resp:
+            text = resp.read().decode("utf-8")
+
+        airports = {}
+        reader = csv.DictReader(io.StringIO(text))
+        for row in reader:
+            lon = row.get("longitude_deg")
+            lat = row.get("latitude_deg")
+            if not lon or not lat:
+                continue
+            coord = (float(lon), float(lat))
+            for field in ("ident", "gps_code", "iata_code"):
+                code = (row.get(field) or "").strip().upper()
+                if code and code not in airports:
+                    airports[code] = coord
+        _GLOBAL_AIRPORTS_CACHE[db_url] = airports
+
+    target = ident.strip().upper()
+    coord = _GLOBAL_AIRPORTS_CACHE[db_url].get(target)
+    if coord is None:
+        raise ValueError(f"Airport '{ident}' not found in global CSV: {db_url}")
+    return coord
+
+
+def resolve_airport_coord(ident, config):
+    mode = str(config.get("DB_SOURCE") or config.get("db_source") or "LNM").strip().upper()
+    if mode == "LNM":
+        lnm_db = config.get("LNM_DB") or config.get("lnm_db")
+        if not lnm_db:
+            raise ValueError("Missing LNM_DB / lnm_db in config for LNM lookup.")
+        return _lookup_lnm_sqlite(lnm_db, ident)
+    if mode == "GLOBAL":
+        db_url = config.get("DB_URL") or config.get("db_url")
+        if not db_url:
+            raise ValueError("Missing DB_URL / db_url in config for GLOBAL lookup.")
+        return _lookup_global_csv(db_url, ident)
+    raise ValueError(f"Unsupported DB_SOURCE / db_source mode: {mode}")
+
+def parse_saved_lnmpln(filepath, config=None):
     """Extracts cruise alt, departure, and destination coords/idents from a saved lnmpln file."""
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
@@ -287,25 +355,28 @@ def parse_saved_lnmpln(filepath):
     alt_match = re.search(r"<CruisingAlt>(.*?)</CruisingAlt>", content)
     cruising_alt = float(alt_match.group(1)) if alt_match and alt_match.group(1).strip() else None
 
+    ident_matches = re.findall(r"<Ident>(.*?)</Ident>", content)
+    dep_ident = ident_matches[0].strip() if ident_matches else "DEP"
+    dest_ident = ident_matches[-1].strip() if ident_matches else "DEST"
+
     pos_matches = re.findall(r'<Pos\s+[^>]*[Ll]on="([^"]+)"\s+[^>]*[Ll]at="([^"]+)"', content)
     if not pos_matches:
         pos_matches = re.findall(r'<Pos\s+[^>]*[Ll]at="([^"]+)"\s+[^>]*[Ll]on="([^"]+)"', content)
         if pos_matches:
             pos_matches = [(m[1], m[0]) for m in pos_matches]
 
-    if len(pos_matches) < 2:
+    if len(pos_matches) >= 2:
+        start_coord = (float(pos_matches[0][0]), float(pos_matches[0][1]))
+        goal_coord = (float(pos_matches[-1][0]), float(pos_matches[-1][1]))
+    elif config is not None:
+        start_coord = resolve_airport_coord(dep_ident, config)
+        goal_coord = resolve_airport_coord(dest_ident, config)
+    else:
         raise ValueError("Saved lnmpln must contain at least departure and destination positions.")
-
-    start_coord = (float(pos_matches[0][0]), float(pos_matches[0][1]))
-    goal_coord = (float(pos_matches[-1][0]), float(pos_matches[-1][1]))
-
-    ident_matches = re.findall(r"<Ident>(.*?)</Ident>", content)
-    dep_ident = ident_matches[0].strip() if ident_matches else "DEP"
-    dest_ident = ident_matches[-1].strip() if ident_matches else "DEST"
 
     return cruising_alt, dep_ident, dest_ident, start_coord, goal_coord
 
-def parse_saved_fgfp(filepath):
+def parse_saved_fgfp(filepath, config=None):
     """Extracts cruise alt, departure, and destination coords/idents from a saved fgfp file."""
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
@@ -328,6 +399,11 @@ def parse_saved_fgfp(filepath):
     if len(lons) >= 2 and len(lats) >= 2:
         start_coord = (float(lons[0]), float(lats[0]))
         goal_coord = (float(lons[-1]), float(lats[-1]))
+        return cruising_alt, dep_ident, dest_ident, start_coord, goal_coord
+
+    if config is not None:
+        start_coord = resolve_airport_coord(dep_ident, config)
+        goal_coord = resolve_airport_coord(dest_ident, config)
         return cruising_alt, dep_ident, dest_ident, start_coord, goal_coord
 
     raise ValueError("Saved fgfp must contain at least departure and destination coordinates.")
@@ -462,10 +538,10 @@ if __name__ == "__main__":
     # 1. Read input from whichever saved briefing format is available
     if os.path.exists(draft_lnmpln):
         print(f"Reading flight plan from LNM source: {draft_lnmpln}...")
-        file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_lnmpln(draft_lnmpln)
+        file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_lnmpln(draft_lnmpln, config)
     elif os.path.exists(draft_fgfp):
         print(f"Reading flight plan from FlightGear source: {draft_fgfp}...")
-        file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_fgfp(draft_fgfp)
+        file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_fgfp(draft_fgfp, config)
     else:
         raise FileNotFoundError("No flight plan found at ~/.cache/flight_dispatch/briefing.lnmpln or briefing.fgfp.")
 
