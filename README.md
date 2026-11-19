@@ -6,7 +6,7 @@ A lightweight, terminal-native flight dispatch and career-tracking engine writte
 ~ 🐧 flight lg
 Rolling the dice for a random airfield matching prefix 'LG' (DECK-aware)...
 =========================================================
-                    DISPATCH BRIEFING                    
+                    DISPATCH BRIEFING
 =========================================================
 Destination : Tanagra Air Base
 Location    : Tanagra, GR (ICAO: LGTG)
@@ -26,7 +26,7 @@ Calculate your Weight & Balance carefully before advancing the throttle!
 Have a great flight!
 ~ 🐧 flight -f
 =========================================================
-                LOGBOOK STORAGE MANAGEMENT                
+                LOGBOOK STORAGE MANAGEMENT
 =========================================================
 Cache Directory: /home/jimishol/.cache/flight_dispatch
 ---------------------------------------------------------
@@ -99,7 +99,7 @@ Establish your starting airport metrics, primary fleet parameters, and database 
 VEHICLE_TIER="small_airplane"
 HOME_ICAO="LGHI"
 CITIES_ALERT_THRESHOLD=5
-CONFIRMATION=false  
+CONFIRMATION=false
 
 # Provider options: "GLOBAL" (OurAirports stream) or "LNM" (Local Little Navmap Cache)
 DB_SOURCE="LNM"
@@ -150,16 +150,19 @@ VEHICLE_TIER=helicopter ./flight.sh -n lg
 Add this wrapper function to your shell profile (`~/.bashrc`, `~/.zshrc`, or `~/.bash_aliases`) to automatically compile and export synchronized flight plans to `$HOME/.cache/flight_dispatch/briefing.[fgfp|lnmpln]` every time you fetch a briefing. This feeds your active routing and remarks directly into FlightGear and Little Navmap without manual file handling.
 
 ```bash
+
 flight() {
-    FLIGHT_HOME="$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight"
-    CACHE="$HOME/.cache/flight_dispatch/briefing.lnmpln"
+    local FLIGHT_HOME="$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight"
+    local DB_DIR CACHE
+
+    # Pull DB_DIR from the single source of truth (subshell = no env leakage)
+    DB_DIR=$(source "$FLIGHT_HOME/flight.conf" 2>/dev/null && echo "${DB_DIR:-$HOME/.cache/flight_dispatch}")
+    CACHE="$DB_DIR/briefing.lnmpln"
 
     # Extract DEP/DEST ICAOs silently if cache exists
     if [ -f "$CACHE" ]; then
-        # Extract all <Ident> tags found ONLY inside the <Waypoints> block
+        local WAYPOINTS DEP DEST
         WAYPOINTS=$(sed -n '/<Waypoints>/,/\<\/Waypoints\>/p' "$CACHE" | grep "<Ident>" | sed 's/.*<Ident>\(.*\)<\/Ident>.*/\1/')
-
-        # First waypoint is Departure, last waypoint is Destination
         DEP=$(echo "$WAYPOINTS" | head -n 1)
         DEST=$(echo "$WAYPOINTS" | tail -n 1)
 
@@ -169,6 +172,7 @@ flight() {
         echo ""
     fi
 
+    local _arg
     for _arg in "$@"; do
         case "$_arg" in
             -f|--files|-e|-c|-h|--help|--reset)
@@ -287,13 +291,13 @@ nano journey_log.txt
 
 If you fly within FlightGear and want to enhance or safeguard your flight environment, review these dedicated configurations:
 
-* **Live Tracking Bridge**: Sync real-time telemetry, map nodes, and interactive position briefings dynamically between your flight simulator and tracking software.  
+* **Live Tracking Bridge**: Sync real-time telemetry, map nodes, and interactive position briefings dynamically between your flight simulator and tracking software.
   👉 **[FlightGear ↔ LittleNavMap Navigation Bridge Setup Guide](./FlightGear_LittleNavMap_Bridge_Setup.md)**
 
-* **Copilot Pillow Add-on**: A lightweight, high-altitude safety watchdog built in Nasal for steady long-haul cruise phases. It monitors Calibrated Airspeed ($V_{cal}$) and automatically triggers FlightGear's native pause to protect your airframe from a catastrophic stall spin if atmospheric changes shift while you are away from the desk.  
+* **Copilot Pillow Add-on**: A lightweight, high-altitude safety watchdog built in Nasal for steady long-haul cruise phases. It monitors Calibrated Airspeed ($V_{cal}$) and automatically triggers FlightGear's native pause to protect your airframe from a catastrophic stall spin if atmospheric changes shift while you are away from the desk.
   👉 **[Copilot Pillow Add-on Documentation](./flightgear_pillow_addon/README.md)**
 
-* **TourGuide Add-on**: A spatial-aware flight announcement add-on that queries FlightGear's POI database to deliver real-time, sector-based landmark updates via on-screen ATC messages.  
+* **TourGuide Add-on**: A spatial-aware flight announcement add-on that queries FlightGear's POI database to deliver real-time, sector-based landmark updates via on-screen ATC messages.
   👉 **[TourGuide Add-on Documentation](./flightgear_atc_tourguide_addon/README.md)**
 
 * **METAR Capability Refresh**: FlightGear’s bundled `metar.dat.gz` contains outdated station capability data, which can cause real‑weather updates to stall or freeze when airports with obsolete METAR service block fallback logic. The setup guide includes a regeneration step that rebuilds a fresh, correct capability list and restores stable live‑weather behavior.

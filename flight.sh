@@ -60,7 +60,6 @@ fi
 # INTERNAL STORAGE MECHANICS (Application State)
 # ==============================================================================
 # These are internal system paths that the main script handles automatically.
-DB_DIR="$HOME/.cache/flight_dispatch"
 DB_FILE="$DB_DIR/airports.json"
 
 # Adventure & Target Profile Files

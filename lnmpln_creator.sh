@@ -21,7 +21,6 @@ fi
 # ==============================================================================
 # DIRECTORY AND FILE CONFIGURATION
 # ==============================================================================
-DB_DIR="$HOME/.cache/flight_dispatch"
 LNM_OUTPUT_FILE="$DB_DIR/briefing.lnmpln"
 FGFP_OUTPUT_FILE="$DB_DIR/briefing.fgfp"
 
