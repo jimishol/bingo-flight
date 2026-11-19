@@ -420,26 +420,33 @@ fgfs-metar() {
     # -------------------------------------------------------------------------
     # Set argument for generate_metar_dat.py ("lg", "eg", "-y", or "" for prompt)
     local METAR_ARG="lg"
-    
-    # Path to Little Navmap briefing cache
-    CACHE="$HOME/.cache/flight_dispatch/briefing.lnmpln"
+
+    local FLIGHT_HOME="$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight"
+    local DB_DIR CACHE FGFP_FILE DEP="" WAYPOINTS
+
+    # Pull DB_DIR from the single source of truth (subshell = no env leakage)
+    DB_DIR=$(source "$FLIGHT_HOME/flight.conf" 2>/dev/null && printf '%s\n' "${DB_DIR:-$HOME/.cache/flight_dispatch}")
+    DB_DIR="${DB_DIR/#\~/$HOME}"
+
+    CACHE="$DB_DIR/briefing.lnmpln"
+    FGFP_FILE="$DB_DIR/briefing.fgfp"
     # -------------------------------------------------------------------------
 
-    DEP=""
-
     if [ -f "$CACHE" ]; then
-        WAYPOINTS=$(sed -n '/<Waypoints>/,/\<\/Waypoints\>/p' "$CACHE" | grep "<Ident>" | sed 's/.*<Ident>\(.*\)<\/Ident>.*/\1/')
+        WAYPOINTS=$(sed -n '/<Waypoints>/,/<\/Waypoints>/p' "$CACHE" | grep "<Ident>" | sed 's/.*<Ident>\(.*\)<\/Ident>.*/\1/')
         DEP=$(echo "$WAYPOINTS" | head -n 1)
     fi
 
     if [ -n "$METAR_ARG" ]; then
-        python3 "$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/docs/METAR_live_data/generate_metar_dat.py" "$METAR_ARG"
+        python3 "$FLIGHT_HOME/docs/METAR_live_data/generate_metar_dat.py" "$METAR_ARG"
     else
-        python3 "$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/docs/METAR_live_data/generate_metar_dat.py"
+        python3 "$FLIGHT_HOME/docs/METAR_live_data/generate_metar_dat.py"
     fi
 
-    if [ -n "$DEP" ]; then
-        exec fgfs --airport="$DEP" --flight-plan="$HOME/.cache/flight_dispatch/briefing.fgfp" --launcher
+    if [ -n "$DEP" ] && [ -f "$FGFP_FILE" ]; then
+        exec fgfs --airport="$DEP" --flight-plan="$FGFP_FILE" --launcher
+    elif [ -n "$DEP" ]; then
+        exec fgfs --airport="$DEP" --launcher
     else
         exec fgfs --launcher
     fi

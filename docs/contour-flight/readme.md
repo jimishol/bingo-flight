@@ -70,3 +70,8 @@ Contour-Flight reads draft flight plans automatically from `DB_DIR` (`briefing.l
 	```bash
 	python contour_route.py 4500
 	```
+
+- **Optional shell alias** (add to `~/.bashrc` or `~/.zshrc` to run from any directory):
+	```bash
+	alias fg-contour='python3 "$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/docs/contour-flight/contour_route.py"'
+	```
