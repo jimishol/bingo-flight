@@ -14,7 +14,7 @@ https://github.com/user-attachments/assets/d44cb45f-6b50-4fd2-bdde-be29bee07667
 - **Configurable Horizontal Obstacle Inflation**: The `horizontal_buffer_nm` parameter acts as a safety bubble around terrain. By checking a spatial buffer around every grid node, obstacles are effectively inflated—allowing you to tune whether the router carves wide, safe berths around peaks or shaves right against the cliff faces for maximum adrenaline.
 - **Terminal Buffer Floor**: Scans airport surroundings to prevent pathfinding crashes caused by airports sitting "underground" relative to nearby inflated terrain barriers—automatically intercepting low inputs, logging an unmissable italicized notice, and rounding up to a viable starting floor.
 - **Bi-Format Synchronization**: Reads from and writes back to either Little Navmap (`.lnmpln`) or FlightGear (`.fgfp`) draft caches in-place while preserving custom comments and metadata.
-- **CLI Altitude Override**: Supports passing explicit low-level altitude overrides directly from the command line (e.g., `python contour_route.py 1200`) when carving your path through the peaks.
+- **Flexible CLI & External Plan Support**: Accepts optional low-level altitude overrides and arbitrary `.lnmpln` or `.fgfp` file paths in any argument order (or via `--file` / `-f`), updating both formats in-place.
 
 ---
 
@@ -63,7 +63,7 @@ When planning a route, starting cruise altitude is resolved in this order:
 
 ## Usage
 
-Contour-Flight reads draft flight plans automatically from `DB_DIR` (`briefing.lnmpln` first, then `briefing.fgfp`; by default under `~/.cache/flight_dispatch/`).
+By default, Contour-Flight reads draft flight plans from `DB_DIR` (`briefing.lnmpln` first, then `briefing.fgfp`; under `~/.cache/flight_dispatch/`) and synchronizes both formats in-place. You can also target any standalone `.lnmpln` or `.fgfp` file directly.
 
 - **Run using the saved briefing file's cruise altitude:**
 	```bash
@@ -74,6 +74,15 @@ Contour-Flight reads draft flight plans automatically from `DB_DIR` (`briefing.l
 	```bash
 	python contour_route.py 4500
 	```
+
+- **Run against any `.lnmpln` or `.fgfp` file** (altitude and file path can be passed in either order, or via `--file` / `-f`):
+	```bash
+	python contour_route.py /path/to/plan.lnmpln
+	python contour_route.py /path/to/plan.lnmpln 2500
+	python contour_route.py 2500 /path/to/plan.fgfp
+	python contour_route.py --file=/path/to/plan.lnmpln 2500
+	```
+	> **Warning:** In external plan mode, **only the departure and destination endpoints are preserved**—all intermediate waypoints and legs in the source file are replaced by the computed Theta* corridor, and both `<stem>.lnmpln` and `<stem>.fgfp` are updated or created in-place in that file's directory.
 
 - **Optional shell alias** (add to `~/.bashrc` or `~/.zshrc` to run from any directory):
 	```bash
