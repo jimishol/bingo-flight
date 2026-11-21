@@ -11,13 +11,14 @@ https://github.com/user-attachments/assets/d44cb45f-6b50-4fd2-bdde-be29bee07667
 
 ## Core Architecture & Features
 
-- **Any-Angle Theta* Routing**: Calculates efficient, non-grid-locked paths that hug complex mountain topography.
-- **Supercover Bresenham Line Checks**: Scans every grid cell touched by route segments to ensure absolute terrain tracking without tunneling through narrow ridges.
+- **Any-Angle Theta* Routing**: Calculates non-grid-locked paths that hug complex mountain topography. — [Nash, Daniel, Koenig & Felner, AAAI 2007 (`aaai07a.pdf`)](https://idm-lab.org/bib/abstracts/papers/aaai07a.pdf)
+- **Supercover Bresenham Line Checks**: Scans every grid cell touched by route segments to ensure absolute terrain tracking without tunneling through narrow ridges. — [Dedu, Supercover Bresenham](https://dedu.fr/projects/bresenham/)
 - **Pure Python GLOBE Elevation Reader**: Fast, native binary parsing of GLOBE dataset tiles with in-memory caching and zero redundant external dependencies.
+- **Configurable Grid Stride (`grid_step`)**: Steps every `N`th cell on the GLOBE elevation grid (similar to working on a downsampled image: `step=2` halves per-axis resolution for roughly 4× the area per step; `step=3` gives roughly 9×). Higher integer values speed up long searches within `max_iters` at the cost of coarser turns and potentially skipping narrow passes or straits; `grid_step=1` keeps full grid resolution.
 - **Configurable Horizontal Obstacle Inflation**: The `horizontal_buffer_nm` parameter acts as a safety bubble around terrain. By checking a spatial buffer around every grid node, obstacles are effectively inflated—allowing you to tune whether the router carves wide, safe berths around peaks or shaves right against the cliff faces for maximum adrenaline.
 - **Terminal Buffer Floor**: Scans airport surroundings to prevent pathfinding crashes caused by airports sitting "underground" relative to nearby inflated terrain barriers—automatically intercepting low inputs, logging an unmissable italicized notice, and rounding up to a viable starting floor.
 - **Bi-Format Synchronization**: Reads from and writes back to either Little Navmap (`.lnmpln`) or FlightGear (`.fgfp`) draft caches in-place while preserving custom comments and metadata.
-- **Flexible CLI & External Plan Support**: Accepts optional low-level altitude overrides and arbitrary `.lnmpln` or `.fgfp` file paths in any argument order (or via `--file` / `-f`), updating both formats in-place.
+- **Flexible CLI & External Plan Support**: Accepts optional low-level altitude overrides, `--step` / `--max-iters` search tuning flags, and arbitrary `.lnmpln` or `.fgfp` file paths in any argument order (or via `--file` / `-f`), updating both formats in-place.
 
 ---
 
@@ -68,6 +69,11 @@ When planning a route, starting cruise altitude is resolved in this order:
 
 By default, Contour-Flight reads draft flight plans from `DB_DIR` (`briefing.lnmpln` first, then `briefing.fgfp`; under `~/.cache/flight_dispatch/`) and synchronizes both formats in-place. You can also target any standalone `.lnmpln` or `.fgfp` file directly.
 
+- **Show CLI help:**
+	```bash
+	python contour_route.py --help
+	```
+
 - **Run using the saved briefing file's cruise altitude:**
 	```bash
 	python contour_route.py
@@ -78,12 +84,19 @@ By default, Contour-Flight reads draft flight plans from `DB_DIR` (`briefing.lnm
 	python contour_route.py 4500
 	```
 
-- **Run against any `.lnmpln` or `.fgfp` file** (altitude and file path can be passed in either order, or via `--file` / `-f`):
+- **Tune search stride (`--step`) or iteration budget (`--max-iters`) for tricky low-altitude legs:**
+	```bash
+	python contour_route.py --step=3
+	python contour_route.py --max-iters=1500000
+	```
+
+- **Run against any `.lnmpln` or `.fgfp` file** (altitude and file path can be passed in either order, or via `--file` / `-f`, with optional `--step` and `--max-iters` at the end):
 	```bash
 	python contour_route.py /path/to/plan.lnmpln
 	python contour_route.py /path/to/plan.lnmpln 2500
 	python contour_route.py 2500 /path/to/plan.fgfp
 	python contour_route.py --file=/path/to/plan.lnmpln 2500
+	python contour_route.py /path/to/plan.lnmpln 2500 --step=3 --max-iters=1500000
 	```
 	> **Warning:** In external plan mode, **only the departure and destination endpoints are preserved**—all intermediate waypoints and legs in the source file are replaced by the computed Theta* corridor, and both `<stem>.lnmpln` and `<stem>.fgfp` are updated or created in-place in that file's directory.
 
