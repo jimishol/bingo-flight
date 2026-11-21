@@ -552,8 +552,16 @@ def parse_cli_args(argv):
 
     return plan_path, cli_cruise_alt
 
-
 if __name__ == "__main__":
+    raw_argv = sys.argv[1:]
+    if "-h" in raw_argv or "--help" in raw_argv:
+        print("Usage: contour_route.py [ALT_FT] [PATH/TO/PLAN.{lnmpln,fgfp}] [--file=PATH] [--step=N] [--max-iters=N]")
+        print("Options:")
+        print("  -h, --help          Show this help message and exit.")
+        print("  --step, --grid-step Override grid_step from config.json (integer >= 1; higher = faster, coarser).")
+        print("  --max-iters         Override max_iters from config.json (integer >= 1; higher = slower, full grid resolution).")
+        sys.exit(0)
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     config_file = os.path.join(script_dir, "config.json")
     if os.path.exists(config_file):
@@ -571,18 +579,62 @@ if __name__ == "__main__":
     globe_dir = os.path.expanduser(config["globe_data_dir"])
     clearance = float(config.get("clearance", 300))
     horizontal_buffer_nm = float(config.get("horizontal_buffer_nm", 1.0))
-    grid_step = int(config.get("grid_step", 1))
-    max_iters = int(config.get("max_iters", 150000))
 
     raw_default_alt = config.get("default_cruise_alt_ft")
     default_cruise_alt_ft = float(raw_default_alt) if raw_default_alt is not None else None
 
+    def _parse_pos_int_token(val_str, flag_name):
+        try:
+            # Reject floats like "1.5" or strings like "10nm"
+            parsed = int(val_str)
+            if str(parsed) != val_str.strip() or parsed < 1:
+                raise ValueError()
+            return parsed
+        except ValueError:
+            raise ValueError(f"{flag_name} must be an integer >= 1, got '{val_str}'.")
+
+    cli_grid_step = None
+    cli_max_iters = None
+    filtered_argv = []
+    i = 0
     try:
-        raw_plan_arg, cli_cruise_alt = parse_cli_args(sys.argv[1:])
+        while i < len(raw_argv):
+            tok = raw_argv[i]
+            if tok == "--step" or tok == "--grid-step":
+                if i + 1 >= len(raw_argv):
+                    raise ValueError(f"{tok} requires an integer value.")
+                cli_grid_step = _parse_pos_int_token(raw_argv[i + 1], tok)
+                i += 2
+            elif tok.startswith("--step=") or tok.startswith("--grid-step="):
+                flag_name, val_str = tok.split("=", 1)
+                cli_grid_step = _parse_pos_int_token(val_str, flag_name)
+                i += 1
+            elif tok == "--max-iters":
+                if i + 1 >= len(raw_argv):
+                    raise ValueError("--max-iters requires an integer value.")
+                cli_max_iters = _parse_pos_int_token(raw_argv[i + 1], "--max-iters")
+                i += 2
+            elif tok.startswith("--max-iters="):
+                _, val_str = tok.split("=", 1)
+                cli_max_iters = _parse_pos_int_token(val_str, "--max-iters")
+                i += 1
+            else:
+                filtered_argv.append(tok)
+                i += 1
+
+        raw_plan_arg, cli_cruise_alt = parse_cli_args(filtered_argv)
     except ValueError as e:
         print(f"\n[CLI ERROR] {e}")
-        print("Usage: contour_route.py [ALT_FT] [PATH/TO/PLAN.{lnmpln,fgfp}] (or --file=PATH)")
+        print("Usage: contour_route.py [ALT_FT] [PATH/TO/PLAN.{lnmpln,fgfp}] (or --file=PATH) [--step=N] [--max-iters=N]")
         sys.exit(1)
+
+    grid_step = cli_grid_step if cli_grid_step is not None else int(config.get("grid_step", 1))
+    max_iters = cli_max_iters if cli_max_iters is not None else int(config.get("max_iters", 150000))
+
+    if grid_step < 1:
+        raise ValueError(f"grid_step in config.json must be an integer >= 1, got {grid_step}.")
+    if max_iters < 1:
+        raise ValueError(f"max_iters in config.json must be an integer >= 1, got {max_iters}.")
 
     custom_plan_mode = raw_plan_arg is not None
 
@@ -640,7 +692,8 @@ if __name__ == "__main__":
     # 2. Compute Theta* terrain-aware path
     print(
         f"Computing Theta* route from {ident_a} {start_coord} to {ident_b} {goal_coord} "
-        f"at {cruise_alt:.0f} ft (Vertical clearance: {clearance:.0f} ft, "
+        f"at {cruise_alt:.0f} ft\n"
+        f"(Vertical clearance: {clearance:.0f} ft, "
         f"Horizontal buffer: {horizontal_buffer_nm} nm, Grid step: {grid_step})..."
     )
 
@@ -656,7 +709,11 @@ if __name__ == "__main__":
             max_iters=max_iters,
         )
     except RuntimeError as e:
-        print(f"\n[DISPATCH ERROR] Pathfinding failed: {e}")
+        print(
+            f"\n[DISPATCH ERROR] Pathfinding failed: {e}\n"
+            "Tip: Increase integer step (--step, faster / less accurate) or "
+            "max_iters (--max-iters, slower / lossless grid resolution at step=1)."
+        )
         sys.exit(1)
 
     print(f"Route calculated successfully with {len(route_coords)} waypoints.")
