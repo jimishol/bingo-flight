@@ -65,7 +65,7 @@ Total VRP entries written to GR/poi.dat: 1553
 ============================================================
 
 ```
-
+    *Note: Do not miss to use the feature during replays too.*
 ---
 
 ## Configuration Zone
