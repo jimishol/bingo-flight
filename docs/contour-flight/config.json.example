@@ -6,6 +6,7 @@
   "horizontal_buffer_nm": 0.5,
   "grid_step": 1,
   "max_iters": 150000,
+  "collinear_tol_deg": 0.10,
   "DB_DIR": "~/.cache/flight_dispatch",
   "default_cruise_alt_ft": 4500
 }

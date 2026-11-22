@@ -18,6 +18,7 @@ import csv
 import io
 import sqlite3
 import urllib.request
+import xml.etree.ElementTree as ET
 from pyproj import Geod
 from global_reader import PythonGlobeReader
 
@@ -210,9 +211,70 @@ def get_terminal_min_alt(reader, coord, horizontal_buffer_nm, clearance):
                 max_elev_ft = elev_ft
     return max_elev_ft + clearance
 
-def plan(globe_data_dir, A, B, cruise_altitude, clearance, horizontal_buffer_nm=1.0, grid_step=1, max_iters=150000):
+def _parse_float(value):
+    if value is None:
+        return None
+    try:
+        return float(str(value).strip())
+    except ValueError:
+        return None
+
+def _parse_lnmpln_waypoints(root):
+    waypoints = []
+    for wp in root.findall(".//Waypoints/Waypoint"):
+        ident_el = wp.find("Ident")
+        pos_el = wp.find("Pos")
+        if pos_el is None:
+            continue
+        lat = pos_el.get("Lat") or pos_el.get("lat")
+        lon = pos_el.get("Lon") or pos_el.get("lon")
+        if lat is None or lon is None:
+            continue
+        ident = (ident_el.text or "").strip() if ident_el is not None else ""
+        waypoints.append((ident, float(lat), float(lon)))
+    return waypoints
+
+def _parse_fgfp_waypoints(root):
+    """Extract ordered (ident, lat, lon) waypoints from <route><wp> in a .fgfp XML root."""
+    waypoints = []
+
+    for route_elem in root.iter("route"):
+        for wp in route_elem.findall("wp"):
+            ident_elem = wp.find("ident")
+            lat_elem = wp.find("lat")
+            lon_elem = wp.find("lon")
+            if lat_elem is None or lon_elem is None:
+                continue
+
+            lat = _parse_float(lat_elem.text)
+            lon = _parse_float(lon_elem.text)
+            if lat is None or lon is None:
+                continue
+
+            ident = (ident_elem.text or "").strip() if ident_elem is not None else ""
+            if not ident:
+                ident = f"WP{len(waypoints) + 1}"
+
+            waypoints.append((ident, lat, lon))
+
+    return waypoints
+
+def _filter_anchor_waypoints(waypoints):
+    """Drops previously generated corridor waypoints (e.g. T01, THETA_CORRIDOR_1)."""
+    anchors = []
+    for ident, lat, lon in waypoints:
+        ident_upper = (ident or "").strip().upper()
+        if ident_upper.startswith("THETA_CORRIDOR_"):
+            continue
+        if re.fullmatch(r"T\d+", ident_upper):
+            continue
+        anchors.append((ident, lat, lon))
+    return anchors
+
+def plan(globe_data_dir, A, B, cruise_altitude, clearance, horizontal_buffer_nm=1.0, grid_step=1, max_iters=150000, reader=None):
     """Plans a terrain-aware route between A and B using feet and nautical miles."""
-    reader = PythonGlobeReader(globe_data_dir)
+    if reader is None:
+        reader = PythonGlobeReader(globe_data_dir)
 
     start_rc = lonlat_to_rowcol(A[0], A[1])
     goal_rc = lonlat_to_rowcol(B[0], B[1])
@@ -364,58 +426,60 @@ def resolve_airport_coord(ident, config):
     )
 
 def parse_saved_lnmpln(filepath, config=None):
-    """Extracts cruise alt, departure, and destination coords/idents from a saved lnmpln file."""
+    """Extracts cruise alt, departure, and destination coords/idents from <Waypoints> in a saved lnmpln file."""
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
     alt_match = re.search(r"<CruisingAlt>(.*?)</CruisingAlt>", content)
     cruising_alt = float(alt_match.group(1)) if alt_match and alt_match.group(1).strip() else None
 
+    root = ET.fromstring(content)
+    waypoints = _parse_lnmpln_waypoints(root)
+
+    if waypoints:
+        dep_ident = waypoints[0][0]
+        dest_ident = waypoints[-1][0]
+        start_coord = (waypoints[0][2], waypoints[0][1])
+        goal_coord = (waypoints[-1][2], waypoints[-1][1])
+        return cruising_alt, dep_ident, dest_ident, start_coord, goal_coord
+
     ident_matches = re.findall(r"<Ident>(.*?)</Ident>", content)
     dep_ident = ident_matches[0].strip() if ident_matches else "DEP"
     dest_ident = ident_matches[-1].strip() if ident_matches else "DEST"
 
-    pos_matches = re.findall(r'<Pos\s+[^>]*[Ll]on="([^"]+)"\s+[^>]*[Ll]at="([^"]+)"', content)
-    if not pos_matches:
-        pos_matches = re.findall(r'<Pos\s+[^>]*[Ll]at="([^"]+)"\s+[^>]*[Ll]on="([^"]+)"', content)
-        if pos_matches:
-            pos_matches = [(m[1], m[0]) for m in pos_matches]
-
-    if len(pos_matches) >= 2:
-        start_coord = (float(pos_matches[0][0]), float(pos_matches[0][1]))
-        goal_coord = (float(pos_matches[-1][0]), float(pos_matches[-1][1]))
-    elif config is not None:
+    if config is not None:
         start_coord = resolve_airport_coord(dep_ident, config)
         goal_coord = resolve_airport_coord(dest_ident, config)
-    else:
-        raise ValueError("Saved lnmpln must contain at least departure and destination positions.")
+        return cruising_alt, dep_ident, dest_ident, start_coord, goal_coord
 
-    return cruising_alt, dep_ident, dest_ident, start_coord, goal_coord
+    raise ValueError("Saved lnmpln must contain at least departure and destination positions.")
+
 
 def parse_saved_fgfp(filepath, config=None):
-    """Extracts cruise alt, departure, and destination coords/idents from a saved fgfp file."""
+    """Extracts cruise alt, departure, and destination coords/idents from <route> in a saved fgfp file."""
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
 
     dep_match = re.search(r"<departure>\s*<airport[^>]*>([^<]+)</airport>\s*</departure>", content)
     dest_match = re.search(r"<destination>\s*<airport[^>]*>([^<]+)</airport>\s*</destination>", content)
 
-    dep_ident = dep_match.group(1).strip() if dep_match else "DEP"
-    dest_ident = dest_match.group(1).strip() if dest_match else "DEST"
-
     cruise_match = re.search(r'<cruise>\s*<altitude-ft[^>]*>([\d\.]+)</altitude-ft>', content)
     if not cruise_match:
         cruise_match = re.search(r'<altitude-ft[^>]*>([\d\.]+)</altitude-ft>', content)
-
     cruising_alt = float(cruise_match.group(1)) if cruise_match else None
 
-    lons = re.findall(r'<lon type="double">([\d\.-]+)</lon>', content)
-    lats = re.findall(r'<lat type="double">([\d\.-]+)</lat>', content)
+    root = ET.fromstring(content)
+    waypoints = _parse_fgfp_waypoints(root)
 
-    if len(lons) >= 2 and len(lats) >= 2:
-        start_coord = (float(lons[0]), float(lats[0]))
-        goal_coord = (float(lons[-1]), float(lats[-1]))
+    if len(waypoints) >= 2:
+        dep_ident = dep_match.group(1).strip() if dep_match else waypoints[0][0]
+        dest_ident = dest_match.group(1).strip() if dest_match else waypoints[-1][0]
+        start_coord = (waypoints[0][2], waypoints[0][1])
+        goal_coord = (waypoints[-1][2], waypoints[-1][1])
         return cruising_alt, dep_ident, dest_ident, start_coord, goal_coord
+
+    dep_ident = dep_match.group(1).strip() if dep_match else (waypoints[0][0] if waypoints else "DEP")
+    dest_ident = dest_match.group(1).strip() if dest_match else "DEST"
 
     if config is not None:
         start_coord = resolve_airport_coord(dep_ident, config)
@@ -424,7 +488,16 @@ def parse_saved_fgfp(filepath, config=None):
 
     raise ValueError("Saved fgfp must contain at least departure and destination coordinates.")
 
-def update_lnmpln_file(filepath, full_route_coords, cruising_alt, dep_ident, dest_ident, start_coord, goal_coord):
+def update_lnmpln_file(
+    filepath,
+    full_route_coords,
+    cruising_alt,
+    dep_ident,
+    dest_ident,
+    start_coord,
+    goal_coord,
+    anchor_idents=None,
+):
     """Updates the saved Little Navmap file in-place with contour waypoints while preserving comments."""
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
@@ -437,6 +510,9 @@ def update_lnmpln_file(filepath, full_route_coords, cruising_alt, dep_ident, des
         cruising_block = f"      <CruisingAlt>{int(cruising_alt)}</CruisingAlt>\n      <CruisingAltF>{cruising_alt:.8f}</CruisingAltF>\n"
         content = re.sub(r"(<Header>)", f"\\1\n{cruising_block}", content)
 
+    anchor_lookup = anchor_idents or {}
+    corridor_num = 1
+
     new_waypoints_lines = ["  <Waypoints>"]
     new_waypoints_lines.append(
         f"      <Waypoint>\n"
@@ -446,11 +522,20 @@ def update_lnmpln_file(filepath, full_route_coords, cruising_alt, dep_ident, des
         f'        <Pos Lon="{start_coord[0]:.6f}" Lat="{start_coord[1]:.6f}" Alt="0.00"/>\n'
         f"      </Waypoint>"
     )
-    for idx, (lon, lat) in enumerate(full_route_coords[1:-1]):
+    for lon, lat in full_route_coords[1:-1]:
+        key = (round(lon, 6), round(lat, 6))
+        if key in anchor_lookup:
+            wp_ident = anchor_lookup[key]
+            wp_name = wp_ident
+        else:
+            wp_ident = f"T{corridor_num:02d}"
+            wp_name = f"THETA_CORRIDOR_{corridor_num}"
+            corridor_num += 1
+
         new_waypoints_lines.append(
             f"      <Waypoint>\n"
-            f"        <Name>THETA_CORRIDOR_{idx + 1}</Name>\n"
-            f"        <Ident>T{idx + 1:02d}</Ident>\n"
+            f"        <Name>{wp_name}</Name>\n"
+            f"        <Ident>{wp_ident}</Ident>\n"
             f"        <Type>USER</Type>\n"
             f'        <Pos Lon="{lon:.6f}" Lat="{lat:.6f}" Alt="{cruising_alt:.2f}"/>\n'
             f"      </Waypoint>"
@@ -471,7 +556,16 @@ def update_lnmpln_file(filepath, full_route_coords, cruising_alt, dep_ident, des
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(content)
 
-def update_fgfp_file(filepath, full_route_coords, cruising_alt, dep_ident, dest_ident, start_coord, goal_coord):
+def update_fgfp_file(
+    filepath,
+    full_route_coords,
+    cruising_alt,
+    dep_ident,
+    dest_ident,
+    start_coord,
+    goal_coord,
+    anchor_idents=None,
+):
     """Updates the saved FlightGear FGFP file in-place, preserving remarks and metadata."""
     with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
@@ -487,6 +581,9 @@ def update_fgfp_file(filepath, full_route_coords, cruising_alt, dep_ident, dest_
     else:
         content = re.sub(r"(<destination>.*?</destination>)", r"\1\n" + cruise_block, content, flags=re.DOTALL)
 
+    anchor_lookup = anchor_idents or {}
+    corridor_num = 1
+
     wp_xmls = [
         f'    <wp>\n      <type type="string">navaid</type>\n'
         f'      <departure type="bool">true</departure>\n'
@@ -495,11 +592,18 @@ def update_fgfp_file(filepath, full_route_coords, cruising_alt, dep_ident, dest_
         f'      <lat type="double">{start_coord[1]:.8f}</lat>\n    </wp>'
     ]
     for idx, (lon, lat) in enumerate(full_route_coords[1:-1]):
+        key = (round(lon, 6), round(lat, 6))
+        if key in anchor_lookup:
+            wp_ident = anchor_lookup[key]
+        else:
+            wp_ident = f"T{corridor_num:02d}"
+            corridor_num += 1
+
         wp_xmls.append(
             f'    <wp n="{idx + 1}">\n      <type type="string">basic</type>\n'
             f'      <alt-restrict type="string">at</alt-restrict>\n'
             f'      <altitude-ft type="double">{cruising_alt}</altitude-ft>\n'
-            f'      <ident type="string">T{idx + 1:02d}</ident>\n'
+            f'      <ident type="string">{wp_ident}</ident>\n'
             f'      <lon type="double">{lon:.8f}</lon>\n'
             f'      <lat type="double">{lat:.8f}</lat>\n    </wp>'
         )
@@ -552,10 +656,27 @@ def parse_cli_args(argv):
 
     return plan_path, cli_cruise_alt
 
+def _merge_same_bearing(coords, anchors, tol):
+    if len(coords) < 3 or tol <= 0:
+        return coords
+    anchor_set = {(round(x, 6), round(y, 6)) for x, y in anchors}
+    bearing = lambda a, b: (math.degrees(math.atan2(b[0] - a[0], b[1] - a[1])) + 360) % 360
+    out = [coords[0]]
+    for i in range(1, len(coords) - 1):
+        p, c, n = out[-1], coords[i], coords[i + 1]
+        if (round(c[0], 6), round(c[1], 6)) in anchor_set:
+            out.append(c)
+            continue
+        diff = abs(bearing(p, c) - bearing(c, n))
+        if min(diff, 360 - diff) > tol:
+            out.append(c)
+    out.append(coords[-1])
+    return out
+
 if __name__ == "__main__":
     raw_argv = sys.argv[1:]
     if "-h" in raw_argv or "--help" in raw_argv:
-        print("Usage: contour_route.py [ALT_FT] [PATH/TO/PLAN.{lnmpln,fgfp}] [--file=PATH] [--step=N] [--max-iters=N]")
+        print("Usage: contour_route.py [ALT_FT] [PATH/TO/PLAN.{lnmpln,fgfp}] [--file=PATH] [--step=N | --grid-step=N] [--max-iters=N]")
         print("Options:")
         print("  -h, --help          Show this help message and exit.")
         print("  --step, --grid-step Override grid_step from config.json (integer >= 1; higher = faster, coarser).")
@@ -564,21 +685,15 @@ if __name__ == "__main__":
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     config_file = os.path.join(script_dir, "config.json")
-    if os.path.exists(config_file):
-        with open(config_file, "r", encoding="utf-8") as f:
-            config = json.load(f)
-    else:
-        config = {
-            "globe_data_dir": "GLOBE Elevation Data/all10",
-            "clearance": 300,
-            "horizontal_buffer_nm": 1.0,
-            "grid_step": 1,
-            "max_iters": 150000,
-        }
+    if not os.path.exists(config_file):
+        raise FileNotFoundError(f"Missing config file: {config_file}")
+    with open(config_file, "r", encoding="utf-8") as f:
+        config = json.load(f)
 
     globe_dir = os.path.expanduser(config["globe_data_dir"])
     clearance = float(config.get("clearance", 300))
     horizontal_buffer_nm = float(config.get("horizontal_buffer_nm", 1.0))
+    collinear_tol_deg = float(config.get("collinear_tol_deg", 0.10))
 
     raw_default_alt = config.get("default_cruise_alt_ft")
     default_cruise_alt_ft = float(raw_default_alt) if raw_default_alt is not None else None
@@ -651,9 +766,6 @@ if __name__ == "__main__":
         target_lnmpln = f"{stem}.lnmpln"
         target_fgfp = f"{stem}.fgfp"
 
-        print("\n\033[3m[WARNING] External plan mode: ONLY departure and destination endpoints are preserved;\033[0m")
-        print("\033[3m          any intermediate waypoints/legs will be replaced by the contour corridor.\033[0m\n")
-
         if ext == ".lnmpln":
             print(f"Reading flight plan from LNM source: {expanded_plan}...")
             file_cruise_alt, ident_a, ident_b, start_coord, goal_coord = parse_saved_lnmpln(expanded_plan, config)
@@ -679,6 +791,23 @@ if __name__ == "__main__":
                 f"No flight plan found at {target_lnmpln} or {target_fgfp}."
             )
 
+    _source_file = expanded_plan if custom_plan_mode else (target_lnmpln if os.path.exists(target_lnmpln) else target_fgfp)
+    _raw_wps = (
+        _parse_lnmpln_waypoints(ET.parse(_source_file).getroot())
+        if _source_file.lower().endswith(".lnmpln")
+        else _parse_fgfp_waypoints(ET.parse(_source_file).getroot())
+    )
+    _anchors = _filter_anchor_waypoints(_raw_wps)
+    leg_coords = [(lon, lat) for _, lat, lon in _anchors] or [start_coord, goal_coord]
+    leg_idents = [ident or f"({lon:.6f}, {lat:.6f})" for ident, lat, lon in _anchors]
+    if len(leg_idents) < 2:
+        leg_idents = [ident_a, ident_b]
+    anchor_idents = {
+        (round(lon, 6), round(lat, 6)): ident
+        for ident, lat, lon in _anchors
+        if ident
+    }
+
     # Priority: CLI override > briefing/plan file altitude > config.json default_cruise_alt_ft
     if cli_cruise_alt is not None:
         cruise_alt = cli_cruise_alt
@@ -689,25 +818,44 @@ if __name__ == "__main__":
     else:
         raise ValueError("No cruise altitude in CLI, flight plan file, or config.json ('default_cruise_alt_ft').")
 
-    # 2. Compute Theta* terrain-aware path
+    # 2. Compute Theta* terrain-aware path across all legs
     print(
         f"Computing Theta* route from {ident_a} {start_coord} to {ident_b} {goal_coord} "
-        f"at {cruise_alt:.0f} ft\n"
+        f"at {cruise_alt:.0f} ft across {len(leg_coords) - 1} leg(s)\n"
         f"(Vertical clearance: {clearance:.0f} ft, "
         f"Horizontal buffer: {horizontal_buffer_nm} nm, Grid step: {grid_step})..."
     )
 
+    reader = PythonGlobeReader(globe_dir)
+    route_coords = []
     try:
-        route_coords, cruise_alt = plan(
-            globe_data_dir=globe_dir,
-            A=start_coord,
-            B=goal_coord,
-            cruise_altitude=cruise_alt,
-            clearance=clearance,
-            horizontal_buffer_nm=horizontal_buffer_nm,
-            grid_step=grid_step,
-            max_iters=max_iters,
-        )
+        for leg_idx in range(len(leg_coords) - 1):
+            leg_start = leg_coords[leg_idx]
+            leg_goal = leg_coords[leg_idx + 1]
+            leg_from_label = leg_idents[leg_idx]
+            leg_to_label = leg_idents[leg_idx + 1]
+            print(
+                f"Leg {leg_idx + 1}/{len(leg_coords) - 1}: "
+                f"Computing Theta* route {leg_from_label} -> {leg_to_label} at {cruise_alt:.0f} ft..."
+            )
+            seg_coords, cruise_alt = plan(
+                globe_data_dir=globe_dir,
+                A=leg_start,
+                B=leg_goal,
+                cruise_altitude=cruise_alt,
+                clearance=clearance,
+                horizontal_buffer_nm=horizontal_buffer_nm,
+                grid_step=grid_step,
+                max_iters=max_iters,
+                reader=reader,
+            )
+            seg_coords = _merge_same_bearing(
+                seg_coords, [leg_start, leg_goal], collinear_tol_deg
+            )
+            if not route_coords:
+                route_coords.extend(seg_coords)
+            else:
+                route_coords.extend(seg_coords[1:])
     except RuntimeError as e:
         print(
             f"\n[DISPATCH ERROR] Pathfinding failed: {e}\n"
@@ -734,7 +882,6 @@ if __name__ == "__main__":
         )
         with open(target_lnmpln, "w", encoding="utf-8") as f:
             f.write(base_lnm)
-
     update_lnmpln_file(
         filepath=target_lnmpln,
         full_route_coords=route_coords,
@@ -743,6 +890,7 @@ if __name__ == "__main__":
         dest_ident=ident_b,
         start_coord=start_coord,
         goal_coord=goal_coord,
+        anchor_idents=anchor_idents,
     )
     print(f"-> Synchronized Little Navmap format: {target_lnmpln}")
 
@@ -768,5 +916,6 @@ if __name__ == "__main__":
         dest_ident=ident_b,
         start_coord=start_coord,
         goal_coord=goal_coord,
+        anchor_idents=anchor_idents,
     )
     print(f"-> Synchronized FlightGear format: {target_fgfp}")

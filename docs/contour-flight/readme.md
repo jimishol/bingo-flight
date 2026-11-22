@@ -17,8 +17,8 @@ https://github.com/user-attachments/assets/d44cb45f-6b50-4fd2-bdde-be29bee07667
 - **Configurable Grid Stride (`grid_step`)**: Steps every `N`th cell on the GLOBE elevation grid (similar to working on a downsampled image: `step=2` halves per-axis resolution for roughly 4× the area per step; `step=3` gives roughly 9×). Higher integer values speed up long searches within `max_iters` at the cost of coarser turns and potentially skipping narrow passes or straits; `grid_step=1` keeps full grid resolution.
 - **Configurable Horizontal Obstacle Inflation**: The `horizontal_buffer_nm` parameter acts as a safety bubble around terrain. By checking a spatial buffer around every grid node, obstacles are effectively inflated—allowing you to tune whether the router carves wide, safe berths around peaks or shaves right against the cliff faces for maximum adrenaline.
 - **Terminal Buffer Floor**: Scans airport surroundings to prevent pathfinding crashes caused by airports sitting "underground" relative to nearby inflated terrain barriers—automatically intercepting low inputs, logging an unmissable italicized notice, and rounding up to a viable starting floor.
-- **Bi-Format Synchronization**: Reads from and writes back to either Little Navmap (`.lnmpln`) or FlightGear (`.fgfp`) draft caches in-place while preserving custom comments and metadata.
-- **Flexible CLI & External Plan Support**: Accepts optional low-level altitude overrides, `--step` / `--max-iters` search tuning flags, and arbitrary `.lnmpln` or `.fgfp` file paths in any argument order (or via `--file` / `-f`), updating both formats in-place.
+- **Bi-Format Synchronization & Anchor Preservation**: Reads from and writes back to either Little Navmap (`.lnmpln`) or FlightGear (`.fgfp`) plans in-place while preserving comments, metadata, and manual anchor waypoints (such as `WP1`), labeling newly generated terrain-avoidance points `T01`, `T02`, etc. (`THETA_CORRIDOR_1`, ... in LNM).
+- **Flexible CLI, Multi-Leg & External Plan Support**: Splits routes across manual anchor waypoints into independent legs (`Leg 1/N`, `Leg 2/N`, ...), merges near-collinear corridor steps within each leg via `collinear_tol_deg`, and supports optional altitude overrides, `--step` / `--max-iters` flags, and arbitrary `.lnmpln` or `.fgfp` paths (or via `--file` / `-f`).
 
 ---
 
@@ -58,10 +58,11 @@ When planning a route, starting cruise altitude is resolved in this order:
 1. **CLI argument** (e.g., `python contour_route.py 1500`)
 2. **Briefing file altitude** (`<CruisingAlt>` in `briefing.lnmpln` or `<altitude-ft>` in `briefing.fgfp`, if present) 
 3. **`default_cruise_alt_ft`** in `config.json`
+4. **`collinear_tol_deg`** (default `0.10`): Maximum bearing difference (in degrees) between consecutive corridor points within a leg to collapse redundant collinear waypoints. Anchor endpoints are never merged; set to `0` to disable merging.
 
 *Notes:*
 - *The terminal buffer floor check in `plan()` still runs afterward and automatically raises `cruise_alt` if required for departure/destination terrain clearance.*
-- *`config.json` is excluded via `.gitignore` to keep local machine paths private.*
+- *`config.json` is required at startup (`FileNotFoundError` is raised if missing) and is excluded via `.gitignore` to keep local machine paths private.*
 
 ---
 
@@ -84,10 +85,10 @@ By default, Contour-Flight reads draft flight plans from `DB_DIR` (`briefing.lnm
 	python contour_route.py 4500
 	```
 
-- **Tune search stride (`--step`) or iteration budget (`--max-iters`) for tricky low-altitude legs:**
+- **Tune search stride (`--step` / `--grid_step`) or iteration budget (`--max-iters`) for tricky low-altitude legs:**
 	```bash
 	python contour_route.py --step=3
-	python contour_route.py --max-iters=1500000
+	python contour_route.py --max-iters=150000
 	```
 
 - **Run against any `.lnmpln` or `.fgfp` file** (altitude and file path can be passed in either order, or via `--file` / `-f`, with optional `--step` and `--max-iters` at the end):
@@ -96,9 +97,8 @@ By default, Contour-Flight reads draft flight plans from `DB_DIR` (`briefing.lnm
 	python contour_route.py /path/to/plan.lnmpln 2500
 	python contour_route.py 2500 /path/to/plan.fgfp
 	python contour_route.py --file=/path/to/plan.lnmpln 2500
-	python contour_route.py /path/to/plan.lnmpln 2500 --step=3 --max-iters=1500000
+	python contour_route.py /path/to/plan.lnmpln 2500 --step=3 --max-iters=150000
 	```
-	> **Warning:** In external plan mode, **only the departure and destination endpoints are preserved**—all intermediate waypoints and legs in the source file are replaced by the computed Theta* corridor, and both `<stem>.lnmpln` and `<stem>.fgfp` are updated or created in-place in that file's directory.
 
 - **Optional shell alias** (add to `~/.bashrc` or `~/.zshrc` to run from any directory):
 	```bash
