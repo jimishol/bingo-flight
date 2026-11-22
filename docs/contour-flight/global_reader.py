@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 
 class PythonGlobeReader:
@@ -26,21 +27,25 @@ class PythonGlobeReader:
         for r_idx in range(4):
             for c_idx in range(4):
                 letter = chr(ord('a') + (r_idx * 4 + c_idx))
-                target_filename = f"{letter}10g"  # e.g., a10g, g10g, etc.
-                path = os.path.join(self.data_dir, target_filename)
-                
-                if os.path.exists(path):
-                    file_size = os.path.getsize(path)
-                    if file_size in (self.FILE_SIZE_SMALL, self.FILE_SIZE_LARGE):
-                        self.files[(r_idx, c_idx)] = path
-                else:
-                    # Fallback search if exact name differs slightly
-                    for filename in os.listdir(self.data_dir):
-                        if filename.lower().startswith(letter) and filename.lower().endswith(('g', 'b')):
-                            candidate_path = os.path.join(self.data_dir, filename)
-                            if os.path.getsize(candidate_path) in (self.FILE_SIZE_SMALL, self.FILE_SIZE_LARGE):
-                                self.files[(r_idx, c_idx)] = candidate_path
-                                break
+                candidates = []
+                for filename in os.listdir(self.data_dir):
+                    lower = filename.lower()
+                    m = re.fullmatch(rf"{letter}(\d+)([gb])", lower)
+                    if not m:
+                        continue
+                    candidate_path = os.path.join(self.data_dir, filename)
+                    if os.path.isfile(candidate_path) and os.path.getsize(candidate_path) in (
+                        self.FILE_SIZE_SMALL,
+                        self.FILE_SIZE_LARGE,
+                    ):
+                        rev = int(m.group(1))
+                        ext_rank = 1 if m.group(2) == "g" else 0
+                        candidates.append(((rev, ext_rank, lower), candidate_path))
+
+                if candidates:
+                    _, best_path = max(candidates, key=lambda item: item[0])
+                    self.files[(r_idx, c_idx)] = best_path
+
         print(f"[GLOBE Reader] Successfully loaded {len(self.files)}/16 elevation tiles.")
 
     def get_elevation_grid(self, bounds_latlon=None):

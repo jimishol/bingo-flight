@@ -230,7 +230,7 @@ def plan(globe_data_dir, A, B, cruise_altitude, clearance, horizontal_buffer_nm=
             elev_m = reader.get_elevation(lon, lat)
             if elev_m is None or elev_m == reader.ELEVATION_INVALID:
                 cell_elev_cache[rc] = None
-            elif elev_m == reader.ELEVATION_OCEAN or elev_m <= -500:
+            elif elev_m == reader.ELEVATION_OCEAN:
                 cell_elev_cache[rc] = 0.0
             else:
                 cell_elev_cache[rc] = elev_m * M_TO_FT
