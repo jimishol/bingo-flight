@@ -100,6 +100,8 @@ By default, Contour-Flight reads draft flight plans from `DB_DIR` (`briefing.lnm
 	python contour_route.py /path/to/plan.lnmpln 2500 --step=3 --max-iters=150000
 	```
 
+- **Re-running after editing waypoints in LNM / FlightGear:** Previously generated corridor waypoints (`T01`, `T02`, ... / `THETA_CORRIDOR_*`) from earlier runs are automatically ignored when reading the plan, so you can move manual anchor waypoints (like `WP1`) and re-run directly without manually deleting old corridor points first.
+
 - **Optional shell alias** (add to `~/.bashrc` or `~/.zshrc` to run from any directory):
 	```bash
 	alias fg-contour='python3 "$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/docs/contour-flight/contour_route.py"'
