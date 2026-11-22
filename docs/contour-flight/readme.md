@@ -85,10 +85,10 @@ By default, Contour-Flight reads draft flight plans from `DB_DIR` (`briefing.lnm
 	python contour_route.py 4500
 	```
 
-- **Tune search stride (`--step`) or iteration budget (`--max-iters`) for tricky low-altitude legs:**
+- **Tune search stride (`--step` / `--grid_step`) or iteration budget (`--max-iters`) for tricky low-altitude legs:**
 	```bash
 	python contour_route.py --step=3
-	python contour_route.py --max-iters=1500000
+	python contour_route.py --max-iters=150000
 	```
 
 - **Run against any `.lnmpln` or `.fgfp` file** (altitude and file path can be passed in either order, or via `--file` / `-f`, with optional `--step` and `--max-iters` at the end):
@@ -97,7 +97,7 @@ By default, Contour-Flight reads draft flight plans from `DB_DIR` (`briefing.lnm
 	python contour_route.py /path/to/plan.lnmpln 2500
 	python contour_route.py 2500 /path/to/plan.fgfp
 	python contour_route.py --file=/path/to/plan.lnmpln 2500
-	python contour_route.py /path/to/plan.lnmpln 2500 --step=3 --max-iters=1500000
+	python contour_route.py /path/to/plan.lnmpln 2500 --step=3 --max-iters=150000
 	```
 
 - **Optional shell alias** (add to `~/.bashrc` or `~/.zshrc` to run from any directory):

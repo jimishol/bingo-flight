@@ -676,7 +676,7 @@ def _merge_same_bearing(coords, anchors, tol):
 if __name__ == "__main__":
     raw_argv = sys.argv[1:]
     if "-h" in raw_argv or "--help" in raw_argv:
-        print("Usage: contour_route.py [ALT_FT] [PATH/TO/PLAN.{lnmpln,fgfp}] [--file=PATH] [--step=N] [--max-iters=N]")
+        print("Usage: contour_route.py [ALT_FT] [PATH/TO/PLAN.{lnmpln,fgfp}] [--file=PATH] [--step=N | --grid-step=N] [--max-iters=N]")
         print("Options:")
         print("  -h, --help          Show this help message and exit.")
         print("  --step, --grid-step Override grid_step from config.json (integer >= 1; higher = faster, coarser).")
