@@ -106,3 +106,7 @@ By default, Contour-Flight reads draft flight plans from `DB_DIR` (`briefing.lnm
 	```bash
 	alias fg-contour='python3 "$HOME/games/flightgear-navigation_tools/setup_related_files/bingo-flight/docs/contour-flight/contour_route.py"'
 	```
+
+https://github.com/user-attachments/assets/ccf17284-2ef2-4136-96c9-f42f992cff63
+
+*Cockpit view of a FlightGear Cessna 172P on AP/NAV GPS lock crossing the Southern Pindus / Agrafa mountain corridor from LGKR to LGBL (`500 ft` clearance, `0.75 nm` horizontal buffer) (heavily downscaled from original; contains minor edit cuts).*
