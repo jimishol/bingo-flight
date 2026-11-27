@@ -271,7 +271,7 @@ def _filter_anchor_waypoints(waypoints):
         anchors.append((ident, lat, lon))
     return anchors
 
-def plan(globe_data_dir, A, B, cruise_altitude, clearance, horizontal_buffer_nm=1.0, grid_step=1, max_iters=150000, reader=None):
+def plan(globe_data_dir, A, B, cruise_altitude, clearance, horizontal_buffer_nm=0.25, grid_step=1, max_iters=150000, reader=None):
     """Plans a terrain-aware route between A and B using feet and nautical miles."""
     if reader is None:
         reader = PythonGlobeReader(globe_data_dir)
@@ -691,8 +691,8 @@ if __name__ == "__main__":
         config = json.load(f)
 
     globe_dir = os.path.expanduser(config["globe_data_dir"])
-    clearance = float(config.get("clearance", 300))
-    horizontal_buffer_nm = float(config.get("horizontal_buffer_nm", 0.75))
+    clearance = float(config.get("clearance", 500))
+    horizontal_buffer_nm = float(config.get("horizontal_buffer_nm", 0.25))
     collinear_tol_deg = float(config.get("collinear_tol_deg", 0.10))
 
     raw_default_alt = config.get("default_cruise_alt_ft")
